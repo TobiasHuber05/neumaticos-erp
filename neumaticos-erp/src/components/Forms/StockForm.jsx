@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { X, Save, Package } from 'lucide-react';
-
-const categoriasProducto = ['Auto', 'Camioneta', 'Camión', 'Moto', 'Accesorios'];
+import { CATEGORIAS_PRODUCTO } from '../../data/erpInitialData';
 
 const formatPrecioGs = (valor) => {
   const limpio = String(valor).replace(/\./g, '').replace(/,/g, '').trim();
@@ -10,9 +9,9 @@ const formatPrecioGs = (valor) => {
   return n.toLocaleString('de-DE');
 };
 
-const StockForm = ({ proveedores = [], onCancelar, onGuardar }) => {
+const StockForm = ({ proveedores = [], categoriasProducto = CATEGORIAS_PRODUCTO, onCancelar, onGuardar }) => {
   const [nombre, setNombre] = useState('');
-  const [categoria, setCategoria] = useState(categoriasProducto[0]);
+  const [categoria, setCategoria] = useState(categoriasProducto[0] ?? CATEGORIAS_PRODUCTO[0]);
   const [proveedorId, setProveedorId] = useState('');
   const [precio, setPrecio] = useState('');
 

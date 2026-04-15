@@ -1,59 +1,110 @@
-import { Landmark, ArrowUpCircle, ArrowDownCircle, Wallet } from 'lucide-react';
+import { useState } from 'react';
+import { ArrowUpCircle, ArrowDownCircle, Plus, XCircle } from 'lucide-react';
+import { useModuloTesoreria } from '../hooks/useModuloTesoreria';
+import GestionCuentas from './ModuloTesoreria/GestionCuentas';
+import ConciliacionBancaria from './ModuloTesoreria/ConciliacionBancaria';
+import MovimientoManualForm from './Forms/MovimientoManualForm';
+import CuentaBancariaForm from './Forms/CuentaBancariaForm';
 
 const Tesoreria = () => {
-  const movimientos = [
-    { id: 1, concepto: 'Cobro Factura FAC-001', tipo: 'Ingreso', monto: '4.800.000', fecha: '2026-03-31' },
-    { id: 2, concepto: 'Pago Proveedor: Pirelli', tipo: 'Egreso', monto: '2.500.000', fecha: '2026-03-30' },
-  ];
+  const {
+    cuentas,
+    movimientos,
+    bancos,
+    registrarMovimiento,
+    registrarCuenta,
+    confirmarMovimientos,
+  } = useModuloTesoreria();
+
+  const [modo, setModo] = useState(null);
+
+  const movimientosPendientes = movimientos.filter((mov) => !mov.fecha_confirmacion).length;
+  const totalMovimientos = movimientos.length;
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-xl shadow-sm border-t-4 border-green-500">
-          <div className="flex justify-between items-center text-green-600 mb-2">
-            <span className="text-xs font-black uppercase">Disponibilidad Caja</span>
-            <Wallet size={20} />
-          </div>
-          <p className="text-3xl font-black text-gray-800">Gs. 12.450.000</p>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="bg-white p-6 rounded-xl shadow-sm border-l-8 border-erp-orange">
+          <p className="text-xs uppercase text-gray-500 font-black">Cuentas registradas</p>
+          <p className="text-3xl font-black text-gray-900 mt-3">{cuentas.length}</p>
         </div>
-        <div className="bg-white p-6 rounded-xl shadow-sm border-t-4 border-erp-orange">
-          <div className="flex justify-between items-center text-erp-orange mb-2">
-            <span className="text-xs font-black uppercase">Pagos Pendientes</span>
-            <ArrowDownCircle size={20} />
-          </div>
-          <p className="text-3xl font-black text-gray-800">Gs. 3.100.000</p>
+        <div className="bg-white p-6 rounded-xl shadow-sm border-l-8 border-green-500">
+          <p className="text-xs uppercase text-gray-500 font-black">Movimientos totales</p>
+          <p className="text-3xl font-black text-gray-900 mt-3">{totalMovimientos}</p>
+        </div>
+        <div className="bg-white p-6 rounded-xl shadow-sm border-l-8 border-blue-500">
+          <p className="text-xs uppercase text-gray-500 font-black">Pendientes de confirmación</p>
+          <p className="text-3xl font-black text-gray-900 mt-3">{movimientosPendientes}</p>
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-md overflow-hidden border border-orange-100">
-        <div className="p-6 border-b border-gray-100 bg-gray-50 flex items-center gap-2">
-          <Landmark className="text-erp-orange" />
-          <h2 className="text-xl font-bold text-gray-800">Movimientos de Caja</h2>
-        </div>
-        <table className="w-full text-left">
-          <thead className="bg-orange-50 text-erp-orange uppercase text-xs font-black">
-            <tr>
-              <th className="px-6 py-4">Concepto</th>
-              <th className="px-6 py-4">Fecha</th>
-              <th className="px-6 py-4 text-right">Monto</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100 italic">
-            {movimientos.map((m) => (
-              <tr key={m.id} className="text-sm">
-                <td className="px-6 py-4 font-bold flex items-center gap-2">
-                  {m.tipo === 'Ingreso' ? <ArrowUpCircle size={14} className="text-green-500" /> : <ArrowDownCircle size={14} className="text-red-500" />}
-                  {m.concepto}
-                </td>
-                <td className="px-6 py-4 text-gray-500">{m.fecha}</td>
-                <td className={`px-6 py-4 text-right font-black ${m.tipo === 'Ingreso' ? 'text-green-600' : 'text-red-600'}`}>
-                  {m.tipo === 'Ingreso' ? '+' : '-'} {m.monto}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="flex flex-wrap gap-3">
+        <button
+          type="button"
+          onClick={() => setModo(modo === 'cuenta' ? null : 'cuenta')}
+          className="inline-flex items-center gap-2 px-5 py-3 rounded-lg bg-erp-orange text-white font-bold hover:bg-orange-600 transition"
+        >
+          <Plus size={18} /> Nueva cuenta
+        </button>
+        <button
+          type="button"
+          onClick={() => setModo(modo === 'movimiento' ? null : 'movimiento')}
+          className="inline-flex items-center gap-2 px-5 py-3 rounded-lg bg-green-600 text-white font-bold hover:bg-green-700 transition"
+        >
+          <ArrowUpCircle size={18} /> Movimiento manual
+        </button>
+        <button
+          type="button"
+          onClick={() => setModo(modo === 'conciliacion' ? null : 'conciliacion')}
+          className="inline-flex items-center gap-2 px-5 py-3 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 transition"
+        >
+          <ArrowDownCircle size={18} /> Conciliación
+        </button>
+        {modo && (
+          <button
+            type="button"
+            onClick={() => setModo(null)}
+            className="inline-flex items-center gap-2 px-5 py-3 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition"
+          >
+            <XCircle size={18} /> Cerrar formulario
+          </button>
+        )}
       </div>
+
+      {modo === 'cuenta' && (
+        <CuentaBancariaForm
+          onCancelar={() => setModo(null)}
+          onGuardar={(cuenta) => {
+            registrarCuenta(cuenta);
+            setModo(null);
+          }}
+        />
+      )}
+
+      {modo === 'movimiento' && (
+        <MovimientoManualForm
+          cuentas={cuentas}
+          onCancelar={() => setModo(null)}
+          onGuardar={(movimiento) => {
+            registrarMovimiento(movimiento);
+            setModo(null);
+          }}
+        />
+      )}
+
+      {modo === 'conciliacion' && (
+        <ConciliacionBancaria
+          cuentas={cuentas}
+          movimientos={movimientos}
+          onCancelar={() => setModo(null)}
+          onConfirmarConciliacion={(ids) => {
+            confirmarMovimientos(ids);
+            setModo(null);
+          }}
+        />
+      )}
+
+      <GestionCuentas bancos={bancos} cuentas={cuentas} movimientos={movimientos} onNuevaCuenta={() => setModo('cuenta')} />
     </div>
   );
 };

@@ -1,33 +1,21 @@
 import { useState } from 'react';
-import { Package, Search, Filter, Plus } from 'lucide-react';
+import { Package, Search, Plus } from 'lucide-react';
 import StockForm from './Forms/StockForm';
 
-const proveedoresMaestro = [
-  { id: 1, nombre: 'Neumáticos del Este' },
-  { id: 2, nombre: 'Importadora Global S.A.' },
-  { id: 3, nombre: 'Distribuidora Pirelli' },
-];
-
-const Stock = () => {
+const Stock = ({ inventario, setInventario, proveedoresMaestro = [] }) => {
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [inventario, setInventario] = useState([
-    { id: 1, nombre: 'Michelin Primacy 4', categoria: 'Auto', stock: 5, min: 10, proveedor: "Maracaibo",
-      precio: '1.200.000' },
-    { id: 2, nombre: 'Pirelli Scorpion AT', categoria: 'Camioneta', stock: 15, min: 8,proveedor:"Michellin", 
-      precio: '1.850.000' },
-    { id: 3, nombre: 'Bridgestone Turanza', categoria: 'Auto', stock: 3, min: 10, precio: '950.000' },
-    { id: 4, nombre: 'Fate Max Senti', categoria: 'Auto', stock: 25, min: 15, precio: '600.000' },
-  ]);
 
-  const guardarProducto = ({ nombre, categoria, precio }) => {
+  const guardarProducto = ({ nombre, categoria, precio, proveedorNombre }) => {
+    const precioStr = precio ?? '—';
     const nuevo = {
       id: Date.now(),
       nombre,
       categoria,
       stock: 0,
       min: 10,
-      precio: precio ?? '—',
+      precio: precioStr,
+      proveedor: proveedorNombre || undefined,
     };
     setInventario((prev) => [nuevo, ...prev]);
     setMostrarFormulario(false);
@@ -54,7 +42,7 @@ const Stock = () => {
       <div className="p-4 border border-gray-500 rounded-t-xl flex justify-between items-center bg-gray-50">
         <div className="flex items-center gap-2">
           <Package className="text-erp-orange" />
-          <h2 className="text-xl font-bold text-gray-800">Control de Existencias</h2>
+          <h2 className="text-xl font-bold text-gray-800">Control de existencias</h2>
         </div>
         <button
           type="button"
@@ -88,9 +76,9 @@ const Stock = () => {
               <tr>
                 <th className="px-6 py-4">Producto</th>
                 <th className="px-6 py-4">Categoría</th>
-                <th className="px-6 py-4 text-center">Stock Actual</th>
-                <th className="px-6 py-4 text-center">Stock Mín.</th>
-                <th className="px-6 py-4 text-right">Precio Unitario</th>
+                <th className="px-6 py-4 text-center">Stock actual</th>
+                <th className="px-6 py-4 text-center">Stock mín.</th>
+                <th className="px-6 py-4 text-right">Precio unitario</th>
                 <th className="px-6 py-4 text-center">Estado</th>
               </tr>
             </thead>
@@ -102,16 +90,16 @@ const Stock = () => {
                   <td className="px-6 py-4 text-center font-mono font-bold">{item.stock}</td>
                   <td className="px-6 py-4 text-center text-gray-400">{item.min}</td>
                   <td className="px-6 py-4 text-right font-bold text-gray-700">
-                    {item.precio === '—' ? (
+                    {item.precio === '—' || item.precio == null ? (
                       <span className="text-gray-400 font-medium">—</span>
                     ) : (
                       <>Gs. {item.precio}</>
                     )}
                   </td>
                   <td className="px-6 py-4 text-center">
-                    {item.stock <= item.min ? (
+                    {Number(item.stock) <= Number(item.min) ? (
                       <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-red-100 text-red-600 text-[10px] font-black uppercase border border-red-200">
-                        Reposición Urgente
+                        Reposición urgente
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-green-100 text-green-600 text-[10px] font-black uppercase border border-green-200">
