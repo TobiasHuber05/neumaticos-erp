@@ -53,6 +53,7 @@ const menuItems = [
 
   return (
     <div className="w-64 h-screen bg-erp-yellow flex flex-col border-r border-orange-300 shrink-0 overflow-x-hidden">
+    <div className="w-64 h-screen bg-erp-yellow flex flex-col border-r border-orange-300 shrink-0 overflow-x-hidden">
       {/* Logo */}
       <div className="p-6 flex flex-col items-center border-b border-orange-300">
         <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mb-2 shadow-md">

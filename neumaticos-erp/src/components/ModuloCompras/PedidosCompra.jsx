@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Plus, Eye, ClipboardList, X } from 'lucide-react';
-import { ESTADOS_PEDIDO_COMPRA } from '../Forms/comprasFormDefaults';
 
 const PedidosCompra = ({ onNuevoPedido, pedidos }) => {
   const [pedidoDetalle, setPedidoDetalle] = useState(null);
@@ -93,14 +92,15 @@ const PedidosCompra = ({ onNuevoPedido, pedidos }) => {
                         <th className="px-4 py-2">Producto</th>
                         <th className="px-4 py-2">Categoría</th>
                         <th className="px-4 py-2 text-center">Cantidad</th>
+                        <th className="px-4 py-2 text-center">Proveedor</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
                       {pedidoDetalle.items.map((item) => (
                         <tr key={item.id}>
-                          <td className="px-4 py-2">{item.nombreProducto}</td>
-                          <td className="px-4 py-2 text-gray-600">{item.categoria}</td>
+                          <td className="px-4 py-2">{item.nombre}</td>
                           <td className="px-4 py-2 text-center font-medium">{item.cantidad}</td>
+                          <td className="px-4 py-2 text-center font-medium">{item.proveedorNombre}</td>
                         </tr>
                       ))}
                     </tbody>
