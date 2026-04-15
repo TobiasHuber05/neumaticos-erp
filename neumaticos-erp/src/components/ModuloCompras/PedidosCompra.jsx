@@ -92,7 +92,6 @@ const PedidosCompra = ({ onNuevoPedido, pedidos }) => {
                         <th className="px-4 py-2">Producto</th>
                         <th className="px-4 py-2">Categoría</th>
                         <th className="px-4 py-2 text-center">Cantidad</th>
-                        <th className="px-4 py-2 text-center">Proveedor</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
@@ -100,7 +99,6 @@ const PedidosCompra = ({ onNuevoPedido, pedidos }) => {
                         <tr key={item.id}>
                           <td className="px-4 py-2">{item.nombre}</td>
                           <td className="px-4 py-2 text-center font-medium">{item.cantidad}</td>
-                          <td className="px-4 py-2 text-center font-medium">{item.proveedorNombre}</td>
                         </tr>
                       ))}
                     </tbody>

@@ -1,0 +1,679 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model asiento_detalle {
+  id_as_detalle Int           @id @default(autoincrement())
+  id_asiento    Int?
+  id_cuenta     Int?
+  debe_haber    Boolean?
+  monto         Decimal?      @db.Decimal(10, 2)
+  asientos      asientos?     @relation(fields: [id_asiento], references: [id_asiento], onDelete: NoAction, onUpdate: NoAction, map: "fk_asientodetalle_asiento")
+  plan_cuentas  plan_cuentas? @relation(fields: [id_cuenta], references: [id_cuenta], onDelete: NoAction, onUpdate: NoAction, map: "fk_asientodetalle_cuenta")
+}
+
+model asientos {
+  id_asiento         Int               @id @default(autoincrement())
+  fecha              DateTime?         @db.Date
+  numero_asiento     Int?
+  descripcion        String?           @db.VarChar(250)
+  total_debe         Decimal?          @db.Decimal(10, 2)
+  total_haber        Decimal?          @db.Decimal(10, 2)
+  estado             estado_asiento?   @default(pendiente)
+  tabla_origen       String?           @db.VarChar(100)
+  id_registro_origen Int?
+  asiento_detalle    asiento_detalle[]
+}
+
+model asistencia {
+  id_asistencia      Int                  @id @default(autoincrement())
+  dia                String?              @db.Char(30)
+  inicio_turno       DateTime?            @db.Date
+  final_turno        DateTime?            @db.Date
+  detalle_asistencia detalle_asistencia[]
+}
+
+model balances {
+  id_balance   Int       @id @default(autoincrement())
+  tipo_balance String?   @db.VarChar(100)
+  fecha        DateTime? @db.Date
+}
+
+model banco {
+  id_banco        Int               @id @default(autoincrement())
+  nombre          String?           @db.VarChar(100)
+  codigo          String?           @db.Char(20)
+  cuenta_bancaria cuenta_bancaria[]
+}
+
+model cabecera_pago {
+  id_pago             Int                  @id @default(autoincrement())
+  id_movimiento       Int?
+  fecha_emision       DateTime?            @db.Date
+  periodo             String?              @db.VarChar(50)
+  tipo_pago           String?              @db.VarChar(50)
+  estado              estado_pago?         @default(pendiente)
+  movimiento_bancario movimiento_bancario? @relation(fields: [id_movimiento], references: [id_movimiento], onDelete: NoAction, onUpdate: NoAction, map: "fk_cabecerapago_movimiento")
+  sueldos             sueldos[]
+}
+
+model cargos {
+  id_cargo          Int            @id @default(autoincrement())
+  nombre_cargo      String?        @db.VarChar(100)
+  descripcion_cargo String?        @db.VarChar(250)
+  area_superior     String?        @db.VarChar(100)
+  jefe_inmediato    String?        @db.VarChar(100)
+  sueldo_base       Decimal?       @db.Decimal(10, 2)
+  contrato          contrato[]
+  funcionarios      funcionarios[]
+  historial         historial[]
+}
+
+model categoria {
+  id_categoria Int        @id @default(autoincrement())
+  nombre       String?    @db.VarChar(100)
+  descripcion  String?    @db.VarChar(250)
+  producto     producto[]
+}
+
+model categorias_proveedores {
+  id_categoria         Int                    @id @default(autoincrement())
+  tipo                 String?                @db.VarChar(50)
+  descripcion          String?                @db.VarChar(250)
+  proveedor_categorias proveedor_categorias[]
+}
+
+model cliente {
+  id_cliente       Int             @id @default(autoincrement())
+  nombre           String?         @db.VarChar(100)
+  apellido         String?         @db.VarChar(100)
+  fecha_nacimiento DateTime?       @db.Date
+  correo           String?         @db.VarChar(50)
+  ruc              String?         @db.VarChar(20)
+  direccion        String?         @db.VarChar(150)
+  factura_venta    factura_venta[]
+  presupuesto      presupuesto[]
+}
+
+model cobranza {
+  id_cobranza            Int                  @id @default(autoincrement())
+  id_factura_venta       Int?
+  id_movimiento_bancario Int?
+  nro_recibo             String?              @db.Char(50)
+  factura_venta          factura_venta?       @relation(fields: [id_factura_venta], references: [id_factura_venta], onDelete: NoAction, onUpdate: NoAction, map: "fk_cobranza_factura")
+  movimiento_bancario    movimiento_bancario? @relation(fields: [id_movimiento_bancario], references: [id_movimiento], onDelete: NoAction, onUpdate: NoAction, map: "fk_cobranza_movimiento")
+  detalle_cobranza       detalle_cobranza[]
+}
+
+model conceptos {
+  id_concepto Int      @id @default(autoincrement())
+  nombre      String?  @db.VarChar(50)
+  descripcion String?  @db.VarChar(250)
+  credito     Decimal? @db.Decimal(10, 2)
+  debito      Decimal? @db.Decimal(10, 2)
+  afecta_ips  Boolean?
+  formula     String?  @db.VarChar(250)
+}
+
+model conciliacion_bancaria {
+  id_conciliacion      Int                    @id @default(autoincrement())
+  id_cuenta            Int?
+  fecha                DateTime?              @db.Date
+  descripcion          String?                @db.VarChar(255)
+  cuenta_bancaria      cuenta_bancaria?       @relation(fields: [id_cuenta], references: [id_cuenta], onDelete: NoAction, onUpdate: NoAction, map: "fk_conciliacion_cuenta")
+  detalle_conciliacion detalle_conciliacion[]
+}
+
+model contrato {
+  id_contrato    Int           @id @default(autoincrement())
+  id_funcionario Int?
+  id_cargo       Int?
+  id_sueldo      Int?
+  fecha_ingreso  DateTime?     @db.Date
+  fecha_salida   DateTime?     @db.Date
+  salario_base   Decimal?      @db.Decimal(10, 2)
+  cargos         cargos?       @relation(fields: [id_cargo], references: [id_cargo], onDelete: NoAction, onUpdate: NoAction, map: "fk_contrato_cargo")
+  funcionarios   funcionarios? @relation(fields: [id_funcionario], references: [id_funcionario], onDelete: NoAction, onUpdate: NoAction, map: "fk_contrato_funcionario")
+  sueldos        sueldos?      @relation(fields: [id_sueldo], references: [id_sueldo], onDelete: NoAction, onUpdate: NoAction, map: "fk_contrato_sueldo")
+}
+
+model cotizacion {
+  id_cotizacion      Int                  @id @default(autoincrement())
+  id_pedido_producto Int?
+  fecha              DateTime?            @db.Date
+  id_proveedor       Int?
+  pedidos_productos  pedidos_productos?   @relation(fields: [id_pedido_producto], references: [id_pedido_producto], onDelete: NoAction, onUpdate: NoAction, map: "fk_cotizacion_pedido")
+  proveedores        proveedores?         @relation(fields: [id_proveedor], references: [id_proveedor], onDelete: NoAction, onUpdate: NoAction, map: "fk_cotizacion_proveedor")
+  detalle_cotizacion detalle_cotizacion[]
+  orden_compra       orden_compra[]
+}
+
+model cuenta_bancaria {
+  id_cuenta             Int                     @id @default(autoincrement())
+  id_banco              Int?
+  numero_cuenta         String?                 @db.Char(30)
+  tipo_cuenta           Boolean?
+  saldo                 Decimal?                @db.Decimal(18, 2)
+  saldo_disponible      Decimal?                @db.Decimal(18, 2)
+  id_moneda             Int?
+  conciliacion_bancaria conciliacion_bancaria[]
+  banco                 banco?                  @relation(fields: [id_banco], references: [id_banco], onDelete: NoAction, onUpdate: NoAction, map: "fk_cuenta_banco")
+  monedas               monedas?                @relation(fields: [id_moneda], references: [id_moneda], onDelete: NoAction, onUpdate: NoAction, map: "fk_cuenta_moneda")
+  movimiento_bancario   movimiento_bancario[]
+}
+
+model detalle_asistencia {
+  id_detalle_asistencia Int           @id @default(autoincrement())
+  id_asistencia         Int?
+  id_funcionario        Int?
+  justificativo         String?       @db.VarChar(250)
+  asistencia            asistencia?   @relation(fields: [id_asistencia], references: [id_asistencia], onDelete: NoAction, onUpdate: NoAction, map: "fk_detalleasistencia_asistencia")
+  funcionarios          funcionarios? @relation(fields: [id_funcionario], references: [id_funcionario], onDelete: NoAction, onUpdate: NoAction, map: "fk_detalleasistencia_funcionario")
+}
+
+model detalle_cobranza {
+  id_detalle_cobranza Int       @id @default(autoincrement())
+  id_cobranza         Int?
+  forma_pago          String?   @db.VarChar(50)
+  estado              String?   @db.VarChar(100)
+  cobranza            cobranza? @relation(fields: [id_cobranza], references: [id_cobranza], onDelete: NoAction, onUpdate: NoAction, map: "fk_detcobranza_cobranza")
+}
+
+model detalle_conciliacion {
+  id_detalle            Int                    @id @default(autoincrement())
+  id_conciliacion       Int?
+  id_movimiento         Int?
+  conciliado            Boolean?
+  conciliacion_bancaria conciliacion_bancaria? @relation(fields: [id_conciliacion], references: [id_conciliacion], onDelete: NoAction, onUpdate: NoAction, map: "fk_detconc_conciliacion")
+  movimiento_bancario   movimiento_bancario?   @relation(fields: [id_movimiento], references: [id_movimiento], onDelete: NoAction, onUpdate: NoAction, map: "fk_detconc_movimiento")
+}
+
+model detalle_cotizacion {
+  id_detalle_cotizacion Int         @id @default(autoincrement())
+  id_cotizacion         Int?
+  id_producto           Int?
+  precio                Int?
+  seleccionado          Boolean?
+  cotizacion            cotizacion? @relation(fields: [id_cotizacion], references: [id_cotizacion], onDelete: NoAction, onUpdate: NoAction, map: "fk_detallecotizacion_cotizacion")
+  producto              producto?   @relation(fields: [id_producto], references: [id_producto], onDelete: NoAction, onUpdate: NoAction, map: "fk_detallecotizacion_producto")
+}
+
+model detalle_devolucion {
+  id_detalle_devolucion Int                 @id @default(autoincrement())
+  id_devolucion         Int?
+  id_producto_servicio  Int?
+  cantidad              Int?
+  devolucion_cliente    devolucion_cliente? @relation(fields: [id_devolucion], references: [id_devolucion], onDelete: NoAction, onUpdate: NoAction, map: "fk_detdev_devolucion")
+  producto_servicio     producto_servicio?  @relation(fields: [id_producto_servicio], references: [id_producto_servicio], onDelete: NoAction, onUpdate: NoAction, map: "fk_detdev_producto")
+}
+
+model detalle_factura {
+  id_detalle_factura Int             @id @default(autoincrement())
+  id_factura         Int?
+  id_producto        Int?
+  producto_cantidad  Int?
+  subtotal           Decimal?        @db.Decimal(10, 2)
+  iva                Decimal?        @db.Decimal(10, 2)
+  precio_total       Decimal?        @db.Decimal(10, 2)
+  producto           producto?       @relation(fields: [id_producto], references: [id_producto], onDelete: NoAction, onUpdate: NoAction, map: "fk_detallecotizacion_producto")
+  factura_compra     factura_compra? @relation(fields: [id_factura], references: [id_factura], onDelete: NoAction, onUpdate: NoAction, map: "fk_detfact_factura")
+}
+
+model detalle_factura_venta {
+  id_detalle_fac_venta Int            @id @default(autoincrement())
+  id_factura_venta     Int?
+  cantidad             Int?
+  precio_unitario      Decimal?       @db.Decimal(10, 2)
+  iva                  Int?
+  subtotal             Decimal?       @db.Decimal(10, 2)
+  total                Decimal?       @db.Decimal(10, 2)
+  factura_venta        factura_venta? @relation(fields: [id_factura_venta], references: [id_factura_venta], onDelete: NoAction, onUpdate: NoAction, map: "fk_detfacventa_factura")
+}
+
+model detalle_modelo_asiento {
+  id_detalle_mod    Int             @id @default(autoincrement())
+  id_modelo_asiento Int?
+  item              Int?
+  descripcion_final String?         @db.VarChar(250)
+  id_cuenta         Int?
+  debe_haber        Boolean?
+  iva               Decimal?        @db.Decimal(10, 2)
+  monto             Decimal?        @db.Decimal(10, 2)
+  plan_cuentas      plan_cuentas?   @relation(fields: [id_cuenta], references: [id_cuenta], onDelete: NoAction, onUpdate: NoAction, map: "fk_detallemodeloasiento_cuenta")
+  modelo_asiento    modelo_asiento? @relation(fields: [id_modelo_asiento], references: [id_modelo_asiento], onDelete: NoAction, onUpdate: NoAction, map: "fk_detallemodeloasiento_modeloasiento")
+}
+
+model detalle_nota_credito {
+  id_detalle_nota       Int                 @id @default(autoincrement())
+  id_nota_credito_venta Int?
+  id_producto_servicio  Int?
+  cantidad              Int?
+  monto                 Decimal?            @db.Decimal(10, 2)
+  nota_credito_venta    nota_credito_venta? @relation(fields: [id_nota_credito_venta], references: [id_nota_credito_venta], onDelete: NoAction, onUpdate: NoAction, map: "fk_detnotacred_nota")
+  producto_servicio     producto_servicio?  @relation(fields: [id_producto_servicio], references: [id_producto_servicio], onDelete: NoAction, onUpdate: NoAction, map: "fk_detnotacred_producto")
+}
+
+model detalle_orden_compra {
+  id_detalle_compra Int              @id @default(autoincrement())
+  id_orden_compra   Int?
+  id_producto       Int?
+  subtotal          Decimal?         @db.Decimal(10, 2)
+  cantidad_recibida Int?
+  orden_compra      orden_compra?    @relation(fields: [id_orden_compra], references: [id_orden_compra], onDelete: NoAction, onUpdate: NoAction, map: "fk_detorden_orden")
+  producto          producto?        @relation(fields: [id_producto], references: [id_producto], onDelete: NoAction, onUpdate: NoAction, map: "fk_detorden_producto")
+  factura_compra    factura_compra[]
+}
+
+model detalle_pago {
+  id_detalle_pago Int     @id @default(autoincrement())
+  descripcion     String? @db.VarChar(250)
+}
+
+model detalle_presupuesto {
+  id_detalle_presupuesto Int                @id @default(autoincrement())
+  id_presupuesto         Int?
+  id_producto_servicio   Int?
+  cantidad_producto      Int?
+  precio_unitario        Decimal?           @db.Decimal(10, 2)
+  presupuesto            presupuesto?       @relation(fields: [id_presupuesto], references: [id_presupuesto], onDelete: NoAction, onUpdate: NoAction, map: "fk_detpres_presupuesto")
+  producto_servicio      producto_servicio? @relation(fields: [id_producto_servicio], references: [id_producto_servicio], onDelete: NoAction, onUpdate: NoAction, map: "fk_detpres_producto")
+}
+
+model detalle_provision {
+  id_detalle_pp       Int                  @id @default(autoincrement())
+  id_pedidos_p        Int?
+  id_producto         Int?
+  cantidad            Int
+  monto               Decimal?             @db.Decimal(10, 2)
+  iva                 Decimal?             @db.Decimal(10, 2)
+  precio_total        Decimal?             @db.Decimal(10, 2)
+  pedidos_proveedores pedidos_proveedores? @relation(fields: [id_pedidos_p], references: [id_pedidos_proveedores], onDelete: NoAction, onUpdate: NoAction, map: "fk_detprov_pedidoprov")
+}
+
+model detalles_pedidos {
+  id_detalle_pedido  Int                @id @default(autoincrement())
+  id_pedido_producto Int?
+  cantidad           Int?
+  id_producto        Int?
+  pedidos_productos  pedidos_productos? @relation(fields: [id_pedido_producto], references: [id_pedido_producto], onDelete: NoAction, onUpdate: NoAction, map: "fk_detallepedido_pedido")
+  producto           producto?          @relation(fields: [id_producto], references: [id_producto], onDelete: NoAction, onUpdate: NoAction, map: "fk_detallepedido_producto")
+}
+
+model devolucion_cliente {
+  id_devolucion      Int                  @id @default(autoincrement())
+  id_factura         Int?
+  motivo_devolucion  String?              @db.VarChar(255)
+  fecha_devolucion   DateTime?            @db.Date
+  detalle_devolucion detalle_devolucion[]
+  factura_venta      factura_venta?       @relation(fields: [id_factura], references: [id_factura_venta], onDelete: NoAction, onUpdate: NoAction, map: "fk_devcliente_factura")
+  nota_credito_venta nota_credito_venta[]
+}
+
+model estados {
+  id_estado    Int            @id @default(autoincrement())
+  nombre       String         @db.VarChar(50)
+  orden_compra orden_compra[]
+}
+
+model factura_compra {
+  id_factura             Int                      @id @default(autoincrement())
+  id_detalle_compra      Int?
+  id_proveedor           Int?
+  fecha_emision          DateTime?                @db.Date
+  fecha_vencimiento      DateTime?                @db.Date
+  timbrado               String?                  @db.VarChar(30)
+  contado_credito        Boolean?
+  total                  Decimal?                 @db.Decimal(10, 2)
+  detalle_factura        detalle_factura[]
+  detalle_orden_compra   detalle_orden_compra?    @relation(fields: [id_detalle_compra], references: [id_detalle_compra], onDelete: NoAction, onUpdate: NoAction, map: "fk_factcompra_detalle")
+  proveedores            proveedores?             @relation(fields: [id_proveedor], references: [id_proveedor], onDelete: NoAction, onUpdate: NoAction, map: "fk_factcompra_proveedor")
+  orden_pago_proveedores orden_pago_proveedores[]
+  pedido_devolucion      pedido_devolucion[]
+}
+
+model factura_venta {
+  id_factura_venta      Int                     @id @default(autoincrement())
+  id_presupuesto        Int?
+  id_cliente            Int?
+  fecha_emision         DateTime?               @db.Date
+  fecha_vencimiento     DateTime?               @db.Date
+  timbrado              Int?
+  nro_factura           Int?
+  contado_credito       String?                 @db.VarChar(20)
+  total                 Int?
+  cobranza              cobranza[]
+  detalle_factura_venta detalle_factura_venta[]
+  devolucion_cliente    devolucion_cliente[]
+  cliente               cliente?                @relation(fields: [id_cliente], references: [id_cliente], onDelete: NoAction, onUpdate: NoAction, map: "fk_factventa_cliente")
+  presupuesto           presupuesto?            @relation(fields: [id_presupuesto], references: [id_presupuesto], onDelete: NoAction, onUpdate: NoAction, map: "fk_factventa_presupuesto")
+}
+
+model familiares {
+  id_familiar      Int           @id @default(autoincrement())
+  id_funcionario   Int?
+  parentesco       String?       @db.VarChar(100)
+  fecha_nacimiento DateTime?     @db.Date
+  funcionarios     funcionarios? @relation(fields: [id_funcionario], references: [id_funcionario], onDelete: NoAction, onUpdate: NoAction, map: "fk_familiares_funcionario")
+}
+
+model forma_pago {
+  id_forma_pago         Int                     @id @default(autoincrement())
+  metodo_pago           String?                 @db.VarChar(50)
+  orden_pago_forma_pago orden_pago_forma_pago[]
+}
+
+model funcionarios {
+  id_funcionario     Int                  @id @default(autoincrement())
+  id_cargo           Int?
+  id_horario         Int?
+  contrato           contrato[]
+  detalle_asistencia detalle_asistencia[]
+  familiares         familiares[]
+  cargos             cargos?              @relation(fields: [id_cargo], references: [id_cargo], onDelete: NoAction, onUpdate: NoAction, map: "fk_funcionarios_cargo")
+  horario            horario?             @relation(fields: [id_horario], references: [id_horario], onDelete: NoAction, onUpdate: NoAction, map: "fk_funcionarios_horario")
+  historial          historial[]
+}
+
+model historial {
+  id_historial   Int           @id @default(autoincrement())
+  id_cargo       Int?
+  id_funcionario Int?
+  fecha_ingreso  DateTime?     @db.Date
+  fecha_salida   DateTime?     @db.Date
+  cargos         cargos?       @relation(fields: [id_cargo], references: [id_cargo], onDelete: NoAction, onUpdate: NoAction, map: "fk_historial_cargo")
+  funcionarios   funcionarios? @relation(fields: [id_funcionario], references: [id_funcionario], onDelete: NoAction, onUpdate: NoAction, map: "fk_historial_funcionario")
+}
+
+model horario {
+  id_horario     Int            @id @default(autoincrement())
+  hora_entrada   DateTime?      @db.Time(6)
+  hora_salida    DateTime?      @db.Time(6)
+  dias_laborales String?        @db.VarChar(50)
+  funcionarios   funcionarios[]
+}
+
+model lotes {
+  id_lote           Int          @id @default(autoincrement())
+  id_producto       Int?
+  id_proveedor      Int?
+  numero_lote       Int?
+  fecha_produccion  DateTime?    @db.Date
+  fecha_vencimiento DateTime?    @db.Date
+  cantidad          Int?
+  producto          producto?    @relation(fields: [id_producto], references: [id_producto], onDelete: NoAction, onUpdate: NoAction, map: "fk_lotes_producto")
+  proveedores       proveedores? @relation(fields: [id_proveedor], references: [id_proveedor], onDelete: NoAction, onUpdate: NoAction, map: "fk_lotes_proveedor")
+}
+
+model marcas {
+  id_marca Int        @id @default(autoincrement())
+  nombre   String?    @db.VarChar(100)
+  producto producto[]
+}
+
+model modelo_asiento {
+  id_modelo_asiento      Int                      @id @default(autoincrement())
+  id_modulo              Int?
+  descripcion            String?                  @db.VarChar(250)
+  tipo_asiento           String?                  @db.VarChar(50)
+  operacion_asiento      String?                  @db.VarChar(100)
+  detalle_modelo_asiento detalle_modelo_asiento[]
+  modulos                modulos?                 @relation(fields: [id_modulo], references: [id_modulo], onDelete: NoAction, onUpdate: NoAction, map: "fk_modeloasiento_modulo")
+}
+
+model modulos {
+  id_modulo      Int              @id @default(autoincrement())
+  nombre         String?          @db.VarChar(50)
+  modelo_asiento modelo_asiento[]
+}
+
+model monedas {
+  id_moneda       Int               @id @default(autoincrement())
+  nombre          String?           @db.VarChar(50)
+  cuenta_bancaria cuenta_bancaria[]
+}
+
+model movimiento_bancario {
+  id_movimiento          Int                      @id @default(autoincrement())
+  id_cuenta              Int?
+  monto_ingreso          Decimal?                 @db.Decimal(18, 2)
+  monto_egreso           Decimal?                 @db.Decimal(18, 2)
+  fecha_movimiento       DateTime?                @db.Date
+  fecha_confirmacion     DateTime?                @db.Date
+  tipo_movimiento        String?                  @db.VarChar(50)
+  cabecera_pago          cabecera_pago[]
+  cobranza               cobranza[]
+  detalle_conciliacion   detalle_conciliacion[]
+  cuenta_bancaria        cuenta_bancaria?         @relation(fields: [id_cuenta], references: [id_cuenta], onDelete: NoAction, onUpdate: NoAction, map: "fk_movbancario_cuenta")
+  orden_pago_proveedores orden_pago_proveedores[]
+}
+
+model nota_credito {
+  id_nota_credito   Int                @id @default(autoincrement())
+  descripcion       String?            @db.VarChar(255)
+  numero_nota       Decimal?           @db.Decimal
+  monto_subtotal    Decimal?           @db.Decimal(10, 2)
+  fecha_vencimiento DateTime?          @db.Date
+  id_pedido_d       Int?
+  pedido_devolucion pedido_devolucion? @relation(fields: [id_pedido_d], references: [id_pedido_d], onDelete: NoAction, onUpdate: NoAction, map: "fk_notacred_peddev")
+}
+
+model nota_credito_detalle {
+  id_detalle_nota      Int                @id @default(autoincrement())
+  id_pedido_devolucion Int?
+  id_producto          Int?
+  producto_cantidad    Int?
+  pedido_devolucion    pedido_devolucion? @relation(fields: [id_pedido_devolucion], references: [id_pedido_d], onDelete: NoAction, onUpdate: NoAction, map: "fk_notacreddet_peddev")
+}
+
+model nota_credito_venta {
+  id_nota_credito_venta Int                    @id @default(autoincrement())
+  id_devolucion         Int?
+  fecha_emision         DateTime?              @db.Date
+  fecha_vencimiento     DateTime?              @db.Date
+  nro_nota              Int?
+  timbrado              Int?
+  detalle_nota_credito  detalle_nota_credito[]
+  devolucion_cliente    devolucion_cliente?    @relation(fields: [id_devolucion], references: [id_devolucion], onDelete: NoAction, onUpdate: NoAction, map: "fk_notacredventa_devolucion")
+}
+
+model orden_compra {
+  id_orden_compra      Int                    @id @default(autoincrement())
+  id_cotizacion        Int?
+  id_proveedor         Int?
+  fecha                DateTime?              @db.Date
+  id_estado            Int?
+  detalle_orden_compra detalle_orden_compra[]
+  cotizacion           cotizacion?            @relation(fields: [id_cotizacion], references: [id_cotizacion], onDelete: NoAction, onUpdate: NoAction, map: "fk_ordencompra_cotizacion")
+  estados              estados?               @relation(fields: [id_estado], references: [id_estado], onDelete: NoAction, onUpdate: NoAction, map: "fk_ordencompra_estado")
+  proveedores          proveedores?           @relation(fields: [id_proveedor], references: [id_proveedor], onDelete: NoAction, onUpdate: NoAction, map: "fk_ordencompra_proveedor")
+}
+
+model orden_pago_forma_pago {
+  id_op_forma            Int                     @id @default(autoincrement())
+  id_orden_pago          Int?
+  id_forma_pago          Int?
+  monto                  Decimal?                @db.Decimal(10, 2)
+  forma_pago             forma_pago?             @relation(fields: [id_forma_pago], references: [id_forma_pago], onDelete: NoAction, onUpdate: NoAction, map: "fk_opformapago_forma")
+  orden_pago_proveedores orden_pago_proveedores? @relation(fields: [id_orden_pago], references: [id_orden_pago], onDelete: NoAction, onUpdate: NoAction, map: "fk_opformapago_orden")
+  pago_instrumento       pago_instrumento[]
+}
+
+model orden_pago_proveedores {
+  id_orden_pago         Int                     @id @default(autoincrement())
+  id_movimiento         Int?
+  id_factura            Int?
+  orden_pago_forma_pago orden_pago_forma_pago[]
+  factura_compra        factura_compra?         @relation(fields: [id_factura], references: [id_factura], onDelete: NoAction, onUpdate: NoAction, map: "fk_ordenpago_factura")
+  movimiento_bancario   movimiento_bancario?    @relation(fields: [id_movimiento], references: [id_movimiento], onDelete: NoAction, onUpdate: NoAction, map: "fk_ordenpago_movimiento")
+}
+
+model pago_instrumento {
+  id_pago_instrumento   Int                    @id @default(autoincrement())
+  id_op_forma           Int?
+  tipo_instrumento      String?                @db.VarChar(50)
+  id_cheque             Int?
+  id_transferencia      Int?
+  orden_pago_forma_pago orden_pago_forma_pago? @relation(fields: [id_op_forma], references: [id_op_forma], onDelete: NoAction, onUpdate: NoAction, map: "fk_pagoinstrumento_opforma")
+}
+
+model pedido_devolucion {
+  id_pedido_d          Int                    @id @default(autoincrement())
+  id_factura           Int?
+  fecha_emision        DateTime?              @db.Date
+  nota_credito         nota_credito[]
+  nota_credito_detalle nota_credito_detalle[]
+  factura_compra       factura_compra?        @relation(fields: [id_factura], references: [id_factura], onDelete: NoAction, onUpdate: NoAction, map: "fk_peddev_factura")
+}
+
+model pedidos_productos {
+  id_pedido_producto Int                @id @default(autoincrement())
+  fecha              DateTime?          @db.Date
+  cotizacion         cotizacion[]
+  detalles_pedidos   detalles_pedidos[]
+}
+
+model pedidos_proveedores {
+  id_pedidos_proveedores Int                 @id @default(autoincrement())
+  id_proveedor           Int?
+  id_detalle_pp          Int?
+  detalle_provision      detalle_provision[]
+  proveedores            proveedores?        @relation(fields: [id_proveedor], references: [id_proveedor], onDelete: NoAction, onUpdate: NoAction, map: "fk_pedprov_proveedor")
+}
+
+model personas {
+  id_persona       Int       @id @default(autoincrement())
+  nombre           String?   @db.VarChar(50)
+  apellido         String?   @db.VarChar(50)
+  ruc              String?   @db.Char(20)
+  ci               String?   @db.Char(20)
+  estado_civil     String?   @db.VarChar(50)
+  tipo_persona     String?   @db.VarChar(50)
+  fecha_nacimiento DateTime? @db.Date
+  razon_social     String?   @db.VarChar(100)
+  sexo             String?   @db.VarChar(30)
+}
+
+model plan_cuentas {
+  id_cuenta              Int                      @id @default(autoincrement())
+  id_proc_contable       Int?
+  cuenta_contable        String?                  @db.VarChar(50)
+  nombre                 String?                  @db.VarChar(50)
+  asentable              Boolean?
+  cuenta_padre           Int?
+  tipo_cuenta            String?                  @db.VarChar(100)
+  nivel                  Int?
+  debe                   Decimal?                 @db.Decimal(10, 2)
+  haber                  Decimal?                 @db.Decimal(10, 2)
+  asiento_detalle        asiento_detalle[]
+  detalle_modelo_asiento detalle_modelo_asiento[]
+  proceso_contable       proceso_contable?        @relation(fields: [id_proc_contable], references: [id_proc_contable], onDelete: NoAction, onUpdate: NoAction, map: "fk_plancuentas_proc_contable")
+}
+
+model presupuesto {
+  id_presupuesto      Int                   @id @default(autoincrement())
+  id_cliente          Int?
+  fecha_emision       DateTime?             @db.Date
+  estado              String?               @db.VarChar(50)
+  total               Int?
+  fecha_vencimiento   DateTime?             @db.Date
+  detalle_presupuesto detalle_presupuesto[]
+  factura_venta       factura_venta[]
+  cliente             cliente?              @relation(fields: [id_cliente], references: [id_cliente], onDelete: NoAction, onUpdate: NoAction, map: "fk_presupuesto_cliente")
+}
+
+model proceso_contable {
+  id_proc_contable Int            @id @default(autoincrement())
+  periodo_anho     String?        @db.VarChar(50)
+  descripcion      String?        @db.VarChar(250)
+  cant_niveles     Int?
+  cant_dig_nivel   Int?
+  moneda           String?        @db.VarChar(50)
+  plan_cuentas     plan_cuentas[]
+}
+
+model producto {
+  id_producto          Int                    @id @default(autoincrement())
+  id_categoria         Int?
+  codigo               String?                @db.VarChar(50)
+  descripcion          String?                @db.VarChar(250)
+  id_marca             Int?
+  es_servicio          Boolean?
+  detalle_cotizacion   detalle_cotizacion[]
+  detalle_factura      detalle_factura[]
+  detalle_orden_compra detalle_orden_compra[]
+  detalles_pedidos     detalles_pedidos[]
+  lotes                lotes[]
+  categoria            categoria?             @relation(fields: [id_categoria], references: [id_categoria], onDelete: NoAction, onUpdate: NoAction, map: "fk_producto_categoria")
+  marcas               marcas?                @relation(fields: [id_marca], references: [id_marca], onDelete: NoAction, onUpdate: NoAction, map: "fk_producto_marca")
+  producto_servicio    producto_servicio[]
+  stock                stock[]
+}
+
+model producto_servicio {
+  id_producto_servicio Int                    @id @default(autoincrement())
+  id_producto          Int?
+  tipo_iva             String?                @db.VarChar(10)
+  tipo_item            Boolean?
+  detalle_devolucion   detalle_devolucion[]
+  detalle_nota_credito detalle_nota_credito[]
+  detalle_presupuesto  detalle_presupuesto[]
+  producto             producto?              @relation(fields: [id_producto], references: [id_producto], onDelete: NoAction, onUpdate: NoAction, map: "fk_productoservicio_producto")
+}
+
+model proveedor_categorias {
+  id_proveedor_categoria Int                     @id @default(autoincrement())
+  id_categoria           Int?
+  id_proveedor           Int?
+  categorias_proveedores categorias_proveedores? @relation(fields: [id_categoria], references: [id_categoria], onDelete: NoAction, onUpdate: NoAction, map: "fk_provcats_categoria")
+  proveedores            proveedores?            @relation(fields: [id_proveedor], references: [id_proveedor], onDelete: NoAction, onUpdate: NoAction, map: "fk_provcats_proveedor")
+}
+
+model proveedores {
+  id_proveedor         Int                    @id @default(autoincrement())
+  nombre               String?                @db.VarChar(50)
+  ruc                  String?                @db.VarChar(20)
+  direccion            String?                @db.VarChar(150)
+  telefono             String?                @db.VarChar(20)
+  cotizacion           cotizacion[]
+  factura_compra       factura_compra[]
+  lotes                lotes[]
+  orden_compra         orden_compra[]
+  pedidos_proveedores  pedidos_proveedores[]
+  proveedor_categorias proveedor_categorias[]
+}
+
+model stock {
+  id_stock           Int       @id @default(autoincrement())
+  id_producto        Int?
+  cantidad           Int?
+  fecha_modificacion DateTime? @db.Date
+  precio             Decimal?  @db.Decimal(10, 2)
+  producto           producto? @relation(fields: [id_producto], references: [id_producto], onDelete: NoAction, onUpdate: NoAction, map: "fk_stock_producto")
+}
+
+model sueldos {
+  id_sueldo        Int            @id @default(autoincrement())
+  id_pago          Int?
+  nombre_categoria String?        @db.VarChar(100)
+  monto            Decimal?       @db.Decimal(10, 2)
+  fecha_vigencia   DateTime?      @db.Date
+  tipo_sueldo      String?        @db.VarChar(100)
+  contrato         contrato[]
+  cabecera_pago    cabecera_pago? @relation(fields: [id_pago], references: [id_pago], onDelete: NoAction, onUpdate: NoAction, map: "fk_sueldos_pago")
+}
+
+enum estado_asiento {
+  pendiente
+  confirmado
+  anulado
+}
+
+enum estado_pago {
+  pagado
+  pendiente
+}
