@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Plus, Eye, ClipboardList, X } from 'lucide-react';
+import { ESTADOS_PEDIDO_COMPRA } from '../Forms/comprasFormDefaults';
 
 const PedidosCompra = ({ onNuevoPedido, pedidos }) => {
   const [pedidoDetalle, setPedidoDetalle] = useState(null);

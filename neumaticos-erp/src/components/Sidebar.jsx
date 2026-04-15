@@ -38,11 +38,12 @@ const Sidebar = ({ setModulo, moduloActual }) => {
   ];
 
   const moduloVentasItems = [
-    {id: 'facturas de venta', icon: <ClipboardList size={18}/>, label: 'Facturas Venta'},
-    {id: 'presupuesto', icon:<CoinsIcon size={18}/>, label: 'Presupuesto'},
-    {id: 'notas credito', icon: <ClipboardList size= {18}/>, label:'Notas de credito'},
-    {id: 'asiento ventas', icon: <Banknote size = {18}/>, label: 'Asientos ventas'},
-  ]
+    { id: 'facturas de venta', icon: <ClipboardList size={18} />, label: 'Facturas de Venta' },
+    { id: 'presupuesto', icon: <CoinsIcon size={18} />, label: 'Presupuestos' },
+    { id: 'clientes_ventas', icon: <Users size={18} />, label: 'Clientes' },
+    { id: 'notas credito', icon: <ClipboardList size={18} />, label: 'Notas de crédito' },
+    { id: 'asiento ventas', icon: <Banknote size={18} />, label: 'Asientos ventas' },
+  ];
 
 const menuItems = [
   { id: 'stock', icon: <Package size={20} />, label: 'Stock / Existencias' },
@@ -52,7 +53,6 @@ const menuItems = [
 
 
   return (
-    <div className="w-64 h-screen bg-erp-yellow flex flex-col border-r border-orange-300 shrink-0 overflow-x-hidden">
     <div className="w-64 h-screen bg-erp-yellow flex flex-col border-r border-orange-300 shrink-0 overflow-x-hidden">
       {/* Logo */}
       <div className="p-6 flex flex-col items-center border-b border-orange-300">
@@ -108,21 +108,27 @@ const menuItems = [
           >
             <span className="inline-flex items-center gap-3">
               <Tag size={20} />
-              Módulo Ventas
+              Ventas y Facturas
             </span>
             {ventasAbierto ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
           </button>
 
           {ventasAbierto && (
             <div className="mt-1 mb-2">
-              <button
-                onClick={() => setModulo('ventas')}
-                className={`w-full flex items-center gap-3 px-8 py-2 rounded-lg transition-all font-medium text-sm
-                  ${moduloActual === 'ventas' ? 'bg-erp-orange text-white shadow-inner' : 'text-orange-800 hover:bg-orange-200'}`}
-              >
-                <Tag size={18} />
-                <span>Ventas Dashboard</span>
-              </button>
+              {moduloVentasItems.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setModulo(item.id)}
+                  className={`w-full flex items-center gap-3 px-8 py-2 rounded-lg transition-all font-medium text-sm
+                    ${moduloActual === item.id
+                      ? 'bg-erp-orange text-white shadow-inner'
+                      : 'text-orange-800 hover:bg-orange-200'}`}
+                >
+                  {item.icon}
+                  <span>{item.label}</span>
+                </button>
+              ))}
             </div>
           )}
         </div>

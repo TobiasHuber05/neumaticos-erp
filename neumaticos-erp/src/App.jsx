@@ -26,6 +26,7 @@ import Presupuestos from './components/ModuloVentas/Presupuestos';
 import FacturasVentas from './components/ModuloVentas/FacturasVentas';
 import NotasCreditoVentas from './components/ModuloVentas/NotasCreditoVentas';
 import AsientosVentas from './components/ModuloVentas/AsientosVentas';
+import ClientesVentas from './components/ModuloVentas/ClientesVentas';
 
 
 import Personal from './components/Personal';
@@ -64,7 +65,14 @@ function App() {
     productosBajoMinimo,
   } = compras;
 
-  const { cuentas, bancos, movimientos, registrarCuenta } = useModuloTesoreria();
+  const { 
+    cuentas, 
+    bancos, 
+    movimientos, 
+    registrarCuenta, 
+    registrarMovimiento, 
+    confirmarMovimientos 
+  } = useModuloTesoreria();
 
   const ventas = useModuloVentas();
 
@@ -93,8 +101,13 @@ function App() {
       stock: 'Stock / Existencias',
       servicios: 'Servicios',
       ventas: 'Ventas & Facturación',
+      'facturas de venta': 'Facturas de Venta',
+      'presupuesto': 'Presupuestos',
+      'clientes_ventas': 'Clientes',
+      'notas credito': 'Notas de Crédito',
+      'asiento ventas': 'Asientos de Ventas',
       tesoreria: 'Tesorería',
-      'gestion de cuentas': 'Cuentas bancarias',
+      'gestion_cuentas': 'Cuentas bancarias',
       'movimientos bancarios': 'Movimientos bancarios',
       'conciliacion bancaria': 'Conciliaciones bancarias',
       personal: 'Recursos Humanos',
@@ -161,20 +174,31 @@ function App() {
             setInventario={setInventario}
           />
         );
+      case 'facturas de venta':
+        return <FacturasVentas ventas={ventas} clientes={ventas.clientes} inventario={inventario} setInventario={setInventario} />;
+      case 'presupuesto':
+        return <Presupuestos ventas={ventas} clientes={ventas.clientes} inventario={inventario} setInventario={setInventario} />;
+      case 'notas credito':
+        return <NotasCreditoVentas ventas={ventas} clientes={ventas.clientes} />;
+      case 'asiento ventas':
+        return <AsientosVentas ventas={ventas} />;
+      case 'clientes_ventas':
+        return <ClientesVentas ventas={ventas} />;
 
       case 'tesoreria':
         return <Tesoreria />;
-      return (
+      case 'gestion_cuentas':
+        return (
           <>
             <GestionCuentas 
               bancos={bancos} 
               cuentas={cuentas} 
               movimientos={movimientos}
-              onNuevaCuenta={() => setMostrarFormCuenta(true)} // Activa el modal
+              onNuevaCuenta={() => setMostrarFormCuenta(true)} 
             />
             {mostrarFormCuenta && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-                <NuevaCuentaForm 
+                <CuentaBancariaForm 
                   bancos={bancos}
                   onCancelar={() => setMostrarFormCuenta(false)}
                   onGuardar={(nueva) => {
@@ -189,7 +213,7 @@ function App() {
       case 'movimientos bancarios':
         return (
           <MovimientosBancarios 
-            cuentas={tesoreriaCuentas}
+            cuentas={cuentas}
             onCancelar={() => {}}
             onGuardar={registrarMovimiento}
           />
@@ -197,8 +221,8 @@ function App() {
       case 'conciliacion bancaria':
         return (
           <ConciliacionBancaria 
-            movimientos={tesoreriaMovimientos}
-            cuentas={tesoreriaCuentas}
+            movimientos={movimientos}
+            cuentas={cuentas}
             onConfirmarConciliacion={confirmarMovimientos}
           />
         );
