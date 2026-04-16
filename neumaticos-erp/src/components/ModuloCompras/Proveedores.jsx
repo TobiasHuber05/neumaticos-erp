@@ -1,8 +1,11 @@
 import { useMemo, useState } from 'react';
 import { Plus, Phone, MapPin, Users, Tag, Search } from 'lucide-react';
 import ProveedorForm from '../Forms/ProveedorForm';
+import { useProveedores } from '../../hooks/useProveedores';
 
-const Proveedores = ({ proveedores, setProveedores }) => {
+const Proveedores = () => {
+  const { proveedores, crearProveedor, actualizarProveedor } = useProveedores();
+
   const [mostrarForm, setMostrarForm] = useState(false);
   const [editar, setEditar] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -26,11 +29,11 @@ const Proveedores = ({ proveedores, setProveedores }) => {
     return coincideTexto && coincideCategoria;
   });
 
-  const guardar = (data) => {
+  const guardar = async (data) => {
     if (data.id) {
-      setProveedores((prev) => prev.map((x) => (x.id === data.id ? { ...x, ...data } : x)));
+      await actualizarProveedor(data.id, data);
     } else {
-      setProveedores((prev) => [...prev, { ...data, id: Date.now() }]);
+      await crearProveedor(data);
     }
     setMostrarForm(false);
     setEditar(null);
