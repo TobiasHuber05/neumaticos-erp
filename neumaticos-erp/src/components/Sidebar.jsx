@@ -22,6 +22,17 @@ const Sidebar = ({ setModulo, moduloActual }) => {
   const [tesoreriaAbierto, setTesoreriaAbierto] = useState(false);
   const [ventasAbierto, setVentasAbierto] = useState(false);
 
+  // --- FUNCIÓN DE CIERRE DE SESIÓN ---
+  const handleLogout = () => {
+    // 1. Borramos el token y los datos del usuario del almacenamiento local
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    
+    // 2. Redirigimos a la pantalla de login (esto disparará la lógica de App.jsx)
+    window.location.href = '/login';
+  };
+  // ------------------------------------
+
   const moduloComprasItems = [
     { id: 'proveedores', icon: <Users size={18} />, label: 'Proveedores' },
     { id: 'compras', icon: <ShoppingCart size={18} />, label: 'Pedidos de compra' },
@@ -32,9 +43,9 @@ const Sidebar = ({ setModulo, moduloActual }) => {
   ];
 
   const moduloTesoreriaItems = [
-    {id: 'gestion_cuentas', icon: <Users size={18}/>, label: 'Gestión de Cuentas' },
-    {id: 'movimientos bancarios', icon: <Banknote size={18}/>, label: 'Movimientos bancarios'},
-    {id: 'conciliacion bancaria', icon: <ClipboardList size={18}/>, label:'Conciliaciones'},
+    { id: 'gestion_cuentas', icon: <Users size={18} />, label: 'Gestión de Cuentas' },
+    { id: 'movimientos bancarios', icon: <Banknote size={18} />, label: 'Movimientos bancarios' },
+    { id: 'conciliacion bancaria', icon: <ClipboardList size={18} />, label: 'Conciliaciones' },
   ];
 
   const moduloVentasItems = [
@@ -45,19 +56,12 @@ const Sidebar = ({ setModulo, moduloActual }) => {
     { id: 'asiento ventas', icon: <Banknote size={18} />, label: 'Asientos ventas' },
   ];
 
-const menuItems = [
-  { id: 'stock', icon: <Package size={20} />, label: 'Stock / Existencias' },
-  { id: 'servicios', icon: <Wrench size={20} />, label: 'Servicios' },
-  { id: 'personal', icon: <UserSquare2 size={20} />, label: 'Personal' },
-];
-
-
   return (
     <div className="w-64 h-screen bg-erp-yellow flex flex-col border-r border-orange-300 shrink-0 overflow-x-hidden">
       {/* Logo */}
       <div className="p-6 flex flex-col items-center border-b border-orange-300">
         <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mb-2 shadow-md">
-           <Package className="text-erp-orange" size={32} />
+          <Package className="text-erp-orange" size={32} />
         </div>
         <h2 className="font-bold text-erp-orange text-lg text-center leading-tight">
           Neumáticos ERP
@@ -66,6 +70,7 @@ const menuItems = [
 
       {/* Menú */}
       <nav className="flex-1 mt-4 overflow-y-auto overflow-x-hidden">
+        {/* Modulo Compras */}
         <div className="px-2">
           <button
             type="button"
@@ -166,14 +171,14 @@ const menuItems = [
             </div>
           )}
         </div>
-
-
       </nav>
-
 
       {/* Salida */}
       <div className="p-4 border-t border-orange-300">
-        <button className="w-full flex items-center gap-4 px-6 py-3 text-orange-900 font-bold bg-orange-200 rounded-lg hover:bg-red-200 transition-colors text-xs uppercase">
+        <button 
+          onClick={handleLogout}
+          className="w-full flex items-center gap-4 px-6 py-3 text-orange-900 font-bold bg-orange-200 rounded-lg hover:bg-red-400 hover:text-white transition-all text-xs uppercase"
+        >
           <LogOut size={18} />
           Cerrar Sesión
         </button>
