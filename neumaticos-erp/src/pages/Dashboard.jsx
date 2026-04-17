@@ -110,7 +110,9 @@ function Dashboard() {
       'gestion_cuentas': 'Cuentas bancarias',
       'movimientos bancarios': 'Movimientos bancarios',
       'conciliacion bancaria': 'Conciliaciones bancarias',
-      personal: 'Recursos Humanos',
+      personal: 'Nómina — Funcionarios',
+      personal_nomina: 'Procesamiento de Nómina',
+      personal_asientos: 'Asientos de Nómina',
     };
     return map[moduloActual] ?? moduloActual;
   };
@@ -227,7 +229,11 @@ function Dashboard() {
           />
         );
       case 'personal':
-        return <Personal />;
+        return <Personal defaultTab="funcionarios" />;
+      case 'personal_nomina':
+        return <Personal defaultTab="nomina" />;
+      case 'personal_asientos':
+        return <Personal defaultTab="asientos" />;
       case 'compras':
         if (mostrarFormulario) {
           return (

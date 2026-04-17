@@ -56,6 +56,18 @@ const Sidebar = ({ setModulo, moduloActual }) => {
     { id: 'asiento ventas', icon: <Banknote size={18} />, label: 'Asientos ventas' },
   ];
 
+  const moduloPersonalItems = [
+    { id: 'personal', icon: <Users size={18} />, label: 'Funcionarios' },
+    { id: 'personal_nomina', icon: <ClipboardList size={18} />, label: 'Nómina y Pagos' },
+    { id: 'personal_asientos', icon: <BookMarked size={18} />, label: 'Asientos Nómina' },
+  ];
+
+  const menuItems = [
+    { id: 'stock', icon: <Package size={20} />, label: 'Stock / Existencias' },
+    { id: 'servicios', icon: <Wrench size={20} />, label: 'Servicios' },
+    { id: 'personal', icon: <UserSquare2 size={20} />, label: 'Personal' },
+  ];
+
   return (
     <div className="w-64 h-screen bg-erp-yellow flex flex-col border-r border-orange-300 shrink-0 overflow-x-hidden">
       {/* Logo */}
@@ -103,7 +115,7 @@ const Sidebar = ({ setModulo, moduloActual }) => {
             </div>
           )}
         </div>
-        
+
         {/* Menu Ventas */}
         <div className="px-2">
           <button
@@ -137,7 +149,7 @@ const Sidebar = ({ setModulo, moduloActual }) => {
             </div>
           )}
         </div>
-        
+
         {/*Menu Tesoreria*/}
         <div className="px-2">
           <button
@@ -171,6 +183,25 @@ const Sidebar = ({ setModulo, moduloActual }) => {
             </div>
           )}
         </div>
+
+        {/* Quick Links */}
+        <div className="px-2 mt-4 pt-4 border-t border-orange-300">
+          {menuItems.map(item => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => setModulo(item.id)}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all font-bold text-sm
+                  ${moduloActual === item.id || (item.id === 'personal' && (moduloActual === 'personal' || moduloActual === 'personal_asientos' || moduloActual === 'personal_nomina'))
+                  ? 'bg-erp-orange text-white shadow-inner'
+                  : 'text-orange-900 hover:bg-orange-200'}`}
+            >
+              {item.icon}
+              <span>{item.id === 'personal' ? 'Funcionarios' : item.label}</span>
+            </button>
+          ))}
+        </div>
+
       </nav>
 
       {/* Salida */}
