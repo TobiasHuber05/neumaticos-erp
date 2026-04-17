@@ -10,14 +10,15 @@ import {
 import { verifyToken } from '../middlewares/auth.middleware.js';
 
 const router = express.Router();
-
+router.get('/marcas', getMarcas);
+// Todas las rutas protegidas (Opción B)
 router.use(verifyToken);
 
-router.get('/categorias', getCategorias);   // GET /api/productos/categorias
-router.get('/marcas', getMarcas);           // GET /api/productos/marcas
-router.get('/', getProductos);              // GET /api/productos
-router.get('/:id', getProductoById);        // GET /api/productos/:id
-router.post('/', createProducto);           // POST /api/productos
-router.put('/:id', updateProducto);         // PUT /api/productos/:id
+router.get('/categorias', getCategorias);
+
+router.get('/', getProductos);
+router.get('/:id', getProductoById);
+router.post('/', createProducto);
+router.put('/:id', updateProducto);
 
 export default router;

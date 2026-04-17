@@ -167,9 +167,18 @@ export const getCategorias = async (req, res) => {
 // GET /api/productos/marcas
 export const getMarcas = async (req, res) => {
   try {
-    const marcas = await prisma.marcas.findMany({ orderBy: { nombre: 'asc' } });
-    return res.json(marcas.map(m => ({ id: m.id_marca, nombre: m.nombre })));
+    const marcas = await prisma.marcas.findMany({ 
+      orderBy: { nombre: 'asc' } 
+    });
+
+    const data = marcas.map(m => ({ 
+      id: m.id_marca, 
+      nombre: m.nombre 
+    }));
+
+    return res.json(data);
   } catch (error) {
+    console.error('❌ Error en getMarcas:', error);
     return res.status(500).json({ error: 'Error al obtener marcas' });
   }
 };

@@ -2,16 +2,21 @@ import { useCallback, useEffect, useState } from 'react';
 
 const API = '/api/productos';
 
+// Función para obtener headers con el token actualizado
 function getHeaders() {
+  const token = localStorage.getItem('token');
+  console.log("🔍 Token recuperado del storage:", token); // Si sale null, el error está en el Login
+  
   return {
     'Content-Type': 'application/json',
-    Authorization: `Bearer ${localStorage.getItem('token')}`
+    'Authorization': token ? `Bearer ${token}` : ''
   };
 }
 
 function formatPrecioGs(valor) {
   const n = Number(valor);
-  if (!valor || !Number.isFinite(n) || n <= 0) return '—';
+  // Si es 0 o no es un número válido, devolvemos 0 formateado o raya
+  if (isNaN(n)) return '—';
   return n.toLocaleString('de-DE');
 }
 
@@ -24,11 +29,20 @@ export function useProductos() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
+      const headers = getHeaders();
+
+      // Ejecutamos las 3 peticiones en paralelo
       const [resProd, resCat, resMarc] = await Promise.all([
-        fetch(API, { headers: getHeaders() }),
-        fetch(`${API}/categorias`, { headers: getHeaders() }),
-        fetch(`${API}/marcas`, { headers: getHeaders() })
+        fetch(API, { headers }),
+        fetch(`${API}/categorias`, { headers }),
+        fetch(`${API}/marcas`, { headers })
       ]);
+
+      // Validamos si alguna respuesta dio error de autenticación (401/403)
+      if (resProd.status === 401 || resCat.status === 401 || resMarc.status === 401) {
+        console.error("Sesión expirada o token inválido");
+        return;
+      }
 
       const [dataProd, dataCat, dataMarc] = await Promise.all([
         resProd.json(),
@@ -36,15 +50,18 @@ export function useProductos() {
         resMarc.json()
       ]);
 
-      setInventario(dataProd.map(p => ({
+      // Verificamos que los datos sean arrays antes de setearlos para evitar errores de .map
+      setInventario(Array.isArray(dataProd) ? dataProd.map(p => ({
         ...p,
-        precio: formatPrecioGs(p.precio),
+        precioFormateado: formatPrecioGs(p.precio),
         precioNum: p.precio ?? 0,
-      })));
-      setCategorias(dataCat);
-      setMarcas(dataMarc);
+      })) : []);
+
+      setCategorias(Array.isArray(dataCat) ? dataCat : []);
+      setMarcas(Array.isArray(dataMarc) ? dataMarc : []);
+
     } catch (err) {
-      console.error('Error cargando datos de productos');
+      console.error('❌ Error crítico en useProductos:', err);
     } finally {
       setLoading(false);
     }
@@ -61,13 +78,26 @@ export function useProductos() {
         headers: getHeaders(),
         body: JSON.stringify(datos)
       });
-      if (!res.ok) throw new Error('Error en el servidor');
-      await fetchData(); // Recargar lista
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Error al crear producto');
+      }
+
+      await fetchData(); // Recargar todo para asegurar consistencia
       return { ok: true };
     } catch (err) {
+      console.error("Error en crearProducto:", err);
       return { ok: false, error: err.message };
     }
   };
 
-  return { inventario, categorias, marcas, loading, crearProducto, refetch: fetchData };
+  return { 
+    inventario, 
+    categorias, 
+    marcas, 
+    loading, 
+    crearProducto, 
+    refetch: fetchData 
+  };
 }

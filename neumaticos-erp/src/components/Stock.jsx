@@ -4,19 +4,28 @@ import StockForm from './Forms/StockForm';
 import { useProductos } from '../hooks/useProductos';
 
 const Stock = ({ proveedoresMaestro = [] }) => {
-  const { inventario, categorias, crearProducto, loading } = useProductos();
+  // ✅ CORRECCIÓN 1: Se agregó 'marcas' a la desestructuración del hook
+  const { inventario, categorias, marcas, crearProducto, loading } = useProductos();
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const guardarProducto = async ({ nombre, categoria, categoriaId, precio, marcaId, esServicio, proveedorNombre }) => {
-    await crearProducto({ nombre, categoria, categoriaId, precio, marcaId, esServicio });
-    setMostrarFormulario(false);
+  const guardarProducto = async ({ nombre, categoriaId, precio, marcaId, esServicio }) => {
+    // Aquí enviamos los datos al backend mediante el hook
+    const res = await crearProducto({ nombre, categoriaId, precio, marcaId, esServicio });
+    if (res.ok) {
+      setMostrarFormulario(false);
+    } else {
+      alert("Error al guardar: " + res.error);
+    }
   };
 
   const inventarioFiltrado = inventario.filter((item) => {
     const q = searchTerm.trim().toLowerCase();
     if (!q) return true;
-    return [item.nombre, item.categoria].some((campo) => String(campo).toLowerCase().includes(q));
+    // Filtramos por nombre del producto o nombre de categoría
+    return [item.nombre, item.categoria].some((campo) => 
+      String(campo).toLowerCase().includes(q)
+    );
   });
 
   if (mostrarFormulario) {
@@ -24,6 +33,7 @@ const Stock = ({ proveedoresMaestro = [] }) => {
       <StockForm
         proveedores={proveedoresMaestro}
         categorias={categorias}
+        marcas={marcas} // ✅ CORRECCIÓN 2: Ahora pasamos las marcas al formulario
         onCancelar={() => setMostrarFormulario(false)}
         onGuardar={guardarProducto}
       />
@@ -79,32 +89,40 @@ const Stock = ({ proveedoresMaestro = [] }) => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {inventarioFiltrado.map((item) => (
-                  <tr key={item.id} className="hover:bg-orange-50/50 transition-colors text-sm">
-                    <td className="px-6 py-4 font-bold text-gray-700">{item.nombre}</td>
-                    <td className="px-6 py-4 text-gray-600">{item.categoria}</td>
-                    <td className="px-6 py-4 text-center font-mono font-bold">{item.stock}</td>
-                    <td className="px-6 py-4 text-center text-gray-400">{item.min}</td>
-                    <td className="px-6 py-4 text-right font-bold text-gray-700">
-                      {item.precio === '—' || item.precio == null ? (
-                        <span className="text-gray-400 font-medium">—</span>
-                      ) : (
-                        <>Gs. {item.precio}</>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      {Number(item.stock) <= Number(item.min) ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-red-100 text-red-600 text-[10px] font-black uppercase border border-red-200">
-                          Reposición urgente
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-green-100 text-green-600 text-[10px] font-black uppercase border border-green-200">
-                          Stock OK
-                        </span>
-                      )}
+                {inventarioFiltrado.length === 0 ? (
+                  <tr>
+                    <td colSpan="6" className="px-6 py-10 text-center text-gray-400">
+                      No se encontraron productos.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  inventarioFiltrado.map((item) => (
+                    <tr key={item.id} className="hover:bg-orange-50/50 transition-colors text-sm">
+                      <td className="px-6 py-4 font-bold text-gray-700">{item.nombre}</td>
+                      <td className="px-6 py-4 text-gray-600">{item.categoria}</td>
+                      <td className="px-6 py-4 text-center font-mono font-bold">{item.stock}</td>
+                      <td className="px-6 py-4 text-center text-gray-400">{item.min}</td>
+                      <td className="px-6 py-4 text-right font-bold text-gray-700">
+                        {item.precio === '—' || item.precio == null ? (
+                          <span className="text-gray-400 font-medium">—</span>
+                        ) : (
+                          <>Gs. {item.precio}</>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        {Number(item.stock) <= Number(item.min) ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-red-100 text-red-600 text-[10px] font-black uppercase border border-red-200">
+                            Reposición urgente
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-green-100 text-green-600 text-[10px] font-black uppercase border border-green-200">
+                            Stock OK
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           )}
