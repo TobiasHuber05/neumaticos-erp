@@ -16,37 +16,36 @@ const prisma = new PrismaClient({ adapter });
 export const login = async (req, res) => {
   const { email, password } = req.body;
 
-  // LOG DE DEPURACIÓN 1: Ver qué llega del navegador
   console.log("--- INTENTO DE LOGIN ---");
   console.log("Email ingresado:", email);
-  console.log("Password ingresada:", password);
 
   if (!email || !password) {
     return res.status(400).json({ error: 'Email y contraseña son requeridos' });
   }
 
   try {
-    const usuario = await prisma.usuarios.findUnique({
+    // Usamos findFirst porque email ya no es Unique en el schema de Prisma
+    const usuario = await prisma.usuarios.findFirst({
       where: { email }
     });
 
-    // LOG DE DEPURACIÓN 2: Ver si encontramos al usuario en la DB
     if (!usuario) {
       console.log("❌ Resultado: El email no existe en la base de datos.");
       return res.status(401).json({ error: 'Credenciales incorrectas' });
     }
 
     console.log("✅ Usuario encontrado en DB:", usuario.email);
-    console.log("Hash almacenado en DB:", usuario.password);
 
-    if (!usuario.activo) {
-      console.log("⚠️ Usuario encontrado pero está INACTIVO.");
-      return res.status(403).json({ error: 'Usuario inactivo. Contactá al administrador' });
+    // Ajuste a 'passwordd' (con doble d) según el cambio de tu compañero
+    const hashAlmacenado = usuario.passwordd || usuario.password;
+
+    if (!hashAlmacenado) {
+      console.log("❌ Error: No se encontró hash de contraseña para este usuario.");
+      return res.status(500).json({ error: 'Error en la estructura de datos del usuario' });
     }
 
-    // LOG DE DEPURACIÓN 3: Comparar contraseñas
-    const passwordValido = await bcrypt.compare(password, usuario.password);
-    console.log("¿La contraseña coincide con el hash?:", passwordValido);
+    const passwordValido = await bcrypt.compare(password, hashAlmacenado);
+    console.log("¿La contraseña coincide?:", passwordValido);
 
     if (!passwordValido) {
       console.log("❌ Resultado: Contraseña incorrecta.");
@@ -59,8 +58,8 @@ export const login = async (req, res) => {
       {
         id_usuario: usuario.id_usuario,
         email: usuario.email,
-        username: usuario.username,
-        rol: usuario.rol
+        username: usuario.username || '',
+        rol: usuario.rol_empresa || usuario.rol 
       },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN || '8h' }
@@ -71,9 +70,9 @@ export const login = async (req, res) => {
       token,
       usuario: {
         id_usuario: usuario.id_usuario,
-        username: usuario.username,
+        username: usuario.username || '',
         email: usuario.email,
-        rol: usuario.rol
+        rol: usuario.rol_empresa || usuario.rol
       }
     });
 
@@ -89,11 +88,6 @@ export const register = async (req, res) => {
 
   if (!username || !email || !password || !rol) {
     return res.status(400).json({ error: 'Todos los campos son requeridos' });
-  }
-
-  const rolesValidos = ['admin', 'compras', 'ventas', 'tesoreria', 'rrhh', 'contabilidad'];
-  if (!rolesValidos.includes(rol)) {
-    return res.status(400).json({ error: `Rol inválido. Opciones: ${rolesValidos.join(', ')}` });
   }
 
   try {
@@ -112,8 +106,8 @@ export const register = async (req, res) => {
       data: { 
         username, 
         email, 
-        password: passwordHash, 
-        rol,
+        passwordd: passwordHash, // Guardamos en passwordd
+        rol_empresa: rol,        // Guardamos en rol_empresa
         activo: true 
       }
     });
@@ -124,7 +118,7 @@ export const register = async (req, res) => {
         id_usuario: nuevoUsuario.id_usuario,
         username: nuevoUsuario.username,
         email: nuevoUsuario.email,
-        rol: nuevoUsuario.rol
+        rol: nuevoUsuario.rol_empresa
       }
     });
 
@@ -147,9 +141,8 @@ export const perfil = async (req, res) => {
         id_usuario: true,
         username: true,
         email: true,
-        rol: true,
-        activo: true,
-        created_at: true
+        rol_empresa: true,
+        activo: true
       }
     });
 
