@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { Users, Search, FileText, Briefcase, TrendingUp, UserPlus, CreditCard, ClipboardList } from 'lucide-react';
 
-// 1. Comentamos lo que no existe físicamente en las carpetas
-// import { useModuloPersonal } from '../hooks/useModuloPersonal';
-// import Funcionarios from './ModuloPersonal/Funcionarios';
-// import NominaProceso from './ModuloPersonal/NominaProceso';
-// import AsientosPersonal from './ModuloPersonal/AsientosPersonal';
-// import ConceptosSalariales from './ModuloPersonal/ConceptosSalariales';
+//1. Comentamos lo que no existe físicamente en las carpetas
+import { useModuloPersonal } from '../hooks/useModuloPersonal';
+import Funcionarios from './ModuloPersonal/Funcionarios';
+import NominaProceso from './ModuloPersonal/NominaProceso';
+import AsientosPersonal from './ModuloPersonal/AsientosPersonal';
+import ConceptosSalariales from './ModuloPersonal/ConceptosSalariales';
 
 const Personal = ({ defaultTab }) => {
   // 2. Creamos un objeto "mock" (falso) para que el código no falle al leer variables

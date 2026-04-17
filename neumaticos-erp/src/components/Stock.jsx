@@ -1,23 +1,15 @@
 import { useState } from 'react';
 import { Package, Search, Plus } from 'lucide-react';
 import StockForm from './Forms/StockForm';
+import { useProductos } from '../hooks/useProductos';
 
-const Stock = ({ inventario, setInventario, proveedoresMaestro = [] }) => {
+const Stock = ({ proveedoresMaestro = [] }) => {
+  const { inventario, categorias, crearProducto, loading } = useProductos();
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const guardarProducto = ({ nombre, categoria, precio, proveedorNombre }) => {
-    const precioStr = precio ?? '—';
-    const nuevo = {
-      id: Date.now(),
-      nombre,
-      categoria,
-      stock: 0,
-      min: 10,
-      precio: precioStr,
-      proveedor: proveedorNombre || undefined,
-    };
-    setInventario((prev) => [nuevo, ...prev]);
+  const guardarProducto = async ({ nombre, categoria, categoriaId, precio, marcaId, esServicio, proveedorNombre }) => {
+    await crearProducto({ nombre, categoria, categoriaId, precio, marcaId, esServicio });
     setMostrarFormulario(false);
   };
 
@@ -31,6 +23,7 @@ const Stock = ({ inventario, setInventario, proveedoresMaestro = [] }) => {
     return (
       <StockForm
         proveedores={proveedoresMaestro}
+        categorias={categorias}
         onCancelar={() => setMostrarFormulario(false)}
         onGuardar={guardarProducto}
       />
@@ -71,46 +64,50 @@ const Stock = ({ inventario, setInventario, proveedoresMaestro = [] }) => {
 
       <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-500">
         <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead className="bg-orange-50 text-erp-orange uppercase text-xs font-black">
-              <tr>
-                <th className="px-6 py-4">Producto</th>
-                <th className="px-6 py-4">Categoría</th>
-                <th className="px-6 py-4 text-center">Stock actual</th>
-                <th className="px-6 py-4 text-center">Stock mín.</th>
-                <th className="px-6 py-4 text-right">Precio unitario</th>
-                <th className="px-6 py-4 text-center">Estado</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {inventarioFiltrado.map((item) => (
-                <tr key={item.id} className="hover:bg-orange-50/50 transition-colors text-sm">
-                  <td className="px-6 py-4 font-bold text-gray-700">{item.nombre}</td>
-                  <td className="px-6 py-4 text-gray-600">{item.categoria}</td>
-                  <td className="px-6 py-4 text-center font-mono font-bold">{item.stock}</td>
-                  <td className="px-6 py-4 text-center text-gray-400">{item.min}</td>
-                  <td className="px-6 py-4 text-right font-bold text-gray-700">
-                    {item.precio === '—' || item.precio == null ? (
-                      <span className="text-gray-400 font-medium">—</span>
-                    ) : (
-                      <>Gs. {item.precio}</>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    {Number(item.stock) <= Number(item.min) ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-red-100 text-red-600 text-[10px] font-black uppercase border border-red-200">
-                        Reposición urgente
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-green-100 text-green-600 text-[10px] font-black uppercase border border-green-200">
-                        Stock OK
-                      </span>
-                    )}
-                  </td>
+          {loading ? (
+            <p className="text-center text-gray-400 py-10">Cargando productos...</p>
+          ) : (
+            <table className="w-full text-left">
+              <thead className="bg-orange-50 text-erp-orange uppercase text-xs font-black">
+                <tr>
+                  <th className="px-6 py-4">Producto</th>
+                  <th className="px-6 py-4">Categoría</th>
+                  <th className="px-6 py-4 text-center">Stock actual</th>
+                  <th className="px-6 py-4 text-center">Stock mín.</th>
+                  <th className="px-6 py-4 text-right">Precio unitario</th>
+                  <th className="px-6 py-4 text-center">Estado</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {inventarioFiltrado.map((item) => (
+                  <tr key={item.id} className="hover:bg-orange-50/50 transition-colors text-sm">
+                    <td className="px-6 py-4 font-bold text-gray-700">{item.nombre}</td>
+                    <td className="px-6 py-4 text-gray-600">{item.categoria}</td>
+                    <td className="px-6 py-4 text-center font-mono font-bold">{item.stock}</td>
+                    <td className="px-6 py-4 text-center text-gray-400">{item.min}</td>
+                    <td className="px-6 py-4 text-right font-bold text-gray-700">
+                      {item.precio === '—' || item.precio == null ? (
+                        <span className="text-gray-400 font-medium">—</span>
+                      ) : (
+                        <>Gs. {item.precio}</>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      {Number(item.stock) <= Number(item.min) ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-red-100 text-red-600 text-[10px] font-black uppercase border border-red-200">
+                          Reposición urgente
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-green-100 text-green-600 text-[10px] font-black uppercase border border-green-200">
+                          Stock OK
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
     </div>

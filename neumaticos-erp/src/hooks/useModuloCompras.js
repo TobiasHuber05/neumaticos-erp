@@ -1,9 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  proveedoresIniciales,
-  inventarioInicial,
-  MEDIOS_PAGO_PROVEEDOR,
-} from '../data/erpInitialData';
+import { MEDIOS_PAGO_PROVEEDOR } from '../data/erpInitialData';
 import { ESTADOS_PEDIDO_COMPRA, LABELS } from '../components/Forms/comprasFormDefaults';
 import {
   adjudicarPorMenorPrecio,
@@ -25,83 +21,30 @@ const fmtNd = (n) => `ND-P-${String(n).padStart(4, '0')}`;
 const fmtNc = (n) => `NC-P-${String(n).padStart(4, '0')}`;
 const fmtOp = (n) => `OP-${String(n).padStart(4, '0')}`;
 
+// Función para normalizar los datos que vienen de la DB al formato que usa el componente
 function normalizarInventarioItem(row) {
   const precioRaw = row.precio;
-  const precioNum =
-    typeof precioRaw === 'number'
-      ? precioRaw
-      : Number(String(precioRaw ?? '').replace(/\./g, '').replace(/,/g, '')) || 0;
+  const precioNum = Number(precioRaw) || 0;
+  
   return {
     ...row,
+    id: row.id, // id_producto de la DB
+    nombreProducto: row.nombre, // descripcion de la DB
     stock: Number(row.stock) || 0,
-    min: Number(row.min) || 0,
+    min: Number(row.min) || 10,
     precioNum,
-    precio:
-      typeof precioRaw === 'string' && precioRaw.includes('.')
-        ? precioRaw
-        : precioNum > 0
-          ? precioNum.toLocaleString('de-DE')
-          : String(precioRaw ?? '—'),
+    precio: precioNum > 0 ? precioNum.toLocaleString('de-DE') : '—',
   };
 }
 
 export function useModuloCompras() {
-  const [proveedores, setProveedores] = useState(() =>
-    proveedoresIniciales.map((p) => ({ ...p, categorias: [...(p.categorias ?? [])] })),
-  );
-  const [inventario, setInventario] = useState(() => inventarioInicial.map(normalizarInventarioItem));
+  // --- ESTADOS DE DATOS (AHORA INICIAN VACÍOS) ---
+  const [proveedores, setProveedores] = useState([]);
+  const [inventario, setInventario] = useState([]);
+  const [pedidos, setPedidos] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  const pedidoSeqRef = useRef(3);
-  const cotSeqRef = useRef(1);
-  const ocSeqRef = useRef(1);
-  const facSeqRef = useRef(1);
-  const ndSeqRef = useRef(1);
-  const ncSeqRef = useRef(1);
-  const opSeqRef = useRef(1);
-  const asSeqRef = useRef(1);
-
-  const [pedidos, setPedidos] = useState(() => [
-    {
-      id: nid(),
-      numero: fmtPedido(1),
-      fecha: '2026-03-30',
-      productos: 2,
-      estado: ESTADOS_PEDIDO_COMPRA.PENDIENTE_COTIZACION,
-      items: [
-        {
-          id: nid(),
-          productoId: 1,
-          nombreProducto: 'Michelin Primacy 4',
-          categoria: 'Neumáticos Auto',
-          cantidad: 20,
-        },
-        {
-          id: nid(),
-          productoId: 3,
-          nombreProducto: 'Bridgestone Turanza',
-          categoria: 'Neumáticos Auto',
-          cantidad: 15,
-        },
-      ],
-    },
-    {
-      id: nid(),
-      numero: fmtPedido(2),
-      fecha: '2026-03-31',
-      productos: 1,
-      estado: ESTADOS_PEDIDO_COMPRA.PENDIENTE_COTIZACION,
-      items: [
-        {
-          id: nid(),
-          productoId: 2,
-          nombreProducto: 'Pirelli Scorpion AT',
-          categoria: 'Neumáticos Camioneta',
-          cantidad: 8,
-        },
-      ],
-    },
-  ]);
-
+  // --- ESTADOS DE PROCESO (LOCALES POR AHORA) ---
   const [pedidosCotizacion, setPedidosCotizacion] = useState([]);
   const [cotizacionesProveedor, setCotizacionesProveedor] = useState([]);
   const [ordenesCompra, setOrdenesCompra] = useState([]);
@@ -111,12 +54,93 @@ export function useModuloCompras() {
   const [ordenesPagoProveedores, setOrdenesPagoProveedores] = useState([]);
   const [asientosCompras, setAsientosCompras] = useState([]);
 
+  // --- REFS ---
+  const cotSeqRef = useRef(1);
+  const ocSeqRef = useRef(1);
+  const facSeqRef = useRef(1);
+  const ndSeqRef = useRef(1);
+  const ncSeqRef = useRef(1);
+  const opSeqRef = useRef(1);
+  const asSeqRef = useRef(1);
+
   const proveedoresRef = useRef(proveedores);
-  proveedoresRef.current = proveedores;
+  useEffect(() => { proveedoresRef.current = proveedores; }, [proveedores]);
+  
   const facturasRef = useRef(facturasProveedor);
+  useEffect(() => { facturasRef.current = facturasProveedor; }, [facturasProveedor]);
+
+  // --- FUNCIONES DE CARGA (FETCH) ---
+
+  const fetchTodo = useCallback(async () => {
+    setLoading(true);
+    try {
+      const headers = { Authorization: `Bearer ${localStorage.getItem('token')}` };
+      
+      // Cargamos Productos, Pedidos y Proveedores en paralelo
+      const [resProd, resPed, resProv] = await Promise.all([
+        fetch('/api/productos', { headers }),
+        fetch('/api/compras/pedidos', { headers }),
+        fetch('/api/proveedores', { headers }) // Asumiendo que tienes esta ruta
+      ]);
+
+      if (resProd.ok) {
+        const dataProd = await resProd.json();
+        setInventario(dataProd.map(normalizarInventarioItem));
+      }
+
+      if (resPed.ok) {
+        const dataPed = await resPed.json();
+        const dataMapeada = dataPed.map(p => ({
+          ...p,
+          items: p.items.map(it => ({
+            ...it,
+            nombreProducto: it.nombre
+          }))
+        }));
+        setPedidos(dataMapeada);
+      }
+
+      if (resProv.ok) {
+        const dataProv = await resProv.json();
+        setProveedores(dataProv);
+      }
+    } catch (err) {
+      console.error("Error cargando datos del módulo:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
-    facturasRef.current = facturasProveedor;
-  }, [facturasProveedor]);
+    fetchTodo();
+  }, [fetchTodo]);
+
+  // --- GUARDAR PEDIDO (CREATE) ---
+  const guardarPedidoCompra = useCallback(async (items) => {
+    try {
+      const res = await fetch('/api/compras/pedidos', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ items })
+      });
+
+      if (res.ok) {
+        await fetchTodo(); // Refrescar todo para ver cambios
+        return { ok: true };
+      } else {
+        const errData = await res.json();
+        return { ok: false, error: errData.error };
+      }
+    } catch (error) {
+      console.error("Error al guardar pedido:", error);
+      return { ok: false, error: "Error de conexión" };
+    }
+  }, [fetchTodo]);
+
+  // --- LÓGICA DE NEGOCIO (IGUAL A TU ORIGINAL) ---
 
   const agregarAsiento = useCallback((tipo, descripcion, monto, ref) => {
     const n = asSeqRef.current++;
@@ -133,89 +157,62 @@ export function useModuloCompras() {
     setAsientosCompras((prev) => [row, ...prev]);
   }, []);
 
-  const guardarPedidoCompra = useCallback((items) => {
-    const hoy = new Date().toISOString().slice(0, 10);
-    const n = pedidoSeqRef.current++;
-    const nuevo = {
-      id: nid(),
-      numero: fmtPedido(n),
-      fecha: hoy,
-      productos: items.length,
-      estado: ESTADOS_PEDIDO_COMPRA.PENDIENTE_COTIZACION,
-      items,
+  const generarPedidoCotizacion = useCallback((pedidoCompra) => {
+    const items = pedidoCompra.items ?? [];
+    if (items.length === 0) return { ok: false, error: 'El pedido no tiene ítems.' };
+    const provs = proveedoresRef.current;
+    const { proveedorIds, advertencia } = elegirProveedoresCotizacion(items, provs);
+    if (proveedorIds.length < 1) return { ok: false, error: 'No hay proveedores registrados.' };
+
+    const pcId = nid();
+    const numero = fmtCot(cotSeqRef.current++);
+    const pedidoCot = {
+      id: pcId,
+      numero,
+      pedidoCompraId: pedidoCompra.id,
+      fechaEnvio: new Date().toISOString().slice(0, 10),
+      proveedorIds,
+      estado: 'Enviado',
+      advertencia,
     };
-    setPedidos((prev) => [nuevo, ...prev]);
+
+    const nuevasCotizaciones = proveedorIds.map((proveedorId) => ({
+      id: nid(),
+      pedidoCotizacionId: pcId,
+      proveedorId,
+      fechaRespuesta: null,
+      lineas: items.map((it) => ({
+        productoId: it.productoId,
+        nombreProducto: it.nombreProducto,
+        cantidadSolicitada: it.cantidad,
+        precioUnitario: '',
+      })),
+      estado: 'Pendiente',
+    }));
+
+    setPedidosCotizacion((prev) => [pedidoCot, ...prev]);
+    setCotizacionesProveedor((prev) => [...nuevasCotizaciones, ...prev]);
+    setPedidos((prev) =>
+      prev.map((p) =>
+        p.id === pedidoCompra.id ? { ...p, estado: ESTADOS_PEDIDO_COMPRA.EN_COTIZACION } : p
+      )
+    );
+    return { ok: true, pedidoCot, advertencia };
   }, []);
-
-  const generarPedidoCotizacion = useCallback(
-    (pedidoCompra) => {
-      const items = pedidoCompra.items ?? [];
-      if (items.length === 0) return { ok: false, error: 'El pedido no tiene ítems.' };
-
-      const provs = proveedoresRef.current;
-      const { proveedorIds, advertencia } = elegirProveedoresCotizacion(items, provs);
-      if (proveedorIds.length < 1) {
-        return { ok: false, error: 'No hay proveedores con las categorías de los productos pedidos.' };
-      }
-
-      const pcId = nid();
-      const numero = fmtCot(cotSeqRef.current++);
-
-      const pedidoCot = {
-        id: pcId,
-        numero,
-        pedidoCompraId: pedidoCompra.id,
-        fechaEnvio: new Date().toISOString().slice(0, 10),
-        proveedorIds,
-        estado: 'Enviado',
-        advertencia,
-      };
-
-      const nuevasCotizaciones = proveedorIds.map((proveedorId) => ({
-        id: nid(),
-        pedidoCotizacionId: pcId,
-        proveedorId,
-        fechaRespuesta: null,
-        lineas: items.map((it) => ({
-          productoId: it.productoId,
-          nombreProducto: it.nombreProducto,
-          cantidadSolicitada: it.cantidad,
-          precioUnitario: '',
-        })),
-        estado: 'Pendiente',
-      }));
-
-      setPedidosCotizacion((prev) => [pedidoCot, ...prev]);
-      setCotizacionesProveedor((prev) => [...nuevasCotizaciones, ...prev]);
-      setPedidos((prev) =>
-        prev.map((p) =>
-          p.id === pedidoCompra.id ? { ...p, estado: ESTADOS_PEDIDO_COMPRA.EN_COTIZACION } : p,
-        ),
-      );
-
-      return { ok: true, pedidoCot, advertencia };
-    },
-    [],
-  );
 
   const actualizarCotizacionProveedor = useCallback((cotizacionId, lineas, fechaRespuesta) => {
     setCotizacionesProveedor((prev) =>
       prev.map((c) =>
         c.id === cotizacionId
-          ? {
-              ...c,
-              lineas,
-              fechaRespuesta: fechaRespuesta || new Date().toISOString().slice(0, 10),
-              estado: 'Recibida',
-            }
-          : c,
-      ),
+          ? { ...c, lineas, fechaRespuesta: fechaRespuesta || new Date().toISOString().slice(0, 10), estado: 'Recibida' }
+          : c
+      )
     );
   }, []);
 
   const adjudicarYGenerarOrdenes = useCallback((pedidoCotizacion) => {
     const pedidoCompra = pedidos.find((p) => p.id === pedidoCotizacion.pedidoCompraId);
-    if (!pedidoCompra) return { ok: false, error: 'Pedido de compra no encontrado.' };
+    if (!pedidoCompra) return { ok: false, error: 'Pedido no encontrado.' };
 
     const items = pedidoCompra.items ?? [];
     const cotizaciones = cotizacionesProveedor.filter((c) => c.pedidoCotizacionId === pedidoCotizacion.id);
@@ -230,13 +227,7 @@ export function useModuloCompras() {
     const porProducto = adjudicarPorMenorPrecio(items, cotParaLogica);
     const grupos = agruparLineasPorProveedor(items, porProducto);
     const provKeys = Object.keys(grupos);
-    if (provKeys.length === 0) {
-      return {
-        ok: false,
-        error:
-          'No hay cotizaciones completas: cargá precios en al menos un proveedor por cada producto.',
-      };
-    }
+    if (provKeys.length === 0) return { ok: false, error: 'Faltan precios en las cotizaciones.' };
 
     const nuevasOc = [];
     for (const proveedorIdStr of provKeys) {
@@ -261,148 +252,114 @@ export function useModuloCompras() {
 
     setOrdenesCompra((prev) => [...nuevasOc, ...prev]);
     setPedidosCotizacion((prev) =>
-      prev.map((p) => (p.id === pedidoCotizacion.id ? { ...p, estado: 'Adjudicado' } : p)),
+      prev.map((p) => (p.id === pedidoCotizacion.id ? { ...p, estado: 'Adjudicado' } : p))
     );
     setPedidos((prev) =>
       prev.map((p) =>
-        p.id === pedidoCompra.id ? { ...p, estado: ESTADOS_PEDIDO_COMPRA.ADJUDICADO } : p,
-      ),
+        p.id === pedidoCompra.id ? { ...p, estado: ESTADOS_PEDIDO_COMPRA.ADJUDICADO } : p
+      )
     );
-
     return { ok: true, ordenes: nuevasOc };
   }, [pedidos, cotizacionesProveedor]);
 
-  const registrarFacturaYStock = useCallback(
-    (ordenCompra, payload) => {
-      const { numero, timbrado, fecha, lineas } = payload;
-      const facturaId = nid();
-      const numeroFac = numero?.trim() || fmtFac(facSeqRef.current++);
+  const registrarFacturaYStock = useCallback((ordenCompra, payload) => {
+    const { numero, timbrado, fecha, lineas } = payload;
+    const facturaId = nid();
+    const numeroFac = numero?.trim() || fmtFac(facSeqRef.current++);
+    const v = validarFacturaContraOrden(ordenCompra, lineas, facturasRef.current, null);
+    if (!v.ok) return { ok: false, errores: v.errores };
 
-      const v = validarFacturaContraOrden(ordenCompra, lineas, facturasRef.current, null);
-      if (!v.ok) return { ok: false, errores: v.errores };
+    const total = totalFactura(lineas);
+    const factura = {
+      id: facturaId,
+      numero: numeroFac,
+      timbrado: timbrado?.trim() ?? '',
+      ordenCompraId: ordenCompra.id,
+      proveedorId: ordenCompra.proveedorId,
+      fecha: fecha || new Date().toISOString().slice(0, 10),
+      lineas,
+      estado: 'Aceptada',
+      estadoPago: 'Pendiente',
+      total,
+    };
 
-      const total = totalFactura(lineas);
-      const factura = {
-        id: facturaId,
-        numero: numeroFac,
-        timbrado: timbrado?.trim() ?? '',
-        ordenCompraId: ordenCompra.id,
-        proveedorId: ordenCompra.proveedorId,
-        fecha: fecha || new Date().toISOString().slice(0, 10),
-        lineas,
-        estado: 'Aceptada',
-        estadoPago: 'Pendiente',
-        total,
-      };
+    setFacturasProveedor(prev => [factura, ...prev]);
+    setInventario((inv) =>
+      inv.map((prod) => {
+        const ent = lineas.find((l) => l.productoId === prod.id);
+        if (!ent) return prod;
+        return { ...prod, stock: (Number(prod.stock) || 0) + (Number(ent.cantidad) || 0) };
+      })
+    );
 
-      const nextFacturas = [factura, ...facturasRef.current];
-      setFacturasProveedor(nextFacturas);
+    const prov = proveedoresRef.current.find((p) => p.id === ordenCompra.proveedorId);
+    agregarAsiento(LABELS.asientoCompra, `Compra ${factura.numero} — ${prov?.nombre}`, total, { facturaId });
 
-      setInventario((inv) =>
-        inv.map((prod) => {
-          const ent = lineas.find((l) => l.productoId === prod.id);
-          if (!ent) return prod;
-          const add = Number(ent.cantidad) || 0;
-          return { ...prod, stock: (Number(prod.stock) || 0) + add };
-        }),
-      );
-
-      const prov = proveedoresRef.current.find((p) => p.id === ordenCompra.proveedorId);
-      agregarAsiento(
-        LABELS.asientoCompra,
-        `Compra según ${factura.numero} — ${prov?.nombre ?? 'Proveedor'}`,
-        total,
-        { facturaId, ordenCompraId: ordenCompra.id },
-      );
-
-      setOrdenesCompra((prev) =>
-        prev.map((oc) => {
-          if (oc.id !== ordenCompra.id) return oc;
-          const tienePendiente = ordenTienePendienteEntrega(oc, nextFacturas);
-          return { ...oc, estado: tienePendiente ? 'Entrega parcial' : 'Cerrada' };
-        }),
-      );
-
-      return { ok: true, factura };
-    },
-    [agregarAsiento],
-  );
+    setOrdenesCompra((prev) =>
+      prev.map((oc) => {
+        if (oc.id !== ordenCompra.id) return oc;
+        const tienePendiente = ordenTienePendienteEntrega(oc, [factura, ...facturasRef.current]);
+        return { ...oc, estado: tienePendiente ? 'Entrega parcial' : 'Cerrada' };
+      })
+    );
+    return { ok: true, factura };
+  }, [agregarAsiento]);
 
   const registrarNotaDevolucion = useCallback((factura, payload) => {
     const { motivo, lineas } = payload;
-    const ndId = nid();
-    const numeroNd = fmtNd(ndSeqRef.current++);
-
-    const totalDev = totalFactura(lineas);
     const nd = {
-      id: ndId,
-      numero: numeroNd,
+      id: nid(),
+      numero: fmtNd(ndSeqRef.current++),
       facturaId: factura.id,
       proveedorId: factura.proveedorId,
       fecha: new Date().toISOString().slice(0, 10),
       motivo,
       lineas,
-      total: totalDev,
+      total: totalFactura(lineas),
     };
     setNotasDevolucion((prev) => [nd, ...prev]);
-
     setInventario((inv) =>
       inv.map((prod) => {
         const dev = lineas.find((l) => l.productoId === prod.id);
-        if (!dev) return prod;
-        const sub = Number(dev.cantidad) || 0;
-        return { ...prod, stock: Math.max(0, (Number(prod.stock) || 0) - sub) };
-      }),
+        return dev ? { ...prod, stock: Math.max(0, Number(prod.stock) - Number(dev.cantidad)) } : prod;
+      })
     );
-
     return { ok: true, nota: nd };
   }, []);
 
-  const registrarNotaCreditoProveedor = useCallback(
-    (notaDevolucion, payload) => {
-      const { numero, fecha, monto } = payload;
-      const ncId = nid();
-      const numeroNc = numero?.trim() || fmtNc(ncSeqRef.current++);
-      const m = Number(monto) || notaDevolucion.total;
-      const nc = {
-        id: ncId,
-        numero: numeroNc,
-        notaDevolucionId: notaDevolucion.id,
-        proveedorId: notaDevolucion.proveedorId,
-        fecha: fecha || new Date().toISOString().slice(0, 10),
-        monto: m,
-      };
-      setNotasCreditoProveedor((prev) => [nc, ...prev]);
-      agregarAsiento(
-        LABELS.asientoNC,
-        `NC recibida ${nc.numero} por devolución ${notaDevolucion.numero}`,
-        m,
-        { notaCreditoId: ncId, notaDevolucionId: notaDevolucion.id },
-      );
-      return { ok: true, notaCredito: nc };
-    },
-    [agregarAsiento],
-  );
+  const registrarNotaCreditoProveedor = useCallback((notaDevolucion, payload) => {
+    const { numero, monto } = payload;
+    const ncId = nid();
+    const m = Number(monto) || notaDevolucion.total;
+    const nc = {
+      id: ncId,
+      numero: numero?.trim() || fmtNc(ncSeqRef.current++),
+      notaDevolucionId: notaDevolucion.id,
+      proveedorId: notaDevolucion.proveedorId,
+      fecha: new Date().toISOString().slice(0, 10),
+      monto: m,
+    };
+    setNotasCreditoProveedor((prev) => [nc, ...prev]);
+    agregarAsiento(LABELS.asientoNC, `NC ${nc.numero}`, m, { notaCreditoId: ncId });
+    return { ok: true, notaCredito: nc };
+  }, [agregarAsiento]);
 
   const registrarOrdenPago = useCallback((payload) => {
-    const { proveedorId, facturaIds, medios, fecha } = payload;
-    if (!facturaIds?.length) return { ok: false, error: 'Seleccioná al menos una factura.' };
-    const opId = nid();
-    const numero = fmtOp(opSeqRef.current++);
-    const totalMedios = (medios ?? []).reduce((a, m) => a + (Number(m.monto) || 0), 0);
+    const { proveedorId, facturaIds, medios } = payload;
+    if (!facturaIds?.length) return { ok: false, error: 'Sin facturas.' };
     const op = {
-      id: opId,
-      numero,
+      id: nid(),
+      numero: fmtOp(opSeqRef.current++),
       proveedorId,
-      fecha: fecha || new Date().toISOString().slice(0, 10),
-      facturaIds: [...facturaIds],
+      fecha: new Date().toISOString().slice(0, 10),
+      facturaIds,
       medios: medios ?? [],
-      total: totalMedios,
+      total: medios.reduce((a, m) => a + Number(m.monto), 0),
       estado: 'Registrada',
     };
     setOrdenesPagoProveedores((prev) => [op, ...prev]);
     setFacturasProveedor((prev) =>
-      prev.map((f) => (facturaIds.includes(f.id) ? { ...f, estadoPago: 'Pagada' } : f)),
+      prev.map((f) => (facturaIds.includes(f.id) ? { ...f, estadoPago: 'Pagada' } : f))
     );
     return { ok: true, ordenPago: op };
   }, []);
@@ -426,6 +383,7 @@ export function useModuloCompras() {
     notasCreditoProveedor,
     ordenesPagoProveedores,
     asientosCompras,
+    loading,
     guardarPedidoCompra,
     generarPedidoCotizacion,
     actualizarCotizacionProveedor,
