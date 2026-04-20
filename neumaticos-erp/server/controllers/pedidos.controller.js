@@ -1,4 +1,4 @@
-import { prisma } from '../lib/prisma.js'; 
+import { prisma } from '../lib/prisma.js';
 
 // 1. Obtener todos los pedidos
 export const getPedidos = async (req, res) => {
@@ -7,25 +7,40 @@ export const getPedidos = async (req, res) => {
       include: {
         detalles_pedidos: {
           include: {
-            producto: true // Para sacar la descripción del producto
+            producto: {
+              include: {
+                categoria: true  // ← trae el nombre de la categoría
+              }
+            }
           }
-        }
+        },
+        cotizacion: true
       },
       orderBy: { id_pedido_producto: 'desc' }
     });
 
-    const data = pedidos.map(p => ({
-      id: p.id_pedido_producto,
-      numero: `PED-${String(p.id_pedido_producto).padStart(4, '0')}`,
-      fecha: p.fecha?.toISOString().split('T')[0] ?? '—',
-      estado: 'Pendiente Cotización', // Hardcodeado porque tu modelo no tiene campo estado
-      items: p.detalles_pedidos.map(d => ({
-        id: d.id_detalle_pedido,
-        productoId: d.id_producto,
-        nombre: d.producto?.descripcion ?? 'Desconocido',
-        cantidad: d.cantidad
-      }))
-    }));
+    const data = pedidos.map(p => {
+      let estado = 'Pendiente Cotización';
+      if (p.cotizacion.length > 0) {
+        estado = 'En Cotización';
+      }
+
+      return {
+        id: p.id_pedido_producto,
+        idDB: p.id_pedido_producto,
+        numero: `PED-${String(p.id_pedido_producto).padStart(4, '0')}`,
+        fecha: p.fecha?.toISOString().split('T')[0] ?? '—',
+        estado,
+        productos: p.detalles_pedidos.length,
+        items: p.detalles_pedidos.map(d => ({
+          id: d.id_detalle_pedido,
+          productoId: d.id_producto,
+          nombreProducto: d.producto?.descripcion ?? 'Desconocido',
+          categoria: d.producto?.categoria?.nombre ?? '',
+          cantidad: d.cantidad
+        }))
+      };
+    });
 
     res.json(data);
   } catch (error) {
@@ -44,15 +59,10 @@ export const createPedido = async (req, res) => {
 
   try {
     const nuevoPedido = await prisma.$transaction(async (tx) => {
-      // CREACIÓN DE CABECERA
-      // Solo enviamos 'fecha' porque tu modelo no tiene id_usuario ni estado
       const cabecera = await tx.pedidos_productos.create({
-        data: {
-          fecha: new Date(),
-        }
+        data: { fecha: new Date() }
       });
 
-      // CREACIÓN DE DETALLES
       await tx.detalles_pedidos.createMany({
         data: items.map(item => ({
           id_pedido_producto: cabecera.id_pedido_producto,
@@ -64,10 +74,17 @@ export const createPedido = async (req, res) => {
       return cabecera;
     });
 
-    res.status(201).json({ ok: true, id: nuevoPedido.id_pedido_producto });
+    res.status(201).json({
+      ok: true,
+      id: nuevoPedido.id_pedido_producto,
+      numero: `PED-${String(nuevoPedido.id_pedido_producto).padStart(4, '0')}`,
+      fecha: nuevoPedido.fecha?.toISOString().split('T')[0],
+      estado: 'Pendiente Cotización',
+      items: [],
+      productos: 0,
+    });
   } catch (error) {
     console.error('❌ Error al crear pedido:', error);
-    // Enviamos el mensaje de error real para saber si falta algo más
     res.status(500).json({ error: error.message });
   }
 };

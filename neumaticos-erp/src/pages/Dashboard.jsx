@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import Sidebar from '../components/Sidebar';
-//Imports compras
+
+// Imports compras
 import PedidosCompra from '../components/ModuloCompras/PedidosCompra';
 import NuevoPedidoForm from '../components/Forms/NuevoPedidoForm';
 import Proveedores from '../components/ModuloCompras/Proveedores';
@@ -19,7 +20,7 @@ import MovimientosBancarios from '../components/ModuloTesoreria/MovimientosBanca
 import ConciliacionBancaria from '../components/ModuloTesoreria/ConciliacionBancaria';
 import CuentaBancariaForm from '../components/Forms/CuentaBancariaForm';
 
-//Imports ventas
+// Imports ventas
 import Ventas from '../components/Ventas';
 import { useModuloVentas } from '../hooks/useModuloVentas';
 import Presupuestos from '../components/ModuloVentas/Presupuestos';
@@ -28,50 +29,91 @@ import NotasCreditoVentas from '../components/ModuloVentas/NotasCreditoVentas';
 import AsientosVentas from '../components/ModuloVentas/AsientosVentas';
 import ClientesVentas from '../components/ModuloVentas/ClientesVentas';
 
-
 import Personal from '../components/Personal';
+
+// ── Hooks reales de API ──────────────────────────────────────
+import { useProveedores } from '../hooks/useProveedores';
+import { useProductos } from '../hooks/useProductos';
+import { useCotizaciones } from '../hooks/useCotizaciones';
+import { useOrdenesCompra } from '../hooks/useOrdenesCompra';
+
+// Hook local solo para lo que todavía no tiene backend
 import { useModuloCompras } from '../hooks/useModuloCompras';
 import { ESTADOS_PEDIDO_COMPRA } from '../components/Forms/comprasFormDefaults';
 
+const API_PEDIDOS = '/api/compras';
+
+function getHeaders() {
+  return {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${localStorage.getItem('token')}`,
+  };
+}
+
 function Dashboard() {
-  const compras = useModuloCompras();
+  // ── Hooks de API ─────────────────────────────────────────
+  const { proveedores } = useProveedores();
+
+  const { inventario } = useProductos();
+
+  const productosBajoMinimo = () =>
+    inventario.filter((p) => Number(p.stock) <= Number(p.min));
+
+  const {
+    cotizacionesProveedor,
+    pedidosCotizacion,
+    generarCotizacion,
+    actualizarCotizacionProveedor,
+    adjudicarYGenerarOrdenes,
+    refetch: refetchCotizaciones,
+  } = useCotizaciones();
+
+  const {
+    ordenesCompra,
+    facturasProveedor,
+    registrarFacturaYStock,
+    refetch: refetchOrdenes,
+  } = useOrdenesCompra();
+
+  // ── Estado local de pedidos (con API) ────────────────────
+  const [pedidos, setPedidos] = useState([]);
   const [moduloActual, setModuloActual] = useState('compras');
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [mostrarFormCuenta, setMostrarFormCuenta] = useState(false);
 
+  const fetchPedidos = async () => {
+    try {
+      const res = await fetch(`${API_PEDIDOS}/pedidos`, { headers: getHeaders() });
+      const data = await res.json();
+      setPedidos(data);
+    } catch (err) {
+      console.error('Error al cargar pedidos:', err);
+    }
+  };
+
+  useMemo(() => { fetchPedidos(); }, []);
+
+  // ── Hook local para lo que aún no tiene backend ──────────
+  const compras = useModuloCompras();
   const {
     MEDIOS_PAGO_PROVEEDOR,
-    proveedores,
-    setProveedores,
-    inventario,
-    setInventario,
-    pedidos,
-    pedidosCotizacion,
-    cotizacionesProveedor,
-    ordenesCompra,
-    facturasProveedor,
     notasDevolucion,
     notasCreditoProveedor,
     ordenesPagoProveedores,
     asientosCompras,
-    guardarPedidoCompra,
-    generarPedidoCotizacion,
-    actualizarCotizacionProveedor,
-    adjudicarYGenerarOrdenes,
-    registrarFacturaYStock,
     registrarNotaDevolucion,
     registrarNotaCreditoProveedor,
     registrarOrdenPago,
-    productosBajoMinimo,
   } = compras;
 
-  const { 
-    cuentas, 
-    bancos, 
-    movimientos, 
-    registrarCuenta, 
-    registrarMovimiento, 
-    confirmarMovimientos 
+  // ── Tesorería y Ventas ───────────────────────────────────
+  const {
+    cuentas,
+    bancos,
+    movimientos,
+    registrarCuenta,
+    registrarMovimiento,
+    confirmarMovimientos,
   } = useModuloTesoreria();
 
   const ventas = useModuloVentas();
@@ -81,13 +123,45 @@ function Dashboard() {
     [proveedores],
   );
 
-
-  const guardarNuevoPedido = (items) => {
-    guardarPedidoCompra(items);
-    setMostrarFormulario(false);
+  // Crear pedido via API
+  const guardarNuevoPedido = async (items) => {
+    try {
+      const res = await fetch(`${API_PEDIDOS}/pedidos`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({ items }),
+      });
+      if (!res.ok) throw new Error('Error al crear pedido');
+      await fetchPedidos();
+      setMostrarFormulario(false);
+    } catch (err) {
+      console.error('Error al guardar pedido:', err);
+    }
   };
 
-  const pendientesCotizacion = pedidos.filter((p) => p.estado === ESTADOS_PEDIDO_COMPRA.PENDIENTE_COTIZACION).length;
+  // Generar cotización conectado a la API
+  const generarPedidoCotizacion = async (pedido) => {
+    const res = await generarCotizacion(pedido, proveedores);
+    if (res.ok) {
+      await fetchPedidos();
+    }
+    return res;
+  };
+
+  // Adjudicar conectado a la API
+  const adjudicarYGenerarOrdenesConRefetch = async (pc) => {
+    const res = await adjudicarYGenerarOrdenes(pc, pedidos);
+    if (res.ok) {
+      await fetchPedidos();
+      await refetchCotizaciones();
+      await refetchOrdenes();
+    }
+    return res;
+  };
+
+  const pendientesCotizacion = pedidos.filter(
+    (p) => p.estado === ESTADOS_PEDIDO_COMPRA.PENDIENTE_COTIZACION,
+  ).length;
   const alertasStock = productosBajoMinimo().length;
 
   const tituloModulo = () => {
@@ -102,12 +176,12 @@ function Dashboard() {
       servicios: 'Servicios',
       ventas: 'Ventas & Facturación',
       'facturas de venta': 'Facturas de Venta',
-      'presupuesto': 'Presupuestos',
-      'clientes_ventas': 'Clientes',
+      presupuesto: 'Presupuestos',
+      clientes_ventas: 'Clientes',
       'notas credito': 'Notas de Crédito',
       'asiento ventas': 'Asientos de Ventas',
       tesoreria: 'Tesorería',
-      'gestion_cuentas': 'Cuentas bancarias',
+      gestion_cuentas: 'Cuentas bancarias',
       'movimientos bancarios': 'Movimientos bancarios',
       'conciliacion bancaria': 'Conciliaciones bancarias',
       personal: 'Nómina — Funcionarios',
@@ -120,7 +194,8 @@ function Dashboard() {
   const renderContenido = () => {
     switch (moduloActual) {
       case 'proveedores':
-        return <Proveedores proveedores={proveedores} setProveedores={setProveedores} />;
+        return <Proveedores />;
+
       case 'cotizaciones':
         return (
           <Cotizaciones
@@ -130,9 +205,10 @@ function Dashboard() {
             cotizacionesProveedor={cotizacionesProveedor}
             generarPedidoCotizacion={generarPedidoCotizacion}
             actualizarCotizacionProveedor={actualizarCotizacionProveedor}
-            adjudicarYGenerarOrdenes={adjudicarYGenerarOrdenes}
+            adjudicarYGenerarOrdenes={adjudicarYGenerarOrdenesConRefetch}
           />
         );
+
       case 'ordenes_compra':
         return (
           <OrdenesCompra
@@ -146,6 +222,7 @@ function Dashboard() {
             registrarNotaCreditoProveedor={registrarNotaCreditoProveedor}
           />
         );
+
       case 'pagos_proveedores':
         return (
           <PagosProveedores
@@ -156,51 +233,63 @@ function Dashboard() {
             registrarOrdenPago={registrarOrdenPago}
           />
         );
+
       case 'asientos_compras':
         return <AsientosCompras asientos={asientosCompras} />;
+
       case 'stock':
-        return (
-          <Stock
-            inventario={inventario}
-            setInventario={setInventario}
-            proveedoresMaestro={proveedoresMaestro}
-          />
-        );
+        return <Stock proveedoresMaestro={proveedoresMaestro} />;
+
       case 'servicios':
         return <Services />;
+
       case 'ventas':
+        return <Ventas ventas={ventas} inventario={inventario} setInventario={() => {}} />;
+
+      case 'facturas de venta':
         return (
-          <Ventas 
+          <FacturasVentas
             ventas={ventas}
+            clientes={ventas.clientes}
             inventario={inventario}
-            setInventario={setInventario}
+            setInventario={() => {}}
           />
         );
-      case 'facturas de venta':
-        return <FacturasVentas ventas={ventas} clientes={ventas.clientes} inventario={inventario} setInventario={setInventario} />;
+
       case 'presupuesto':
-        return <Presupuestos ventas={ventas} clientes={ventas.clientes} inventario={inventario} setInventario={setInventario} />;
+        return (
+          <Presupuestos
+            ventas={ventas}
+            clientes={ventas.clientes}
+            inventario={inventario}
+            setInventario={() => {}}
+          />
+        );
+
       case 'notas credito':
         return <NotasCreditoVentas ventas={ventas} clientes={ventas.clientes} />;
+
       case 'asiento ventas':
         return <AsientosVentas ventas={ventas} />;
+
       case 'clientes_ventas':
         return <ClientesVentas ventas={ventas} />;
 
       case 'tesoreria':
         return <Tesoreria />;
+
       case 'gestion_cuentas':
         return (
           <>
-            <GestionCuentas 
-              bancos={bancos} 
-              cuentas={cuentas} 
+            <GestionCuentas
+              bancos={bancos}
+              cuentas={cuentas}
               movimientos={movimientos}
-              onNuevaCuenta={() => setMostrarFormCuenta(true)} 
+              onNuevaCuenta={() => setMostrarFormCuenta(true)}
             />
             {mostrarFormCuenta && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-                <CuentaBancariaForm 
+                <CuentaBancariaForm
                   bancos={bancos}
                   onCancelar={() => setMostrarFormCuenta(false)}
                   onGuardar={(nueva) => {
@@ -212,28 +301,34 @@ function Dashboard() {
             )}
           </>
         );
+
       case 'movimientos bancarios':
         return (
-          <MovimientosBancarios 
+          <MovimientosBancarios
             cuentas={cuentas}
             onCancelar={() => {}}
             onGuardar={registrarMovimiento}
           />
         );
+
       case 'conciliacion bancaria':
         return (
-          <ConciliacionBancaria 
+          <ConciliacionBancaria
             movimientos={movimientos}
             cuentas={cuentas}
             onConfirmarConciliacion={confirmarMovimientos}
           />
         );
+
       case 'personal':
         return <Personal defaultTab="funcionarios" />;
+
       case 'personal_nomina':
         return <Personal defaultTab="nomina" />;
+
       case 'personal_asientos':
         return <Personal defaultTab="asientos" />;
+
       case 'compras':
         if (mostrarFormulario) {
           return (
@@ -264,6 +359,7 @@ function Dashboard() {
             <PedidosCompra onNuevoPedido={() => setMostrarFormulario(true)} pedidos={pedidos} />
           </>
         );
+
       default:
         return (
           <div className="bg-white p-20 rounded-xl border-4 border-dotted border-gray-100 text-center">
@@ -279,7 +375,9 @@ function Dashboard() {
       <main className="flex-1 overflow-auto p-10">
         <header className="mb-8 border-b-2 border-erp-yellow pb-4 flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-black text-erp-orange uppercase tracking-tighter">{tituloModulo()}</h1>
+            <h1 className="text-3xl font-black text-erp-orange uppercase tracking-tighter">
+              {tituloModulo()}
+            </h1>
           </div>
           <div className="bg-white px-4 py-2 rounded-lg shadow-sm border border-orange-100 text-right">
             <span className="block text-[9px] font-black text-erp-orange uppercase">Estado del sistema</span>

@@ -10,12 +10,11 @@ import {
 import { verifyToken } from '../middlewares/auth.middleware.js';
 
 const router = express.Router();
-router.get('/marcas', getMarcas);
-// Todas las rutas protegidas (Opción B)
+
 router.use(verifyToken);
 
 router.get('/categorias', getCategorias);
-
+router.get('/marcas', getMarcas);
 router.get('/', getProductos);
 router.get('/:id', getProductoById);
 router.post('/', createProducto);

@@ -32,9 +32,9 @@ const OrdenesCompra = ({
     return m;
   }, [facturasProveedor]);
 
-  const handleGuardarFactura = (payload) => {
+  const handleGuardarFactura = async (payload) => {
     setErroresFactura(null);
-    const res = registrarFacturaYStock(ocFactura, payload);
+    const res = await registrarFacturaYStock(ocFactura, payload);
     if (!res.ok) {
       setErroresFactura(res.errores ?? ['No se pudo registrar la factura.']);
       return;
@@ -63,11 +63,14 @@ const OrdenesCompra = ({
             </thead>
             <tbody className="divide-y divide-gray-100">
               {ordenesCompra.map((oc) => {
-                const pendiente = ordenTienePendienteEntrega(oc, facturasProveedor);
+                const estaCerrada = oc.estado === 'Cerrada';
+                const pendiente = !estaCerrada && ordenTienePendienteEntrega(oc, facturasProveedor);
                 const pendMap = cantidadPendientePorLinea(oc, facturasProveedor);
-                const resumen = (oc.lineas ?? [])
-                  .map((l) => `${l.nombreProducto?.slice(0, 12)}…: ${pendMap[l.productoId] ?? 0}`)
-                  .join(' · ');
+                const resumen = estaCerrada
+                  ? 'Operación cerrada'
+                  : (oc.lineas ?? [])
+                      .map((l) => `${l.nombreProducto?.slice(0, 12)}…: ${pendMap[l.productoId] ?? 0}`)
+                      .join(' · ');
                 return (
                   <tr key={oc.id} className="hover:bg-orange-50/40">
                     <td className="px-4 py-3 font-bold">{oc.numero}</td>
@@ -85,7 +88,9 @@ const OrdenesCompra = ({
                       </span>
                     </td>
                     <td className="px-4 py-3 text-xs text-gray-600 max-w-xs truncate" title={resumen}>
-                      {pendiente ? (
+                      {estaCerrada ? (
+                        <span className="text-green-700 font-bold">Completa</span>
+                      ) : pendiente ? (
                         <span className="inline-flex items-center gap-1 text-amber-700 font-bold">
                           <AlertCircle size={14} /> Pendiente
                         </span>
@@ -96,7 +101,7 @@ const OrdenesCompra = ({
                     <td className="px-4 py-3 text-right">
                       <button
                         type="button"
-                        disabled={!pendiente}
+                        disabled={estaCerrada || !pendiente}
                         onClick={() => {
                           setErroresFactura(null);
                           setOcFactura(oc);
