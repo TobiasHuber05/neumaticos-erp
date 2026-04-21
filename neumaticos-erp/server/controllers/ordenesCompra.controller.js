@@ -14,9 +14,7 @@ export const getOrdenesCompra = async (req, res) => {
               include: { producto: true }
             },
             pedidos_productos: {
-              include: {
-                detalles_pedidos: true
-              }
+              include: { detalles_pedidos: true }
             }
           }
         },
@@ -29,10 +27,7 @@ export const getOrdenesCompra = async (req, res) => {
       const detallesPedido = oc.cotizacion?.pedidos_productos?.detalles_pedidos ?? [];
 
       const lineas = detallesSeleccionados.map((d) => {
-        // Buscar la cantidad real del pedido para este producto
-        const detallePedido = detallesPedido.find(
-          (dp) => dp.id_producto === d.id_producto
-        );
+        const detallePedido = detallesPedido.find((dp) => dp.id_producto === d.id_producto);
         return {
           productoId: d.id_producto,
           nombreProducto: d.producto?.descripcion ?? '—',
@@ -113,10 +108,10 @@ export const getOrdenCompraById = async (req, res) => {
 // POST /api/ordenes-compra/:id/factura
 export const registrarFactura = async (req, res) => {
   const { id } = req.params;
-  const { numero, timbrado, fecha, lineas } = req.body;
+  const { lineas, numero, fecha, timbrado } = req.body;
 
-  if (!lineas?.length) {
-    return res.status(400).json({ error: 'La factura debe tener al menos una línea' });
+  if (!lineas || !Array.isArray(lineas) || lineas.length === 0) {
+    return res.status(400).json({ error: 'Líneas de factura requeridas' });
   }
 
   try {
@@ -127,7 +122,6 @@ export const registrarFactura = async (req, res) => {
           include: {
             detalle_cotizacion: {
               where: { seleccionado: true },
-              include: { producto: true }
             },
             pedidos_productos: {
               include: { detalles_pedidos: true }
@@ -144,6 +138,7 @@ export const registrarFactura = async (req, res) => {
       0
     );
 
+    // Líneas del pedido original para verificar cantidades
     const ordenLineas = (oc.cotizacion?.detalle_cotizacion ?? []).map((d) => {
       const detallePedido = oc.cotizacion?.pedidos_productos?.detalles_pedidos?.find(
         (dp) => dp.id_producto === d.id_producto
@@ -155,20 +150,28 @@ export const registrarFactura = async (req, res) => {
     });
 
     const resultado = await prisma.$transaction(async (tx) => {
-      // Crear detalle de orden de compra
-      const detalleOC = await tx.detalle_orden_compra.create({
-        data: {
-          id_orden_compra: Number(id),
-          id_producto: Number(lineas[0].productoId),
-          subtotal: total,
-          cantidad_recibida: lineas.reduce((acc, l) => acc + Number(l.cantidad || 0), 0),
-        }
-      });
+      // 1. Crear detalle de orden de compra por cada línea
+      for (const linea of lineas) {
+        const cantidadPedida = ordenLineas.find(
+          (ol) => ol.productoId === Number(linea.productoId)
+        )?.cantidadPedida ?? 1;
 
-      // Crear factura de compra
+        await tx.detalle_orden_compra.create({
+          data: {
+            id_orden_compra: Number(id),
+            id_producto: Number(linea.productoId),
+            cantidad_pedida: cantidadPedida,
+            cantidad_entregada: Number(linea.cantidad || 0),
+            precio_unitario: Number(linea.precioUnitario || 0),
+            subtotal: Number(linea.cantidad || 0) * Number(linea.precioUnitario || 0),
+          }
+        });
+      }
+
+      // 2. Crear factura de compra
       const factura = await tx.factura_compra.create({
         data: {
-          id_detalle_compra: detalleOC.id_detalle_compra,
+          id_orden_compra: Number(id),
           id_proveedor: oc.id_proveedor,
           fecha_emision: fecha ? new Date(fecha) : new Date(),
           timbrado: timbrado ?? null,
@@ -177,21 +180,21 @@ export const registrarFactura = async (req, res) => {
         }
       });
 
-      // Guardar líneas de factura
+      // 3. Crear detalle_factura por cada línea (campos del schema actualizado)
       await Promise.all(lineas.map((linea) =>
         tx.detalle_factura.create({
           data: {
             id_factura_compra: factura.id_factura_compra,
             id_producto: Number(linea.productoId),
-            producto_cantidad: Number(linea.cantidad || 0),
+            cantidad_recibida: Number(linea.cantidad || 0),
+            precio_unitario: Number(linea.precioUnitario || 0),
             subtotal: Number(linea.cantidad || 0) * Number(linea.precioUnitario || 0),
             iva: 0,
-            precio_total: Number(linea.cantidad || 0) * Number(linea.precioUnitario || 0),
           }
         })
       ));
 
-      // Actualizar stock por cada línea
+      // 4. Actualizar stock por cada línea
       for (const linea of lineas) {
         const stockExistente = await tx.stock.findFirst({
           where: { id_producto: Number(linea.productoId) }
@@ -208,40 +211,25 @@ export const registrarFactura = async (req, res) => {
         }
       }
 
-      // Verificar si la OC quedó totalmente entregada o sigue pendiente
-      const entregasPrevias = await tx.detalle_factura.findMany({
-        where: {
-          factura_compra: {
-            id_factura_compra: { not: factura.id_factura_compra },
-            detalle_orden_compra: { id_orden_compra: Number(id) }
-          }
-        }
-      });
-
+      // 5. Calcular si la OC quedó totalmente entregada
       const entregadoPorProducto = {};
-      for (const entrega of entregasPrevias) {
-        const pid = entrega.id_producto;
-        entregadoPorProducto[pid] = (entregadoPorProducto[pid] ?? 0) + Number(entrega.producto_cantidad ?? 0);
-      }
       for (const linea of lineas) {
         const pid = Number(linea.productoId);
         entregadoPorProducto[pid] = (entregadoPorProducto[pid] ?? 0) + Number(linea.cantidad || 0);
       }
 
-      const pendienteTotal = ordenLineas.some((ol) => {
-        return (entregadoPorProducto[ol.productoId] ?? 0) < ol.cantidadPedida;
-      });
+      const pendienteTotal = ordenLineas.some(
+        (ol) => (entregadoPorProducto[ol.productoId] ?? 0) < ol.cantidadPedida
+      );
 
-      let estadoPendiente = await tx.estados.findFirst({
-        where: { nombre: { contains: 'Pendiente' } }
-      });
-      if (!estadoPendiente) {
-        estadoPendiente = await tx.estados.create({
-          data: { nombre: 'Pendiente entrega' }
-        });
-      }
-
+      // 6. Actualizar estado de la OC
       if (pendienteTotal) {
+        let estadoPendiente = await tx.estados.findFirst({
+          where: { nombre: { contains: 'Pendiente' } }
+        });
+        if (!estadoPendiente) {
+          estadoPendiente = await tx.estados.create({ data: { nombre: 'Pendiente entrega' } });
+        }
         await tx.orden_compra.update({
           where: { id_orden_compra: Number(id) },
           data: { id_estado: estadoPendiente.id_estado }
@@ -251,9 +239,7 @@ export const registrarFactura = async (req, res) => {
           where: { nombre: { contains: 'Cerrada' } }
         });
         if (!estadoCerrada) {
-          estadoCerrada = await tx.estados.create({
-            data: { nombre: 'Cerrada' }
-          });
+          estadoCerrada = await tx.estados.create({ data: { nombre: 'Cerrada' } });
         }
         await tx.orden_compra.update({
           where: { id_orden_compra: Number(id) },
@@ -291,9 +277,7 @@ export const getFacturas = async (req, res) => {
     const facturas = await prisma.factura_compra.findMany({
       include: {
         proveedores: true,
-        detalle_orden_compra: {
-          include: { orden_compra: true }
-        },
+        orden_compra: true,
         detalle_factura: true,
       },
       orderBy: { id_factura_compra: 'desc' }
@@ -303,7 +287,7 @@ export const getFacturas = async (req, res) => {
       id: f.id_factura_compra,
       numero: `FAC-P-${String(f.id_factura_compra).padStart(4, '0')}`,
       timbrado: f.timbrado ?? '—',
-      ordenCompraId: f.detalle_orden_compra?.id_orden_compra ?? null,
+      ordenCompraId: f.id_orden_compra ?? null,
       proveedorId: f.id_proveedor,
       fecha: f.fecha_emision?.toISOString().split('T')[0] ?? '—',
       total: Number(f.total ?? 0),
@@ -311,10 +295,8 @@ export const getFacturas = async (req, res) => {
       estadoPago: 'Pendiente',
       lineas: (f.detalle_factura ?? []).map((d) => ({
         productoId: d.id_producto,
-        cantidad: Number(d.producto_cantidad ?? 0),
-        precioUnitario: Number(d.producto_cantidad ?? 0)
-          ? Number(d.precio_total ?? 0) / Number(d.producto_cantidad ?? 1)
-          : 0,
+        cantidad: Number(d.cantidad_recibida ?? 0),
+        precioUnitario: Number(d.precio_unitario ?? 0),
       })),
     }));
 

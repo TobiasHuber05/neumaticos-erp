@@ -159,17 +159,19 @@ model cotizacion {
 }
 
 model cuenta_bancaria {
-  id_cuenta             Int                     @id @default(autoincrement())
-  id_banco              Int?
-  numero_cuenta         String?                 @db.Char(30)
-  tipo_cuenta           String?                 @db.VarChar
-  saldo                 Decimal?                @db.Decimal(10, 2)
-  saldo_disponible      Decimal?                @db.Decimal(10, 2)
-  id_moneda             Int?
-  conciliacion_bancaria conciliacion_bancaria[]
-  banco                 banco?                  @relation(fields: [id_banco], references: [id_banco], onDelete: NoAction, onUpdate: NoAction, map: "fk_cuenta_banco")
-  monedas               monedas?                @relation(fields: [id_moneda], references: [id_moneda], onDelete: NoAction, onUpdate: NoAction, map: "fk_cuenta_moneda")
-  movimiento_bancario   movimiento_bancario[]
+  id_cuenta               Int                       @id @default(autoincrement())
+  id_banco                Int?
+  numero_cuenta           String?                   @db.Char(30)
+  tipo_cuenta             String?                   @db.VarChar
+  saldo                   Decimal?                  @db.Decimal(10, 2)
+  saldo_disponible        Decimal?                  @db.Decimal(10, 2)
+  id_moneda               Int?
+  cheques_emitidos        cheques_emitidos[]
+  conciliacion_bancaria   conciliacion_bancaria[]
+  banco                   banco?                    @relation(fields: [id_banco], references: [id_banco], onDelete: NoAction, onUpdate: NoAction, map: "fk_cuenta_banco")
+  monedas                 monedas?                  @relation(fields: [id_moneda], references: [id_moneda], onDelete: NoAction, onUpdate: NoAction, map: "fk_cuenta_moneda")
+  movimiento_bancario     movimiento_bancario[]
+  transferencias_emitidas transferencias_emitidas[]
 }
 
 model detalle_asistencia {
@@ -221,10 +223,10 @@ model detalle_factura {
   id_detalle_factura Int             @id @default(autoincrement())
   id_factura_compra  Int?
   id_producto        Int?
-  producto_cantidad  Int?
-  subtotal           Decimal?        @db.Decimal(10, 2)
+  cantidad_recibida  Int?
+  precio_unitario    Decimal?        @db.Decimal(10, 2)
   iva                Decimal?        @db.Decimal(10, 2)
-  precio_total       Decimal?        @db.Decimal(10, 2)
+  subtotal           Decimal?        @db.Decimal(10, 2)
   factura_compra     factura_compra? @relation(fields: [id_factura_compra], references: [id_factura_compra], onDelete: NoAction, onUpdate: NoAction, map: "fk_detfact_factura")
   producto           producto?       @relation(fields: [id_producto], references: [id_producto], onDelete: NoAction, onUpdate: NoAction, map: "fk_detallecotizacion_producto")
 }
@@ -232,12 +234,12 @@ model detalle_factura {
 model detalle_factura_venta {
   id_detalle_fac_venta Int                @id @default(autoincrement())
   id_factura_venta     Int?
+  id_producto_servicio Int?
   cantidad             Int?
   precio_unitario      Decimal?           @db.Decimal(10, 2)
   iva                  Int?
   subtotal             Decimal?           @db.Decimal(10, 2)
   total                Decimal?           @db.Decimal(10, 2)
-  id_producto_servicio Int?
   factura_venta        factura_venta?     @relation(fields: [id_factura_venta], references: [id_factura_venta], onDelete: NoAction, onUpdate: NoAction, map: "fk_detfacventa_factura")
   producto_servicio    producto_servicio? @relation(fields: [id_producto_servicio], references: [id_producto_servicio], onDelete: NoAction, onUpdate: NoAction, map: "fk_detfacventa_producto")
 }
@@ -266,14 +268,15 @@ model detalle_nota_credito {
 }
 
 model detalle_orden_compra {
-  id_detalle_compra Int              @id @default(autoincrement())
-  id_orden_compra   Int?
-  id_producto       Int?
-  subtotal          Decimal?         @db.Decimal(10, 2)
-  cantidad_recibida Int?
-  orden_compra      orden_compra?    @relation(fields: [id_orden_compra], references: [id_orden_compra], onDelete: NoAction, onUpdate: NoAction, map: "fk_detorden_orden")
-  producto          producto?        @relation(fields: [id_producto], references: [id_producto], onDelete: NoAction, onUpdate: NoAction, map: "fk_detorden_producto")
-  factura_compra    factura_compra[]
+  id_detalle_compra  Int           @id @default(autoincrement())
+  id_orden_compra    Int?
+  id_producto        Int?
+  cantidad_pedida    Int?
+  cantidad_entregada Int?          @default(0)
+  precio_unitario    Decimal?      @db.Decimal(10, 2)
+  subtotal           Decimal?      @db.Decimal(10, 2)
+  orden_compra       orden_compra? @relation(fields: [id_orden_compra], references: [id_orden_compra], onDelete: NoAction, onUpdate: NoAction, map: "fk_detorden_orden")
+  producto           producto?     @relation(fields: [id_producto], references: [id_producto], onDelete: NoAction, onUpdate: NoAction, map: "fk_detorden_producto")
 }
 
 model detalle_pago {
@@ -331,21 +334,21 @@ model estados {
 }
 
 model factura_compra {
-  id_factura_compra      Int                      @id @default(autoincrement())
-  id_detalle_compra      Int?
-  id_proveedor           Int?
-  id_modelo_asiento      Int?
-  fecha_emision          DateTime?                @db.Date
-  fecha_vencimiento      DateTime?                @db.Date
-  timbrado               String?                  @db.VarChar(30)
-  contado_credito        Boolean?
-  total                  Decimal?                 @db.Decimal(10, 2)
-  detalle_factura        detalle_factura[]
-  detalle_orden_compra   detalle_orden_compra?    @relation(fields: [id_detalle_compra], references: [id_detalle_compra], onDelete: NoAction, onUpdate: NoAction, map: "fk_factcompra_detalle")
-  proveedores            proveedores?             @relation(fields: [id_proveedor], references: [id_proveedor], onDelete: NoAction, onUpdate: NoAction, map: "fk_factcompra_proveedor")
-  modelo_asiento         modelo_asiento?          @relation(fields: [id_modelo_asiento], references: [id_modelo_asiento], onDelete: NoAction, onUpdate: NoAction, map: "fk_modelo_asiento")
-  orden_pago_proveedores orden_pago_proveedores[]
-  pedido_devolucion      pedido_devolucion[]
+  id_factura_compra           Int                           @id @default(autoincrement())
+  id_orden_compra             Int?
+  id_proveedor                Int?
+  id_modelo_asiento           Int?
+  fecha_emision               DateTime?                     @db.Date
+  fecha_vencimiento           DateTime?                     @db.Date
+  timbrado                    String?                       @db.VarChar(30)
+  contado_credito             Boolean?
+  total                       Decimal?                      @db.Decimal(10, 2)
+  detalle_factura             detalle_factura[]
+  detalle_orden_pago_facturas detalle_orden_pago_facturas[]
+  orden_compra                orden_compra?                 @relation(fields: [id_orden_compra], references: [id_orden_compra], onDelete: NoAction, onUpdate: NoAction, map: "fk_factcompra_orden")
+  proveedores                 proveedores?                  @relation(fields: [id_proveedor], references: [id_proveedor], onDelete: NoAction, onUpdate: NoAction, map: "fk_factcompra_proveedor")
+  modelo_asiento              modelo_asiento?               @relation(fields: [id_modelo_asiento], references: [id_modelo_asiento], onDelete: NoAction, onUpdate: NoAction, map: "fk_modelo_asiento")
+  pedido_devolucion           pedido_devolucion[]
 }
 
 model factura_venta {
@@ -358,7 +361,7 @@ model factura_venta {
   timbrado              Int?
   nro_factura           Int?
   contado_credito       String?                 @db.VarChar(20)
-  total                 Int?
+  total                 Decimal?                @db.Decimal(10, 2)
   cobranza              cobranza[]
   detalle_factura_venta detalle_factura_venta[]
   devolucion_cliente    devolucion_cliente[]
@@ -378,6 +381,7 @@ model familiares {
 model forma_pago {
   id_forma_pago         Int                     @id @default(autoincrement())
   metodo_pago           String?                 @db.VarChar(50)
+  tipo_metodo           String?                 @db.VarChar(20)
   orden_pago_forma_pago orden_pago_forma_pago[]
 }
 
@@ -512,28 +516,33 @@ model orden_compra {
   fecha                DateTime?              @db.Date
   id_estado            Int?
   detalle_orden_compra detalle_orden_compra[]
+  factura_compra       factura_compra[]
   cotizacion           cotizacion?            @relation(fields: [id_cotizacion], references: [id_cotizacion], onDelete: NoAction, onUpdate: NoAction, map: "fk_ordencompra_cotizacion")
   estados              estados?               @relation(fields: [id_estado], references: [id_estado], onDelete: NoAction, onUpdate: NoAction, map: "fk_ordencompra_estado")
   proveedores          proveedores?           @relation(fields: [id_proveedor], references: [id_proveedor], onDelete: NoAction, onUpdate: NoAction, map: "fk_ordencompra_proveedor")
 }
 
 model orden_pago_forma_pago {
-  id_op_forma            Int                     @id @default(autoincrement())
-  id_orden_pago          Int?
-  id_forma_pago          Int?
-  monto                  Decimal?                @db.Decimal(10, 2)
-  forma_pago             forma_pago?             @relation(fields: [id_forma_pago], references: [id_forma_pago], onDelete: NoAction, onUpdate: NoAction, map: "fk_opformapago_forma")
-  orden_pago_proveedores orden_pago_proveedores? @relation(fields: [id_orden_pago], references: [id_orden_pago], onDelete: NoAction, onUpdate: NoAction, map: "fk_opformapago_orden")
-  pago_instrumento       pago_instrumento[]
+  id_op_forma             Int                       @id @default(autoincrement())
+  id_orden_pago           Int?
+  id_forma_pago           Int?
+  monto                   Decimal?                  @db.Decimal(10, 2)
+  cheques_emitidos        cheques_emitidos[]
+  forma_pago              forma_pago?               @relation(fields: [id_forma_pago], references: [id_forma_pago], onDelete: NoAction, onUpdate: NoAction, map: "fk_opformapago_forma")
+  orden_pago_proveedores  orden_pago_proveedores?   @relation(fields: [id_orden_pago], references: [id_orden_pago], onDelete: NoAction, onUpdate: NoAction, map: "fk_opformapago_orden")
+  pago_instrumento        pago_instrumento[]
+  transferencias_emitidas transferencias_emitidas[]
 }
 
 model orden_pago_proveedores {
-  id_orden_pago         Int                     @id @default(autoincrement())
-  id_movimiento         Int?
-  id_factura            Int?
-  orden_pago_forma_pago orden_pago_forma_pago[]
-  factura_compra        factura_compra?         @relation(fields: [id_factura], references: [id_factura_compra], onDelete: NoAction, onUpdate: NoAction, map: "fk_ordenpago_factura")
-  movimiento_bancario   movimiento_bancario?    @relation(fields: [id_movimiento], references: [id_movimiento], onDelete: NoAction, onUpdate: NoAction, map: "fk_ordenpago_movimiento")
+  id_orden_pago               Int                           @id @default(autoincrement())
+  id_movimiento               Int?
+  fecha_pago                  DateTime?                     @db.Date
+  id_proveedor                Int?
+  detalle_orden_pago_facturas detalle_orden_pago_facturas[]
+  orden_pago_forma_pago       orden_pago_forma_pago[]
+  movimiento_bancario         movimiento_bancario?          @relation(fields: [id_movimiento], references: [id_movimiento], onDelete: NoAction, onUpdate: NoAction, map: "fk_ordenpago_movimiento")
+  proveedores                 proveedores?                  @relation(fields: [id_proveedor], references: [id_proveedor], onDelete: NoAction, onUpdate: NoAction, map: "fk_ordenpago_proveedor")
 }
 
 model pago_instrumento {
@@ -659,17 +668,18 @@ model proveedor_categorias {
 }
 
 model proveedores {
-  id_proveedor         Int                    @id @default(autoincrement())
-  nombre               String?                @db.VarChar(50)
-  ruc                  String?                @db.VarChar(20)
-  direccion            String?                @db.VarChar(150)
-  telefono             String?                @db.VarChar(20)
-  cotizacion           cotizacion[]
-  factura_compra       factura_compra[]
-  lotes                lotes[]
-  orden_compra         orden_compra[]
-  pedidos_proveedores  pedidos_proveedores[]
-  proveedor_categorias proveedor_categorias[]
+  id_proveedor           Int                      @id @default(autoincrement())
+  nombre                 String?                  @db.VarChar(50)
+  ruc                    String?                  @db.VarChar(20)
+  direccion              String?                  @db.VarChar(150)
+  telefono               String?                  @db.VarChar(20)
+  cotizacion             cotizacion[]
+  factura_compra         factura_compra[]
+  lotes                  lotes[]
+  orden_compra           orden_compra[]
+  orden_pago_proveedores orden_pago_proveedores[]
+  pedidos_proveedores    pedidos_proveedores[]
+  proveedor_categorias   proveedor_categorias[]
 }
 
 model stock {
@@ -700,6 +710,40 @@ model usuarios {
   passwordd      String?       @db.VarChar(255)
   rol_empresa    String?       @db.VarChar(80)
   funcionarios   funcionarios? @relation(fields: [id_funcionario], references: [id_funcionario], onDelete: NoAction, onUpdate: NoAction, map: "fk_usuariopermiso")
+}
+
+model cheques_emitidos {
+  id_cheque             Int                    @id @default(autoincrement())
+  id_op_forma           Int?
+  id_cuenta             Int?
+  numero_cheque         String                 @db.VarChar(50)
+  monto                 Decimal?               @db.Decimal(10, 2)
+  fecha_emision         DateTime?              @db.Date
+  fecha_vencimiento     DateTime?              @db.Date
+  beneficiario          String?                @db.VarChar(150)
+  estado                String?                @default("emitido") @db.VarChar(20)
+  cuenta_bancaria       cuenta_bancaria?       @relation(fields: [id_cuenta], references: [id_cuenta], onDelete: NoAction, onUpdate: NoAction, map: "fk_cheque_cuenta")
+  orden_pago_forma_pago orden_pago_forma_pago? @relation(fields: [id_op_forma], references: [id_op_forma], onDelete: NoAction, onUpdate: NoAction, map: "fk_cheque_opforma")
+}
+
+model detalle_orden_pago_facturas {
+  id_det_op_factura      Int                     @id @default(autoincrement())
+  id_orden_pago          Int?
+  id_factura_compra      Int?
+  monto_pagado_factura   Decimal?                @db.Decimal(10, 2)
+  factura_compra         factura_compra?         @relation(fields: [id_factura_compra], references: [id_factura_compra], onDelete: NoAction, onUpdate: NoAction, map: "fk_detop_factura")
+  orden_pago_proveedores orden_pago_proveedores? @relation(fields: [id_orden_pago], references: [id_orden_pago], onDelete: NoAction, onUpdate: NoAction, map: "fk_detop_orden")
+}
+
+model transferencias_emitidas {
+  id_transferencia      Int                    @id @default(autoincrement())
+  id_op_forma           Int?
+  id_cuenta_bancaria    Int?
+  numero_referencia     String?                @db.VarChar(100)
+  monto                 Decimal?               @db.Decimal(10, 2)
+  fecha_transferencia   DateTime?              @db.Date
+  cuenta_bancaria       cuenta_bancaria?       @relation(fields: [id_cuenta_bancaria], references: [id_cuenta], onDelete: NoAction, onUpdate: NoAction, map: "fk_trans_cuenta")
+  orden_pago_forma_pago orden_pago_forma_pago? @relation(fields: [id_op_forma], references: [id_op_forma], onDelete: NoAction, onUpdate: NoAction, map: "fk_trans_opforma")
 }
 
 enum estado_asiento {
