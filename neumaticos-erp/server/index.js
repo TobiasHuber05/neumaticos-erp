@@ -7,6 +7,7 @@ import productosRoutes from './routes/productos.routes.js';
 import comprasRoutes from './routes/pedidos.routes.js';
 import cotizacionesRoutes from './routes/cotizaciones.routes.js';
 import ordenesCompraRoutes from './routes/ordenesCompra.routes.js';
+import pagosProveedoresRoutes from './routes/pagosProveedores.routes.js';
 
 dotenv.config();
 
@@ -21,6 +22,7 @@ app.use('/api/productos', productosRoutes);
 app.use('/api/compras', comprasRoutes);
 app.use('/api/cotizaciones', cotizacionesRoutes);
 app.use('/api/ordenes-compra', ordenesCompraRoutes);
+app.use('/api/pagos-proveedores', pagosProveedoresRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Servidor funcionando' });

@@ -120,12 +120,8 @@ export const registrarFactura = async (req, res) => {
       include: {
         cotizacion: {
           include: {
-            detalle_cotizacion: {
-              where: { seleccionado: true },
-            },
-            pedidos_productos: {
-              include: { detalles_pedidos: true }
-            }
+            detalle_cotizacion: { where: { seleccionado: true } },
+            pedidos_productos: { include: { detalles_pedidos: true } }
           }
         }
       }
@@ -138,7 +134,6 @@ export const registrarFactura = async (req, res) => {
       0
     );
 
-    // Líneas del pedido original para verificar cantidades
     const ordenLineas = (oc.cotizacion?.detalle_cotizacion ?? []).map((d) => {
       const detallePedido = oc.cotizacion?.pedidos_productos?.detalles_pedidos?.find(
         (dp) => dp.id_producto === d.id_producto
@@ -180,7 +175,7 @@ export const registrarFactura = async (req, res) => {
         }
       });
 
-      // 3. Crear detalle_factura por cada línea (campos del schema actualizado)
+      // 3. Crear detalle_factura por cada línea
       await Promise.all(lineas.map((linea) =>
         tx.detalle_factura.create({
           data: {
@@ -199,7 +194,6 @@ export const registrarFactura = async (req, res) => {
         const stockExistente = await tx.stock.findFirst({
           where: { id_producto: Number(linea.productoId) }
         });
-
         if (stockExistente) {
           await tx.stock.update({
             where: { id_stock: stockExistente.id_stock },
@@ -272,6 +266,7 @@ export const registrarFactura = async (req, res) => {
 };
 
 // GET /api/ordenes-compra/facturas
+// Incluye estadoPago determinado por si la factura tiene pagos registrados
 export const getFacturas = async (req, res) => {
   try {
     const facturas = await prisma.factura_compra.findMany({
@@ -279,26 +274,35 @@ export const getFacturas = async (req, res) => {
         proveedores: true,
         orden_compra: true,
         detalle_factura: true,
+        // Incluir pagos para determinar estadoPago
+        detalle_orden_pago_facturas: {
+          select: { id_orden_pago: true }
+        }
       },
       orderBy: { id_factura_compra: 'desc' }
     });
 
-    const data = facturas.map((f) => ({
-      id: f.id_factura_compra,
-      numero: `FAC-P-${String(f.id_factura_compra).padStart(4, '0')}`,
-      timbrado: f.timbrado ?? '—',
-      ordenCompraId: f.id_orden_compra ?? null,
-      proveedorId: f.id_proveedor,
-      fecha: f.fecha_emision?.toISOString().split('T')[0] ?? '—',
-      total: Number(f.total ?? 0),
-      estado: 'Aceptada',
-      estadoPago: 'Pendiente',
-      lineas: (f.detalle_factura ?? []).map((d) => ({
-        productoId: d.id_producto,
-        cantidad: Number(d.cantidad_recibida ?? 0),
-        precioUnitario: Number(d.precio_unitario ?? 0),
-      })),
-    }));
+    const data = facturas.map((f) => {
+      // Si tiene al menos un registro en detalle_orden_pago_facturas → está Pagada
+      const estadoPago = f.detalle_orden_pago_facturas.length > 0 ? 'Pagada' : 'Pendiente';
+
+      return {
+        id: f.id_factura_compra,
+        numero: `FAC-P-${String(f.id_factura_compra).padStart(4, '0')}`,
+        timbrado: f.timbrado ?? '—',
+        ordenCompraId: f.id_orden_compra ?? null,
+        proveedorId: f.id_proveedor,
+        fecha: f.fecha_emision?.toISOString().split('T')[0] ?? '—',
+        total: Number(f.total ?? 0),
+        estado: 'Aceptada',
+        estadoPago, // ← calculado desde la DB
+        lineas: (f.detalle_factura ?? []).map((d) => ({
+          productoId: d.id_producto,
+          cantidad: Number(d.cantidad_recibida ?? 0),
+          precioUnitario: Number(d.precio_unitario ?? 0),
+        })),
+      };
+    });
 
     return res.json(data);
   } catch (error) {

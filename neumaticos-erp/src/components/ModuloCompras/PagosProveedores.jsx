@@ -8,6 +8,7 @@ const PagosProveedores = ({
   ordenesPagoProveedores = [],
   mediosPago = [],
   registrarOrdenPago,
+  onPagoRegistrado,
 }) => {
   const [proveedorId, setProveedorId] = useState(proveedores[0]?.id ?? '');
   const [modal, setModal] = useState(false);
@@ -19,13 +20,16 @@ const PagosProveedores = ({
     (f) => f.estado === 'Aceptada' && f.estadoPago !== 'Pagada' && f.proveedorId === Number(proveedorId),
   );
 
-  const registrar = (payload) => {
-    const res = registrarOrdenPago({ ...payload, proveedorId: Number(proveedorId) });
-    if (!res.ok) setMsg(res.error);
-    else {
-      setMsg(`Orden de pago ${res.ordenPago.numero} registrada.`);
-      setModal(false);
+  const registrar = async (payload) => {
+    const res = await registrarOrdenPago({ ...payload, proveedorId: Number(proveedorId) });
+    if (!res?.ok) {
+      setMsg(res?.error ?? 'Error al registrar el pago');
+      return;
     }
+
+    setMsg(`Orden de pago ${res.ordenPago.numero} registrada.`);
+    setModal(false);
+    await onPagoRegistrado?.();
   };
 
   return (

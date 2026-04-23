@@ -36,6 +36,7 @@ import { useProveedores } from '../hooks/useProveedores';
 import { useProductos } from '../hooks/useProductos';
 import { useCotizaciones } from '../hooks/useCotizaciones';
 import { useOrdenesCompra } from '../hooks/useOrdenesCompra';
+import { usePagosProveedores } from '../hooks/usePagosProveedores';
 
 // Hook local solo para lo que todavía no tiene backend
 import { useModuloCompras } from '../hooks/useModuloCompras';
@@ -73,7 +74,14 @@ function Dashboard() {
     facturasProveedor,
     registrarFacturaYStock,
     refetch: refetchOrdenes,
+    refetchFacturas,
   } = useOrdenesCompra();
+
+  const {
+    ordenesPagoProveedores,
+    mediosPago,
+    registrarOrdenPago,
+  } = usePagosProveedores();
 
   // ── Estado local de pedidos (con API) ────────────────────
   const [pedidos, setPedidos] = useState([]);
@@ -93,17 +101,14 @@ function Dashboard() {
 
   useMemo(() => { fetchPedidos(); }, []);
 
-  // ── Hook local para lo que aún no tiene backend ──────────
+  // ── Hook local solo para notas de devolución y NC (sin backend aún) ──
   const compras = useModuloCompras();
   const {
-    MEDIOS_PAGO_PROVEEDOR,
     notasDevolucion,
     notasCreditoProveedor,
-    ordenesPagoProveedores,
     asientosCompras,
     registrarNotaDevolucion,
     registrarNotaCreditoProveedor,
-    registrarOrdenPago,
   } = compras;
 
   // ── Tesorería y Ventas ───────────────────────────────────
@@ -229,8 +234,9 @@ function Dashboard() {
             proveedores={proveedores}
             facturasProveedor={facturasProveedor}
             ordenesPagoProveedores={ordenesPagoProveedores}
-            mediosPago={MEDIOS_PAGO_PROVEEDOR}
+            mediosPago={mediosPago}
             registrarOrdenPago={registrarOrdenPago}
+            onPagoRegistrado={refetchFacturas}
           />
         );
 
