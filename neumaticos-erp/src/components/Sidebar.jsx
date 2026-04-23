@@ -65,7 +65,7 @@ const Sidebar = ({ setModulo, moduloActual }) => {
   const menuItems = [
     { id: 'stock', icon: <Package size={20} />, label: 'Stock / Existencias' },
     { id: 'servicios', icon: <Wrench size={20} />, label: 'Servicios' },
-    { id: 'personal', icon: <UserSquare2 size={20} />, label: 'Personal' },
+    { id: 'personal', icon: <Users size={20} />, label: 'Funcionarios' },
   ];
 
   return (
@@ -197,7 +197,7 @@ const Sidebar = ({ setModulo, moduloActual }) => {
                   : 'text-orange-900 hover:bg-orange-200'}`}
             >
               {item.icon}
-              <span>{item.id === 'personal' ? 'Funcionarios' : item.label}</span>
+              <span>{item.label}</span>
             </button>
           ))}
         </div>

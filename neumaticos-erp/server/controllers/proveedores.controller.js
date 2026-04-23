@@ -71,9 +71,9 @@ export const createProveedor = async (req, res) => {
         ruc,
         direccion,
         telefono,
-        // Crear relaciones con categorías si se proporcionan
+        // Crear relaciones con categorías si se proporcionan, asegurando que sean números
         proveedor_categorias: categoriaIds?.length
-          ? { create: categoriaIds.map((id) => ({ id_categoria: id })) }
+          ? { create: categoriaIds.map((id) => ({ id_categoria: Number(id) })) }
           : undefined
       },
       include: {
@@ -116,7 +116,7 @@ export const updateProveedor = async (req, res) => {
         direccion,
         telefono,
         proveedor_categorias: categoriaIds?.length
-          ? { create: categoriaIds.map((catId) => ({ id_categoria: catId })) }
+          ? { create: categoriaIds.map((catId) => ({ id_categoria: Number(catId) })) }
           : undefined
       },
       include: {

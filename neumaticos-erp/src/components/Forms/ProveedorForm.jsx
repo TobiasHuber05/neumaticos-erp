@@ -1,59 +1,60 @@
 import { useEffect, useState } from 'react';
 import { X, Save, Building2 } from 'lucide-react';
-import { CATEGORIAS_PRODUCTO } from '../../data/erpInitialData';
-
 const empty = {
   nombre: '',
   ruc: '',
-  contacto: '',
   direccion: '',
   telefono: '',
-  categorias: [],
+  categorias: [], // Guardaremos IDs aquí
 };
 
 /**
  * Alta/edición de proveedor con múltiples categorías (multi-select).
  * Pasá `initial` para modo edición; `onGuardar` recibe el objeto listo.
  */
-const ProveedorForm = ({ initial = null, onCancelar, onGuardar }) => {
+const ProveedorForm = ({ initial = null, categoriasDisponibles = [], onCancelar, onGuardar }) => {
   const [form, setForm] = useState(empty);
 
   useEffect(() => {
     if (initial) {
+      // Mapear nombres de categorías a sus IDs correspondientes
+      const nombresIniciales = initial.categorias ?? (initial.categoria ? [initial.categoria] : []);
+      const idsIniciales = categoriasDisponibles
+        .filter(cat => nombresIniciales.includes(cat.nombre))
+        .map(cat => cat.id);
+
       setForm({
         nombre: initial.nombre ?? '',
         ruc: initial.ruc ?? '',
-        contacto: initial.contacto ?? '',
         direccion: initial.direccion ?? '',
         telefono: initial.telefono ?? '',
-        categorias: [...(initial.categorias ?? (initial.categoria ? [initial.categoria] : []))],
+        categorias: idsIniciales,
       });
     } else {
       setForm(empty);
     }
-  }, [initial]);
+  }, [initial, categoriasDisponibles]);
 
-  const toggleCategoria = (cat) => {
+  const toggleCategoria = (catId) => {
     setForm((f) => {
       const set = new Set(f.categorias);
-      if (set.has(cat)) set.delete(cat);
-      else set.add(cat);
+      if (set.has(catId)) set.delete(catId);
+      else set.add(catId);
       return { ...f, categorias: [...set] };
     });
   };
 
   const handleGuardar = () => {
-    if (!form.nombre?.trim() || !form.ruc?.trim() || !form.contacto?.trim() || !form.direccion?.trim() || !form.telefono?.trim())
+    if (!form.nombre?.trim() || !form.ruc?.trim() || !form.direccion?.trim() || !form.telefono?.trim())
       return;
     if (!form.categorias.length) return;
     onGuardar({
       ...(initial?.id ? { id: initial.id } : {}),
       nombre: form.nombre.trim(),
       ruc: form.ruc.trim(),
-      contacto: form.contacto.trim(),
       direccion: form.direccion.trim(),
       telefono: form.telefono.trim(),
-      categorias: form.categorias,
+      categoriaIds: form.categorias, // Enviamos IDs al backend
     });
   };
 
@@ -92,30 +93,23 @@ const ProveedorForm = ({ initial = null, onCancelar, onGuardar }) => {
             />
           </div>
           <div>
-            <label className="block text-sm font-bold text-gray-700 mb-1">Contacto</label>
-            <input
-              type="text"
-              value={form.contacto}
-              onChange={(e) => setForm((f) => ({ ...f, contacto: e.target.value }))}
-              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-erp-orange outline-none"
-            />
-          </div>
-          <div>
             <label className="block text-sm font-bold text-gray-700 mb-1">Teléfono</label>
             <input
               type="text"
               value={form.telefono}
               onChange={(e) => setForm((f) => ({ ...f, telefono: e.target.value }))}
               className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-erp-orange outline-none"
+              placeholder="0981-123456"
             />
           </div>
-          <div className="md:col-span-2">
+          <div>
             <label className="block text-sm font-bold text-gray-700 mb-1">Dirección</label>
             <input
               type="text"
               value={form.direccion}
               onChange={(e) => setForm((f) => ({ ...f, direccion: e.target.value }))}
               className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-erp-orange outline-none"
+              placeholder="Avda. Principal 123"
             />
           </div>
           <div className="md:col-span-2">
@@ -123,18 +117,18 @@ const ProveedorForm = ({ initial = null, onCancelar, onGuardar }) => {
               Categorías que el proveedor puede vender
             </label>
             <div className="flex flex-wrap gap-2">
-              {CATEGORIAS_PRODUCTO.map((cat) => (
+              {categoriasDisponibles.map((cat) => (
                 <button
-                  key={cat}
+                  key={cat.id}
                   type="button"
-                  onClick={() => toggleCategoria(cat)}
+                  onClick={() => toggleCategoria(cat.id)}
                   className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${
-                    form.categorias.includes(cat)
+                    form.categorias.includes(cat.id)
                       ? 'bg-erp-orange text-white border-erp-orange'
                       : 'bg-white text-gray-700 border-gray-300 hover:border-erp-orange'
                   }`}
                 >
-                  {cat}
+                  {cat.nombre}
                 </button>
               ))}
             </div>

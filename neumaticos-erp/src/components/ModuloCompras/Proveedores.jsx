@@ -1,27 +1,27 @@
 import { useMemo, useState } from 'react';
-import { Plus, Phone, MapPin, Users, Tag, Search } from 'lucide-react';
+import { Plus, Phone, MapPin, Users, Tag, Search, Trash2, AlertTriangle, X } from 'lucide-react';
 import ProveedorForm from '../Forms/ProveedorForm';
 import { useProveedores } from '../../hooks/useProveedores';
 
 const Proveedores = () => {
-  const { proveedores, crearProveedor, actualizarProveedor } = useProveedores();
+  const { proveedores, crearProveedor, actualizarProveedor, eliminarProveedor, categorias: categoriasDB } = useProveedores();
 
   const [mostrarForm, setMostrarForm] = useState(false);
   const [editar, setEditar] = useState(null);
+  const [confirmarEliminarId, setConfirmarEliminarId] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filtroCategoria, setFiltroCategoria] = useState('todas');
 
   const categoriasDisponibles = useMemo(() => {
-    const s = new Set();
-    proveedores.forEach((p) => (p.categorias ?? []).forEach((c) => s.add(c)));
-    return [...s].sort();
-  }, [proveedores]);
+    // Usamos las categorías que vienen de la base de datos (nombre es .nombre en el hook)
+    return categoriasDB.map(c => c.nombre).sort();
+  }, [categoriasDB]);
 
   const proveedoresFiltrados = proveedores.filter((p) => {
     const q = searchTerm.trim().toLowerCase();
     const coincideTexto =
       !q ||
-      [p.nombre, p.contacto, p.ruc, p.direccion]
+      [p.nombre, p.ruc, p.direccion]
         .filter(Boolean)
         .some((campo) => String(campo).toLowerCase().includes(q));
     const cats = p.categorias ?? [];
@@ -43,6 +43,7 @@ const Proveedores = () => {
     return (
       <ProveedorForm
         initial={editar}
+        categoriasDisponibles={categoriasDB}
         onCancelar={() => {
           setMostrarForm(false);
           setEditar(null);
@@ -74,7 +75,7 @@ const Proveedores = () => {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
             <input
               type="text"
-              placeholder="Buscar por nombre, RUC, contacto o dirección..."
+              placeholder="Buscar por nombre, RUC o dirección..."
               className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-erp-orange outline-none"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -111,13 +112,23 @@ const Proveedores = () => {
                   <h3 className="font-semibold text-gray-900 text-lg mb-1">{proveedor.nombre}</h3>
                   <div className="text-xs text-gray-400 font-mono">{proveedor.ruc}</div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setEditar(proveedor)}
-                  className="text-erp-orange font-bold text-xs uppercase hover:underline"
-                >
-                  Editar
-                </button>
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setEditar(proveedor)}
+                    className="text-erp-orange font-bold text-xs uppercase hover:underline"
+                  >
+                    Editar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmarEliminarId(proveedor.id)}
+                    className="text-red-500 hover:text-red-700 transition-colors"
+                    title="Eliminar proveedor"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
               </div>
               <div className="flex flex-wrap gap-1 mb-3">
                 {(proveedor.categorias ?? []).map((c) => (
@@ -131,10 +142,6 @@ const Proveedores = () => {
                   <Phone size={14} />
                   <span>{proveedor.telefono}</span>
                 </div>
-                <div className="flex items-center gap-2 text-gray-600">
-                  <span className="font-bold text-gray-500 w-14 shrink-0">Contacto</span>
-                  <span>{proveedor.contacto}</span>
-                </div>
                 <div className="flex items-start gap-2 text-gray-600">
                   <MapPin size={14} className="shrink-0 mt-0.5" />
                   <span>{proveedor.direccion}</span>
@@ -144,6 +151,42 @@ const Proveedores = () => {
           </div>
         ))}
       </div>
+
+      {/* Modal de Confirmación de Eliminación */}
+      {confirmarEliminarId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-xl shadow-2xl border border-orange-100 max-w-md w-full overflow-hidden animate-in zoom-in duration-200">
+            <div className="bg-orange-50 p-6 flex flex-col items-center text-center">
+              <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-4">
+                <AlertTriangle size={32} />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">¿Eliminar proveedor?</h3>
+              <p className="text-gray-600">
+                Esta acción no se puede deshacer. El proveedor y sus relaciones con categorías serán eliminados permanentemente.
+              </p>
+            </div>
+            <div className="p-4 bg-gray-50 flex gap-3 justify-end">
+              <button
+                type="button"
+                onClick={() => setConfirmarEliminarId(null)}
+                className="px-4 py-2 text-gray-600 font-semibold hover:bg-gray-200 rounded-lg transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  await eliminarProveedor(confirmarEliminarId);
+                  setConfirmarEliminarId(null);
+                }}
+                className="px-6 py-2 bg-red-600 text-white font-bold rounded-lg shadow-md hover:bg-red-700 transition-all active:scale-95"
+              >
+                Sí, eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

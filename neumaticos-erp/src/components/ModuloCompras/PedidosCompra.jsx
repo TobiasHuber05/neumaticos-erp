@@ -51,13 +51,12 @@ const PedidosCompra = ({ onNuevoPedido, pedidos }) => {
                 </td>
                 <td className="px-6 py-4">
                   <span
-                    className={`px-3 py-1 rounded-full text-xs font-bold border ${
-                      p.estado === ESTADOS_PEDIDO_COMPRA.ADJUDICADO
-                        ? 'bg-green-100 text-green-800 border-green-200'
-                        : p.estado === ESTADOS_PEDIDO_COMPRA.EN_COTIZACION
-                          ? 'bg-blue-100 text-blue-800 border-blue-200'
-                          : 'bg-yellow-100 text-yellow-700 border-yellow-200'
-                    }`}
+                    className={`px-3 py-1 rounded-full text-xs font-bold border ${p.estado === ESTADOS_PEDIDO_COMPRA.ADJUDICADO
+                      ? 'bg-green-100 text-green-800 border-green-200'
+                      : p.estado === ESTADOS_PEDIDO_COMPRA.EN_COTIZACION
+                        ? 'bg-blue-100 text-blue-800 border-blue-200'
+                        : 'bg-yellow-100 text-yellow-700 border-yellow-200'
+                      }`}
                   >
                     {p.estado}
                   </span>
@@ -98,8 +97,9 @@ const PedidosCompra = ({ onNuevoPedido, pedidos }) => {
                     <tbody className="divide-y divide-gray-100">
                       {pedidoDetalle.items.map((item) => (
                         <tr key={item.id}>
-                          <td className="px-4 py-2">{item.nombre}</td>
-                          <td className="px-4 py-2 text-center font-medium">{item.cantidad}</td>
+                          <td className="px-4 py-2 font-medium">{item.nombreProducto}</td>
+                          <td className="px-4 py-2">{item.categoria}</td>
+                          <td className="px-4 py-2 text-center font-bold text-erp-orange">{item.cantidad}</td>
                         </tr>
                       ))}
                     </tbody>
