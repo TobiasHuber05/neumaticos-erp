@@ -132,6 +132,11 @@ export const registrarPago = async (req, res) => {
     });
   } catch (error) {
     console.error('Error al registrar pago:', error);
+    if (error?.code === 'P2020') {
+      return res.status(400).json({
+        error: 'Monto demasiado grande para la columna en la base de datos. Ejecutá npx prisma db push para aplicar el último schema.',
+      });
+    }
     return res.status(500).json({ error: 'Error al registrar pago' });
   }
 };

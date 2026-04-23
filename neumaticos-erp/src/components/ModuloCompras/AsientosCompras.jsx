@@ -1,63 +1,44 @@
+import React, { useEffect, useState } from 'react';
 import { BookMarked } from 'lucide-react';
-import { LABELS } from '../Forms/comprasFormDefaults';
 
-const AsientosCompras = ({ asientos = [] }) => {
+const AsientosCompras = () => {
+  const [asientos, setAsientos] = useState([]);
+
+  useEffect(() => {
+    fetch('http://localhost:3000/api/asientos-compras')
+      .then(res => res.json())
+      .then(data => setAsientos(data))
+      .catch(err => console.error("Error:", err));
+  }, []);
+
   return (
-    <div className="bg-white rounded-xl shadow-md border border-orange-100 overflow-hidden">
-      <div className="p-6 border-b bg-gray-50 flex items-center gap-2">
-        <BookMarked className="text-erp-orange" />
-        <div>
-          <h2 className="text-xl font-bold text-gray-800">Asientos generados — Compras</h2>
-          <p className="text-xs text-gray-500 mt-1">
-            Tipos: <span className="font-bold text-gray-700">{LABELS.asientoCompra}</span> y{' '}
-            <span className="font-bold text-gray-700">{LABELS.asientoNC}</span> (importe reflejado en Debe y Haber para
-            partida doble simplificada en una línea).
-          </p>
-        </div>
+    <div className="p-6 bg-white rounded-xl shadow-md border border-orange-100">
+      <div className="flex items-center gap-2 mb-6">
+        <BookMarked className="text-orange-500" size={24} />
+        <h2 className="text-xl font-bold text-gray-800">Libro Diario de Compras</h2>
       </div>
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-orange-50 text-erp-orange uppercase text-xs font-black">
-            <tr>
-              <th className="px-4 py-3">Número</th>
-              <th className="px-4 py-3">Fecha</th>
-              <th className="px-4 py-3">Tipo</th>
-              <th className="px-4 py-3">Descripción</th>
-              <th className="px-4 py-3 text-right">Debe</th>
-              <th className="px-4 py-3 text-right">Haber</th>
+      <table className="w-full text-sm text-left">
+        <thead className="bg-orange-50 text-orange-600 uppercase text-xs font-bold">
+          <tr>
+            <th className="px-4 py-3">ID</th>
+            <th className="px-4 py-3">Fecha</th>
+            <th className="px-4 py-3">Descripción</th>
+            <th className="px-4 py-3 text-right">Monto</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y">
+          {asientos.map(a => (
+            <tr key={a.id_asiento} className="hover:bg-gray-50">
+              <td className="px-4 py-3 font-mono font-bold">#{a.id_asiento}</td>
+              <td className="px-4 py-3">{new Date(a.fecha).toLocaleDateString()}</td>
+              <td className="px-4 py-3 text-gray-600">{a.descripcion}</td>
+              <td className="px-4 py-3 text-right font-bold text-orange-700">
+                Gs. {Number(a.total_debe).toLocaleString('de-DE')}
+              </td>
             </tr>
-          </thead>
-          <tbody className="divide-y">
-            {asientos.map((a) => (
-              <tr key={a.id} className="hover:bg-orange-50/40">
-                <td className="px-4 py-3 font-mono font-bold">{a.numero}</td>
-                <td className="px-4 py-3 text-gray-600">{a.fecha}</td>
-                <td className="px-4 py-3">
-                  <span
-                    className={`text-[10px] font-black uppercase px-2 py-1 rounded border ${
-                      a.tipo === LABELS.asientoNC
-                        ? 'bg-violet-100 text-violet-800 border-violet-200'
-                        : 'bg-blue-100 text-blue-800 border-blue-200'
-                    }`}
-                  >
-                    {a.tipo}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-gray-700 max-w-md">{a.descripcion}</td>
-                <td className="px-4 py-3 text-right font-mono">Gs. {Number(a.debe).toLocaleString('de-DE')}</td>
-                <td className="px-4 py-3 text-right font-mono">Gs. {Number(a.haber).toLocaleString('de-DE')}</td>
-              </tr>
-            ))}
-            {!asientos.length && (
-              <tr>
-                <td colSpan={6} className="px-4 py-12 text-center text-gray-400">
-                  Los asientos aparecerán al registrar facturas aceptadas o notas de crédito de proveedor.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 };

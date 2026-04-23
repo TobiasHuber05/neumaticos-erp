@@ -11,7 +11,7 @@ model asiento_detalle {
   id_asiento    Int?
   id_cuenta     Int?
   debe_haber    Boolean?
-  monto         Decimal?      @db.Decimal(10, 2)
+  monto         Decimal?      @db.Decimal(18, 2)
   asientos      asientos?     @relation(fields: [id_asiento], references: [id_asiento], onDelete: NoAction, onUpdate: NoAction, map: "fk_asientodetalle_asiento")
   plan_cuentas  plan_cuentas? @relation(fields: [id_cuenta], references: [id_cuenta], onDelete: NoAction, onUpdate: NoAction, map: "fk_asientodetalle_cuenta")
 }
@@ -21,8 +21,8 @@ model asientos {
   fecha              DateTime?         @db.Date
   numero_asiento     Int?
   descripcion        String?           @db.VarChar(250)
-  total_debe         Decimal?          @db.Decimal(10, 2)
-  total_haber        Decimal?          @db.Decimal(10, 2)
+  total_debe         Decimal?          @db.Decimal(18, 2)
+  total_haber        Decimal?          @db.Decimal(18, 2)
   estado             estado_asiento?   @default(pendiente)
   tabla_origen       String?           @db.VarChar(100)
   id_registro_origen Int?
@@ -224,9 +224,9 @@ model detalle_factura {
   id_factura_compra  Int?
   id_producto        Int?
   cantidad_recibida  Int?
-  precio_unitario    Decimal?        @db.Decimal(10, 2)
-  iva                Decimal?        @db.Decimal(10, 2)
-  subtotal           Decimal?        @db.Decimal(10, 2)
+  precio_unitario    Decimal?        @db.Decimal(18, 2)
+  iva                Decimal?        @db.Decimal(18, 2)
+  subtotal           Decimal?        @db.Decimal(18, 2)
   factura_compra     factura_compra? @relation(fields: [id_factura_compra], references: [id_factura_compra], onDelete: NoAction, onUpdate: NoAction, map: "fk_detfact_factura")
   producto           producto?       @relation(fields: [id_producto], references: [id_producto], onDelete: NoAction, onUpdate: NoAction, map: "fk_detallecotizacion_producto")
 }
@@ -273,8 +273,8 @@ model detalle_orden_compra {
   id_producto        Int?
   cantidad_pedida    Int?
   cantidad_entregada Int?          @default(0)
-  precio_unitario    Decimal?      @db.Decimal(10, 2)
-  subtotal           Decimal?      @db.Decimal(10, 2)
+  precio_unitario    Decimal?      @db.Decimal(18, 2)
+  subtotal           Decimal?      @db.Decimal(18, 2)
   orden_compra       orden_compra? @relation(fields: [id_orden_compra], references: [id_orden_compra], onDelete: NoAction, onUpdate: NoAction, map: "fk_detorden_orden")
   producto           producto?     @relation(fields: [id_producto], references: [id_producto], onDelete: NoAction, onUpdate: NoAction, map: "fk_detorden_producto")
 }
@@ -342,7 +342,7 @@ model factura_compra {
   fecha_vencimiento           DateTime?                     @db.Date
   timbrado                    String?                       @db.VarChar(30)
   contado_credito             Boolean?
-  total                       Decimal?                      @db.Decimal(10, 2)
+  total                       Decimal?                      @db.Decimal(18, 2)
   detalle_factura             detalle_factura[]
   detalle_orden_pago_facturas detalle_orden_pago_facturas[]
   orden_compra                orden_compra?                 @relation(fields: [id_orden_compra], references: [id_orden_compra], onDelete: NoAction, onUpdate: NoAction, map: "fk_factcompra_orden")
@@ -526,7 +526,7 @@ model orden_pago_forma_pago {
   id_op_forma             Int                       @id @default(autoincrement())
   id_orden_pago           Int?
   id_forma_pago           Int?
-  monto                   Decimal?                  @db.Decimal(10, 2)
+  monto                   Decimal?                  @db.Decimal(18, 2)
   cheques_emitidos        cheques_emitidos[]
   forma_pago              forma_pago?               @relation(fields: [id_forma_pago], references: [id_forma_pago], onDelete: NoAction, onUpdate: NoAction, map: "fk_opformapago_forma")
   orden_pago_proveedores  orden_pago_proveedores?   @relation(fields: [id_orden_pago], references: [id_orden_pago], onDelete: NoAction, onUpdate: NoAction, map: "fk_opformapago_orden")
@@ -730,7 +730,7 @@ model detalle_orden_pago_facturas {
   id_det_op_factura      Int                     @id @default(autoincrement())
   id_orden_pago          Int?
   id_factura_compra      Int?
-  monto_pagado_factura   Decimal?                @db.Decimal(10, 2)
+  monto_pagado_factura   Decimal?                @db.Decimal(18, 2)
   factura_compra         factura_compra?         @relation(fields: [id_factura_compra], references: [id_factura_compra], onDelete: NoAction, onUpdate: NoAction, map: "fk_detop_factura")
   orden_pago_proveedores orden_pago_proveedores? @relation(fields: [id_orden_pago], references: [id_orden_pago], onDelete: NoAction, onUpdate: NoAction, map: "fk_detop_orden")
 }
