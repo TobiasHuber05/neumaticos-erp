@@ -40,6 +40,7 @@ import { usePagosProveedores } from '../hooks/usePagosProveedores';
 
 // Hook local solo para lo que todavía no tiene backend
 import { useModuloCompras } from '../hooks/useModuloCompras';
+import { useServicios } from '../hooks/useServicios';
 import { ESTADOS_PEDIDO_COMPRA } from '../components/Forms/comprasFormDefaults';
 
 const API_PEDIDOS = '/api/compras';
@@ -121,7 +122,8 @@ function Dashboard() {
     confirmarMovimientos,
   } = useModuloTesoreria();
 
-  const ventas = useModuloVentas();
+  const moduloVentas = useModuloVentas();
+  const { servicios, actions: actionsServicios } = useServicios();
 
   const proveedoresMaestro = useMemo(
     () => proveedores.map((p) => ({ id: p.id, nombre: p.nombre })),
@@ -247,16 +249,16 @@ function Dashboard() {
         return <Stock proveedoresMaestro={proveedoresMaestro} />;
 
       case 'servicios':
-        return <Services />;
+        return <Services servicios={servicios} actions={actionsServicios} />;
 
       case 'ventas':
-        return <Ventas ventas={ventas} inventario={inventario} setInventario={() => {}} />;
+        return <Ventas ventas={moduloVentas} inventario={inventario} setInventario={() => {}} servicios={servicios} />;
 
       case 'facturas de venta':
         return (
           <FacturasVentas
-            ventas={ventas}
-            clientes={ventas.clientes}
+            ventas={moduloVentas}
+            clientes={moduloVentas.clientes}
             inventario={inventario}
             setInventario={() => {}}
           />
@@ -265,21 +267,22 @@ function Dashboard() {
       case 'presupuesto':
         return (
           <Presupuestos
-            ventas={ventas}
-            clientes={ventas.clientes}
+            ventas={moduloVentas}
+            clientes={moduloVentas.clientes}
             inventario={inventario}
             setInventario={() => {}}
+            servicios={servicios}
           />
         );
 
       case 'notas credito':
-        return <NotasCreditoVentas ventas={ventas} clientes={ventas.clientes} />;
+        return <NotasCreditoVentas ventas={moduloVentas} clientes={moduloVentas.clientes} />;
 
       case 'asiento ventas':
-        return <AsientosVentas ventas={ventas} />;
+        return <AsientosVentas ventas={moduloVentas} />;
 
       case 'clientes_ventas':
-        return <ClientesVentas ventas={ventas} />;
+        return <ClientesVentas ventas={moduloVentas} />;
 
       case 'tesoreria':
         return <Tesoreria />;

@@ -2,31 +2,12 @@ import { Package, Search, Clock3, Plus } from 'lucide-react';
 import ServicesForm from './Forms/ServicesForm';
 import { useState } from 'react';
 
-const Services = () => {
+const Services = ({ servicios = [], actions }) => {
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [servicios,setServicios] = useState([
-    { id: 1, nombre: 'Calibracion de neumaticos', categoria: 'Mantenimiento', precio: '1.000.000', duracion_aprox: '30 min', estado: 'Disponible' },
-    { id: 2, nombre: 'Instalacion de neumaticos', categoria: 'Instalacion', precio: '300.000', duracion_aprox: '20 min', estado: 'Disponible' },
-    { id: 3, nombre: 'Mantenimiento preventivo', categoria: 'Mantenimiento', precio: '300.000', duracion_aprox: '60 min', estado: 'Alta Demanda' },
-    { id: 4, nombre: 'Alineacion y balanceo', categoria: 'Alineacion', precio: '450.000', duracion_aprox: '45 min', estado: 'Disponible' },
-  ]);
 
-  const guardarServicio = ({ nombre, categoria, precio, duracion_aprox }) => {
-    setServicios((prev) => {
-      const nextId = (prev.length ? Math.max(...prev.map((s) => Number(s.id) || 0)) : 0) + 1;
-  
-      const nuevo = {
-        id: nextId,
-        nombre: nombre.trim(),
-        categoria,
-        precio,
-        duracion_aprox,
-        estado: 'Disponible',
-      };
-  
-      return [...prev, nuevo];
-    });
+  const guardarServicio = (datos) => {
+    actions.agregarServicio(datos);
     setMostrarFormulario(false);
   };
 

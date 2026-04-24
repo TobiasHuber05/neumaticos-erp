@@ -8,7 +8,7 @@ import * as ventasLogic from '../../utils/ventasLogic.js';
  * Lista presupuestos: vigentes/expirados, +new, →factura.
  * Props: ventas (hook), clientes, inventario, setInventario
  */
-const Presupuestos = ({ ventas, clientes, inventario, setInventario }) => {
+const Presupuestos = ({ ventas, clientes, inventario, setInventario, servicios = [] }) => {
   const [mostrarNuevo, setMostrarNuevo] = useState(false);
   const [editandoPresupuesto, setEditandoPresupuesto] = useState(null);
 
@@ -60,6 +60,7 @@ const Presupuestos = ({ ventas, clientes, inventario, setInventario }) => {
         <PresupuestoForm
           clientes={clientes}
           inventario={inventario}
+          servicios={servicios}
           onCancelar={() => setMostrarNuevo(false)}
           onGuardar={handleGuardarPresupuesto}
         />
@@ -80,8 +81,8 @@ const Presupuestos = ({ ventas, clientes, inventario, setInventario }) => {
       {/* Tabla vigentes */}
       {vigentes.length > 0 && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="bg-blue-500/5 border-b border-blue-100 px-6 py-4">
-            <h3 className="font-bold text-lg text-blue-800 flex items-center gap-2">
+          <div className="bg-orange-500/5 border-b border-orange-100 px-6 py-4">
+            <h3 className="font-bold text-lg text-orange-800 flex items-center gap-2">
               Vigentes (usar en 10 días)
             </h3>
           </div>
@@ -101,7 +102,7 @@ const Presupuestos = ({ ventas, clientes, inventario, setInventario }) => {
                 {vigentes.map((p) => {
                   const cliente = clientes.find(c => c.id === p.clientId);
                   return (
-                    <tr key={p.id} className="hover:bg-blue-50/50 cursor-pointer transition-colors" onClick={() => handleFacturaClick(p)}>
+                    <tr key={p.id} className="hover:bg-orange-50/50 cursor-pointer transition-colors" onClick={() => handleFacturaClick(p)}>
                       <td className="px-6 py-4 font-mono font-bold text-sm text-erp-orange">{p.numero}</td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
@@ -124,7 +125,7 @@ const Presupuestos = ({ ventas, clientes, inventario, setInventario }) => {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-center">
-                        <Eye className="text-blue-500 w-5 h-5 mx-auto" />
+                        <Eye className="text-erp-orange w-5 h-5 mx-auto" />
                       </td>
                     </tr>
                   );
