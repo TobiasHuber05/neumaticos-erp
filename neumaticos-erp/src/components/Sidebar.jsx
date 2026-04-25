@@ -14,6 +14,9 @@ import {
   Send,
   UserSquare2,
   CoinsIcon,
+  PieChart,
+  Calendar,
+  FileText,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -21,6 +24,7 @@ const Sidebar = ({ setModulo, moduloActual }) => {
   const [comprasAbierto, setComprasAbierto] = useState(true);
   const [tesoreriaAbierto, setTesoreriaAbierto] = useState(false);
   const [ventasAbierto, setVentasAbierto] = useState(false);
+  const [contabilidadAbierto, setContabilidadAbierto] = useState(false);
 
   // --- FUNCIÓN DE CIERRE DE SESIÓN ---
   const handleLogout = () => {
@@ -60,6 +64,13 @@ const Sidebar = ({ setModulo, moduloActual }) => {
     { id: 'personal', icon: <Users size={18} />, label: 'Funcionarios' },
     { id: 'personal_nomina', icon: <ClipboardList size={18} />, label: 'Nómina y Pagos' },
     { id: 'personal_asientos', icon: <BookMarked size={18} />, label: 'Asientos Nómina' },
+  ];
+  
+  const moduloContabilidadItems = [
+    { id: 'contabilidad_plan', icon: <ClipboardList size={18} />, label: 'Plan de Cuentas' },
+    { id: 'contabilidad_asientos', icon: <BookMarked size={18} />, label: 'Asientos Contables' },
+    { id: 'contabilidad_periodos', icon: <Calendar size={18} />, label: 'Periodos Contables' },
+    { id: 'contabilidad_reportes', icon: <PieChart size={18} />, label: 'Informes y Balances' },
   ];
 
   const menuItems = [
@@ -167,6 +178,40 @@ const Sidebar = ({ setModulo, moduloActual }) => {
           {tesoreriaAbierto && (
             <div className="mt-1 mb-2">
               {moduloTesoreriaItems.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setModulo(item.id)}
+                  className={`w-full flex items-center gap-3 px-8 py-2 rounded-lg transition-all font-medium text-sm
+                    ${moduloActual === item.id
+                      ? 'bg-erp-orange text-white shadow-inner'
+                      : 'text-orange-800 hover:bg-orange-200'}`}
+                >
+                  {item.icon}
+                  <span>{item.label}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Modulo Contabilidad */}
+        <div className="px-2">
+          <button
+            type="button"
+            onClick={() => setContabilidadAbierto((prev) => !prev)}
+            className="w-full flex items-center justify-between px-4 py-3 text-orange-900 hover:bg-orange-200 rounded-lg transition-all font-bold text-sm"
+          >
+            <span className="inline-flex items-center gap-3">
+              <BookMarked size={20} />
+              Contabilidad
+            </span>
+            {contabilidadAbierto ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+          </button>
+
+          {contabilidadAbierto && (
+            <div className="mt-1 mb-2">
+              {moduloContabilidadItems.map((item) => (
                 <button
                   key={item.id}
                   type="button"

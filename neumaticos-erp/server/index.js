@@ -9,6 +9,7 @@ import cotizacionesRoutes from './routes/cotizaciones.routes.js';
 import ordenesCompraRoutes from './routes/ordenesCompra.routes.js';
 import pagosProveedoresRoutes from './routes/pagosProveedores.routes.js';
 import asientosRoutes from './routes/asientos.routes.js';
+import contabilidadRoutes from './routes/contabilidad.routes.js';
 
 dotenv.config();
 
@@ -24,6 +25,7 @@ app.use('/api/compras', comprasRoutes);
 app.use('/api/cotizaciones', cotizacionesRoutes);
 app.use('/api/ordenes-compra', ordenesCompraRoutes);
 app.use('/api/pagos-proveedores', pagosProveedoresRoutes);
+app.use('/api/contabilidad', contabilidadRoutes);
 app.use('/api', asientosRoutes);
 
 app.get('/api/health', (req, res) => {

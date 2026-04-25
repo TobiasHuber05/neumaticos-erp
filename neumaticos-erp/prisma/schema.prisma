@@ -26,7 +26,9 @@ model asientos {
   estado             estado_asiento?   @default(pendiente)
   tabla_origen       String?           @db.VarChar(100)
   id_registro_origen Int?
+  id_proc_contable   Int?
   asiento_detalle    asiento_detalle[]
+  proceso_contable   proceso_contable? @relation(fields: [id_proc_contable], references: [id_proc_contable], onDelete: NoAction, onUpdate: NoAction, map: "fk_asientos_proceso")
 }
 
 model asistencia {
@@ -624,7 +626,11 @@ model proceso_contable {
   cant_niveles     Int?
   cant_dig_nivel   Int?
   moneda           String?        @db.VarChar(50)
+  fecha_inicio     DateTime?      @db.Date
+  fecha_fin        DateTime?      @db.Date
+  estado           String?        @default("Abierto") @db.VarChar(20)
   plan_cuentas     plan_cuentas[]
+  asientos         asientos[]
 }
 
 model producto {

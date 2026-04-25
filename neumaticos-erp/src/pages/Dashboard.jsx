@@ -31,6 +31,12 @@ import ClientesVentas from '../components/ModuloVentas/ClientesVentas';
 
 import Personal from '../components/Personal';
 
+// Imports contabilidad
+import PeriodosContables from '../components/ModuloContabilidad/PeriodosContables';
+import PlanCuentas from '../components/ModuloContabilidad/PlanCuentas';
+import AsientosManuales from '../components/ModuloContabilidad/AsientosManuales';
+import ReportesContables from '../components/ModuloContabilidad/ReportesContables';
+
 // ── Hooks reales de API ──────────────────────────────────────
 import { useProveedores } from '../hooks/useProveedores';
 import { useProductos } from '../hooks/useProductos';
@@ -194,6 +200,10 @@ function Dashboard() {
       personal: 'Nómina — Funcionarios',
       personal_nomina: 'Procesamiento de Nómina',
       personal_asientos: 'Asientos de Nómina',
+      contabilidad_plan: 'Contabilidad — Plan de Cuentas',
+      contabilidad_asientos: 'Contabilidad — Asientos',
+      contabilidad_periodos: 'Contabilidad — Periodos',
+      contabilidad_reportes: 'Contabilidad — Informes',
     };
     return map[moduloActual] ?? moduloActual;
   };
@@ -337,6 +347,18 @@ function Dashboard() {
 
       case 'personal_asientos':
         return <Personal defaultTab="asientos" />;
+
+      case 'contabilidad_periodos':
+        return <PeriodosContables />;
+
+      case 'contabilidad_plan':
+        return <PlanCuentas />;
+
+      case 'contabilidad_asientos':
+        return <AsientosManuales />;
+
+      case 'contabilidad_reportes':
+        return <ReportesContables />;
 
       case 'compras':
         if (mostrarFormulario) {
