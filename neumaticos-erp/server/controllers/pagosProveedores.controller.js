@@ -93,6 +93,39 @@ export const registrarPago = async (req, res) => {
             monto: Number(medio.monto),
           }
         });
+
+        // --- INTEGRACIÓN CON TESORERÍA ---
+        // Si el medio parece ser bancario, intentamos registrar el movimiento en el banco
+        try {
+          const bancoMatch = await tx.banco.findFirst({
+            where: {
+              OR: [
+                { nombre: { contains: medio.medio, mode: 'insensitive' } },
+                { nombre: { equals: medio.medio.split(' ')[0], mode: 'insensitive' } }
+              ]
+            },
+            include: { cuenta_bancaria: true }
+          });
+
+          if (bancoMatch && bancoMatch.cuenta_bancaria.length > 0) {
+            const cuenta = bancoMatch.cuenta_bancaria[0];
+            await tx.movimiento_bancario.create({
+              data: {
+                id_cuenta: cuenta.id_cuenta,
+                monto_egreso: Number(medio.monto),
+                fecha_movimiento: fecha ? new Date(fecha) : new Date(),
+                tipo_movimiento: 'Débito',
+                concepto: `Pago a Proveedor (OP-${String(ordenPago.id_orden_pago).padStart(4, '0')})`,
+                tipo_deposito: medio.medio.toLowerCase().includes('cheque') ? 'Cheque Propio' : 'Transferencia',
+                // Si es transferencia, se confirma de inmediato usualmente
+                fecha_confirmacion: medio.medio.toLowerCase().includes('transferencia') ? new Date() : null
+              }
+            });
+          }
+        } catch (tesoreriaErr) {
+          console.error('Error al integrar con Tesorería (no bloqueante):', tesoreriaErr);
+          // No bloqueamos la transacción principal si falla la tesorería (soft fail)
+        }
       }
 
       // 3. Registrar facturas incluidas en el pago

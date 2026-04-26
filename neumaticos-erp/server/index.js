@@ -7,9 +7,12 @@ import productosRoutes from './routes/productos.routes.js';
 import comprasRoutes from './routes/pedidos.routes.js';
 import cotizacionesRoutes from './routes/cotizaciones.routes.js';
 import ordenesCompraRoutes from './routes/ordenesCompra.routes.js';
+import conciliacionesRoutes from './routes/conciliaciones.routes.js';
 import pagosProveedoresRoutes from './routes/pagosProveedores.routes.js';
 import asientosRoutes from './routes/asientos.routes.js';
 import contabilidadRoutes from './routes/contabilidad.routes.js';
+import tesoreraRoutes from './routes/tesoreria.routes.js';
+import movimientosRoutes from './routes/movimientos.routes.js';
 
 dotenv.config();
 
@@ -27,6 +30,9 @@ app.use('/api/ordenes-compra', ordenesCompraRoutes);
 app.use('/api/pagos-proveedores', pagosProveedoresRoutes);
 app.use('/api/contabilidad', contabilidadRoutes);
 app.use('/api', asientosRoutes);
+app.use('/api/tesoreria', tesoreraRoutes);
+app.use('/api/movimientos-bancarios', movimientosRoutes);
+app.use('/api/conciliaciones', conciliacionesRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Servidor funcionando' });

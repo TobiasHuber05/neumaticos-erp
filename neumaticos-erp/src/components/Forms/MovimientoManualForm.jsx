@@ -8,7 +8,7 @@ const MovimientoManualForm = ({ cuentas = [], onCancelar, onGuardar }) => {
   const [concepto, setConcepto] = useState('');
   const [fechaMovimiento, setFechaMovimiento] = useState(new Date().toISOString().slice(0, 10));
   const [fechaConfirmacion, setFechaConfirmacion] = useState('');
-  const [tipoDeposito, setTipoDeposito] = useState('Efectivo');
+  const [instrumento, setInstrumento] = useState('Efectivo');
 
   const handleGuardar = () => {
     if (!idCuenta || !monto || !concepto.trim()) return;
@@ -21,7 +21,7 @@ const MovimientoManualForm = ({ cuentas = [], onCancelar, onGuardar }) => {
       fecha_confirmacion: fechaConfirmacion || null,
       tipo_movimiento: tipoMovimiento,
       concepto: concepto.trim(),
-      tipo_deposito: tipoMovimiento === 'Crédito' ? tipoDeposito : null,
+      tipo_deposito: instrumento, // Guardamos el instrumento aquí
     });
   };
 
@@ -63,30 +63,44 @@ const MovimientoManualForm = ({ cuentas = [], onCancelar, onGuardar }) => {
             <label className="block text-sm font-semibold text-gray-700 mb-1">Tipo de movimiento</label>
             <select
               value={tipoMovimiento}
-              onChange={(e) => setTipoMovimiento(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                setTipoMovimiento(val);
+                // Ajustar instrumento por defecto según tipo
+                setInstrumento(val === 'Crédito' ? 'Efectivo' : 'Transferencia');
+              }}
               className="w-full p-3 border rounded-lg bg-white focus:ring-2 focus:ring-erp-orange outline-none"
             >
-              <option value="Crédito">Crédito</option>
-              <option value="Débito">Débito</option>
+              <option value="Crédito">Crédito (Ingreso)</option>
+              <option value="Débito">Débito (Egreso)</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">Medio / Instrumento</label>
+            <select 
+              value={instrumento} 
+              onChange={(e) => setInstrumento(e.target.value)}
+              className="w-full p-3 border rounded-lg bg-white focus:ring-2 focus:ring-erp-orange outline-none"
+            >
+              {tipoMovimiento === 'Crédito' ? (
+                <>
+                  <option value="Efectivo">Efectivo / Mismo Banco</option>
+                  <option value="Cheque Otro Banco">Cheque de otro banco (48hs)</option>
+                  <option value="Transferencia">Transferencia Recibida</option>
+                </>
+              ) : (
+                <>
+                  <option value="Transferencia">Transferencia Bancaria (Inmediato)</option>
+                  <option value="Cheque Propio">Cheque Propio (Diferido)</option>
+                  <option value="Retiro Efectivo">Retiro de Efectivo</option>
+                </>
+              )}
             </select>
           </div>
 
-          {tipoMovimiento === 'Crédito' && (
-            <div className="mb-4">
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Tipo de Depósito</label>
-              <select 
-                value={tipoDeposito} 
-                onChange={(e) => setTipoDeposito(e.target.value)}
-                className="w-full p-3 border rounded-lg"
-              >
-              <option value="Efectivo">Efectivo / Mismo Banco</option>
-              <option value="Cheque Otro Banco">Cheque de otro banco (48hs)</option>
-              </select>
-            </div>
-          )}
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">Monto</label>
             <input
@@ -99,6 +113,9 @@ const MovimientoManualForm = ({ cuentas = [], onCancelar, onGuardar }) => {
               className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-erp-orange outline-none"
             />
           </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">Fecha movimiento</label>
             <input
@@ -109,24 +126,25 @@ const MovimientoManualForm = ({ cuentas = [], onCancelar, onGuardar }) => {
             />
           </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Fecha confirmación</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">Fecha confirmación (Conciliación)</label>
             <input
               type="date"
               value={fechaConfirmacion}
               onChange={(e) => setFechaConfirmacion(e.target.value)}
               className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-erp-orange outline-none"
+              placeholder="Opcional"
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1">Concepto</label>
+          <label className="block text-sm font-semibold text-gray-700 mb-1">Concepto / Referencia</label>
           <input
             type="text"
             required
             value={concepto}
             onChange={(e) => setConcepto(e.target.value)}
-            placeholder="Descripción del movimiento"
+            placeholder="Ej: Pago de servicios, Depósito de cliente..."
             className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-erp-orange outline-none"
           />
         </div>
@@ -153,3 +171,4 @@ const MovimientoManualForm = ({ cuentas = [], onCancelar, onGuardar }) => {
 };
 
 export default MovimientoManualForm;
+

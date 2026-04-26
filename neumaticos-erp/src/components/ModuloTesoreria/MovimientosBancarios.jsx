@@ -1,11 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { Search, Filter, Plus, X, ArrowUpCircle, ArrowDownCircle, Clock, CheckCircle2 } from 'lucide-react';
 import MovimientoManualForm from '../Forms/MovimientoManualForm';
-import { useModuloTesoreria } from '../../hooks/useModuloTesoreria';
 import { debeConfirmarInmediatamente } from '../../utils/tesoreriasLogis';
 
-const MovimientosBancarios = () => {
-  const { movimientos, cuentas, bancos, registrarMovimiento } = useModuloTesoreria();
+const MovimientosBancarios = ({ movimientos = [], cuentas = [], bancos = [], onGuardar }) => {
   const [search, setSearch] = useState('');
   const [filterCuenta, setFilterCuenta] = useState('');
   const [filterTipo, setFilterTipo] = useState('todos');
@@ -40,9 +38,15 @@ const MovimientosBancarios = () => {
     return banco ? banco.nombre : 'N/A';
   };
 
-  const handleGuardarMov = (movimiento) => {
-    registrarMovimiento(movimiento);
-    setShowForm(false);
+  const handleGuardarMov = async (movimiento) => {
+    try {
+      const res = await onGuardar(movimiento);
+      if (res.ok) {
+        setShowForm(false);
+      }
+    } catch (err) {
+      // Error silencioso
+    }
   };
 
   return (

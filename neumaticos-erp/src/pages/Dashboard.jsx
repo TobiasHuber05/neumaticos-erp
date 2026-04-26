@@ -14,7 +14,6 @@ import Services from '../components/Services';
 
 // Imports tesoreria
 import Tesoreria from '../components/Tesoreria';
-import { useModuloTesoreria } from '../hooks/useModuloTesoreria';
 import GestionCuentas from '../components/ModuloTesoreria/GestionCuentas';
 import MovimientosBancarios from '../components/ModuloTesoreria/MovimientosBancarios';
 import ConciliacionBancaria from '../components/ModuloTesoreria/ConciliacionBancaria';
@@ -43,6 +42,9 @@ import { useProductos } from '../hooks/useProductos';
 import { useCotizaciones } from '../hooks/useCotizaciones';
 import { useOrdenesCompra } from '../hooks/useOrdenesCompra';
 import { usePagosProveedores } from '../hooks/usePagosProveedores';
+import { useTesoreria } from '../hooks/useTesoreria';
+import { useMovimientosBancarios } from '../hooks/useMovimientosBancarios';
+import { useConciliaciones } from '../hooks/useConciliaciones';
 
 // Hook local solo para lo que todavía no tiene backend
 import { useModuloCompras } from '../hooks/useModuloCompras';
@@ -88,7 +90,33 @@ function Dashboard() {
     ordenesPagoProveedores,
     mediosPago,
     registrarOrdenPago,
-  } = usePagosProveedores();
+  } = usePagosProveedores({ onPagoRegistrado: refetchFacturas });
+
+  // ── Tesorería desde API ───────────────────────────────────
+  const {
+    cuentas,
+    bancos,
+    monedas,
+    registrarCuenta,
+    refetchCuentas
+  } = useTesoreria();
+
+  const { 
+    movimientos, 
+    refetch: refetchMovimientos, 
+    registrarMovimiento, 
+    getEstadisticasTesoreria,
+    confirmarMovimientos
+  } = useMovimientosBancarios();
+
+  const {
+    conciliaciones,
+    crearConciliacion,
+    vincularMovimientos,
+    finalizarConciliacion,
+    getConciliacionById,
+    refetch: refetchConciliaciones
+  } = useConciliaciones();
 
   // ── Estado local de pedidos (con API) ────────────────────
   const [pedidos, setPedidos] = useState([]);
@@ -118,16 +146,7 @@ function Dashboard() {
     registrarNotaCreditoProveedor,
   } = compras;
 
-  // ── Tesorería y Ventas ───────────────────────────────────
-  const {
-    cuentas,
-    bancos,
-    movimientos,
-    registrarCuenta,
-    registrarMovimiento,
-    confirmarMovimientos,
-  } = useModuloTesoreria();
-
+  // ── Ventas y Servicios ────────────────────────────────────
   const moduloVentas = useModuloVentas();
   const { servicios, actions: actionsServicios } = useServicios();
 
@@ -136,7 +155,6 @@ function Dashboard() {
     [proveedores],
   );
 
-  // Crear pedido via API
   const guardarNuevoPedido = async (items) => {
     try {
       const res = await fetch(`${API_PEDIDOS}/pedidos`, {
@@ -152,16 +170,12 @@ function Dashboard() {
     }
   };
 
-  // Generar cotización conectado a la API
   const generarPedidoCotizacion = async (pedido) => {
     const res = await generarCotizacion(pedido, proveedores);
-    if (res.ok) {
-      await fetchPedidos();
-    }
+    if (res.ok) await fetchPedidos();
     return res;
   };
 
-  // Adjudicar conectado a la API
   const adjudicarYGenerarOrdenesConRefetch = async (pc) => {
     const res = await adjudicarYGenerarOrdenes(pc, pedidos);
     if (res.ok) {
@@ -262,7 +276,7 @@ function Dashboard() {
         return <Services servicios={servicios} actions={actionsServicios} />;
 
       case 'ventas':
-        return <Ventas ventas={moduloVentas} inventario={inventario} setInventario={() => {}} servicios={servicios} />;
+        return <Ventas ventas={moduloVentas} inventario={inventario} setInventario={() => { }} servicios={servicios} />;
 
       case 'facturas de venta':
         return (
@@ -270,7 +284,7 @@ function Dashboard() {
             ventas={moduloVentas}
             clientes={moduloVentas.clientes}
             inventario={inventario}
-            setInventario={() => {}}
+            setInventario={() => { }}
           />
         );
 
@@ -280,7 +294,7 @@ function Dashboard() {
             ventas={moduloVentas}
             clientes={moduloVentas.clientes}
             inventario={inventario}
-            setInventario={() => {}}
+            setInventario={() => { }}
             servicios={servicios}
           />
         );
@@ -310,9 +324,10 @@ function Dashboard() {
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
                 <CuentaBancariaForm
                   bancos={bancos}
+                  monedas={monedas}
                   onCancelar={() => setMostrarFormCuenta(false)}
-                  onGuardar={(nueva) => {
-                    registrarCuenta(nueva);
+                  onGuardar={async (nueva) => {
+                    await registrarCuenta(nueva);
                     setMostrarFormCuenta(false);
                   }}
                 />
@@ -324,9 +339,15 @@ function Dashboard() {
       case 'movimientos bancarios':
         return (
           <MovimientosBancarios
+            movimientos={movimientos}
             cuentas={cuentas}
-            onCancelar={() => {}}
-            onGuardar={registrarMovimiento}
+            bancos={bancos}
+            onCancelar={() => { }}
+            onGuardar={async (nuevo) => {
+              const res = await registrarMovimiento(nuevo);
+              if (res.ok) await refetchCuentas();
+              return res;
+            }}
           />
         );
 
@@ -335,7 +356,11 @@ function Dashboard() {
           <ConciliacionBancaria
             movimientos={movimientos}
             cuentas={cuentas}
-            onConfirmarConciliacion={confirmarMovimientos}
+            conciliaciones={conciliaciones}
+            onCrear={crearConciliacion}
+            onVincular={vincularMovimientos}
+            onFinalizar={finalizarConciliacion}
+            onGetDetalle={getConciliacionById}
           />
         );
 

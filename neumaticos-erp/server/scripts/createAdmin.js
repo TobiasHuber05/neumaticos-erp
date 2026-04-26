@@ -45,7 +45,7 @@ async function main() {
       data: {
         id_funcionario: funcionario.id_funcionario,
         email: 'admin@neumaticos.com',
-        passwordd: hashed, // OJO: Tu SQL dice 'passwordd' con doble D
+        passwordd: hashed,
         rol_empresa: 'ADMIN'
       }
     });
@@ -56,7 +56,7 @@ async function main() {
   } catch (e) {
     console.error('❌ Error en la base de datos:', e.message);
     if (e.message.includes('foreign key constraint')) {
-        console.error('💡 Tip: Asegúrate de que las tablas cargos u horarios no sean obligatorias.');
+      console.error('💡 Tip: Asegúrate de que las tablas cargos u horarios no sean obligatorias.');
     }
   } finally {
     await prisma.$disconnect();

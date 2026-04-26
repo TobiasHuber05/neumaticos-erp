@@ -132,6 +132,10 @@ model conciliacion_bancaria {
   id_cuenta            Int?
   fecha                DateTime?              @db.Date
   descripcion          String?                @db.VarChar(255)
+  saldo_banco          Decimal?               @db.Decimal(15, 2)
+  monto_erp            Decimal?               @db.Decimal(15, 2)
+  diferencia           Decimal?               @db.Decimal(15, 2)
+  estado               String?                @default("Pendiente") @db.VarChar(20) // Pendiente, Cerrada
   cuenta_bancaria      cuenta_bancaria?       @relation(fields: [id_cuenta], references: [id_cuenta], onDelete: NoAction, onUpdate: NoAction, map: "fk_conciliacion_cuenta")
   detalle_conciliacion detalle_conciliacion[]
 }
@@ -229,8 +233,8 @@ model detalle_factura {
   precio_unitario    Decimal?        @db.Decimal(18, 2)
   iva                Decimal?        @db.Decimal(18, 2)
   subtotal           Decimal?        @db.Decimal(18, 2)
-  factura_compra     factura_compra? @relation(fields: [id_factura_compra], references: [id_factura_compra], onDelete: NoAction, onUpdate: NoAction, map: "fk_detfact_factura")
   producto           producto?       @relation(fields: [id_producto], references: [id_producto], onDelete: NoAction, onUpdate: NoAction, map: "fk_detallecotizacion_producto")
+  factura_compra     factura_compra? @relation(fields: [id_factura_compra], references: [id_factura_compra], onDelete: NoAction, onUpdate: NoAction, map: "fk_detfact_factura")
 }
 
 model detalle_factura_venta {
@@ -473,6 +477,8 @@ model movimiento_bancario {
   fecha_movimiento       DateTime?                @db.Date
   fecha_confirmacion     DateTime?                @db.Date
   tipo_movimiento        String?                  @db.VarChar(50)
+  concepto               String?                  @db.VarChar(255)
+  tipo_deposito          String?                  @db.VarChar(50)
   cabecera_pago          cabecera_pago[]
   cobranza               cobranza[]
   detalle_conciliacion   detalle_conciliacion[]
@@ -626,11 +632,11 @@ model proceso_contable {
   cant_niveles     Int?
   cant_dig_nivel   Int?
   moneda           String?        @db.VarChar(50)
-  fecha_inicio     DateTime?      @db.Date
-  fecha_fin        DateTime?      @db.Date
   estado           String?        @default("Abierto") @db.VarChar(20)
-  plan_cuentas     plan_cuentas[]
+  fecha_fin        DateTime?      @db.Date
+  fecha_inicio     DateTime?      @db.Date
   asientos         asientos[]
+  plan_cuentas     plan_cuentas[]
 }
 
 model producto {

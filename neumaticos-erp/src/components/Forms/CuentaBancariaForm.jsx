@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { X, Save, Banknote } from 'lucide-react';
-import { BANCOS, MONEDAS } from '../../data/erpInitialTesoreria';
 
 const emptyCuenta = {
   id_banco: '',
@@ -11,7 +10,7 @@ const emptyCuenta = {
   saldo_disponible: '',
 };
 
-const CuentaBancariaForm = ({ initial = null, onCancelar, onGuardar }) => {
+const CuentaBancariaForm = ({ bancos = [], monedas = [], initial = null, onCancelar, onGuardar }) => {
   const [form, setForm] = useState(emptyCuenta);
 
   useEffect(() => {
@@ -68,7 +67,7 @@ const CuentaBancariaForm = ({ initial = null, onCancelar, onGuardar }) => {
               className="w-full p-3 border rounded-lg bg-white focus:ring-2 focus:ring-erp-orange outline-none"
             >
               <option value="">Seleccionar banco</option>
-              {BANCOS.map((banco) => (
+              {bancos.map((banco) => (
                 <option key={banco.id_banco} value={banco.id_banco}>
                   {banco.nombre}
                 </option>
@@ -84,7 +83,7 @@ const CuentaBancariaForm = ({ initial = null, onCancelar, onGuardar }) => {
               className="w-full p-3 border rounded-lg bg-white focus:ring-2 focus:ring-erp-orange outline-none"
             >
               <option value="">Seleccionar moneda</option>
-              {MONEDAS.map((moneda) => (
+              {monedas.map((moneda) => (
                 <option key={moneda.id_moneda} value={moneda.id_moneda}>
                   {moneda.nombre} ({moneda.simbolo})
                 </option>
@@ -164,3 +163,4 @@ const CuentaBancariaForm = ({ initial = null, onCancelar, onGuardar }) => {
 };
 
 export default CuentaBancariaForm;
+
