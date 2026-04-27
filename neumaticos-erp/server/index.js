@@ -38,6 +38,24 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Servidor funcionando' });
 });
 
+// RUTA TEMPORAL PARA LIMPIEZA DE IDs 3 y 4 (Solicitado por el usuario)
+app.get('/api/admin/clean-temp-items', async (req, res) => {
+  try {
+    const { prisma } = await import('./lib/prisma.js');
+    const ids = [3, 4];
+    for (const id of ids) {
+      await prisma.$transaction(async (tx) => {
+        await tx.stock.deleteMany({ where: { id_producto: id } });
+        await tx.producto_servicio.deleteMany({ where: { id_producto: id } });
+        await tx.producto.delete({ where: { id_producto: id } });
+      });
+    }
+    res.send("<h1>IDs 3 y 4 eliminados correctamente</h1><p>Ya puedes cerrar esta pestaña y refrescar el ERP.</p>");
+  } catch (err) {
+    res.status(500).send("Error al eliminar: " + err.message);
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en puerto ${PORT}`);

@@ -663,7 +663,8 @@ model producto_servicio {
   id_producto_servicio  Int                     @id @default(autoincrement())
   id_producto           Int?
   tipo_iva              String?                 @db.VarChar(10)
-  tipo_item             Boolean?
+  duracion_aprox        String?                 @db.VarChar(50)
+  estado                String?                 @db.VarChar(50)
   detalle_devolucion    detalle_devolucion[]
   detalle_factura_venta detalle_factura_venta[]
   detalle_nota_credito  detalle_nota_credito[]

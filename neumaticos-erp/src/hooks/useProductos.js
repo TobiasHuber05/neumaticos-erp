@@ -92,12 +92,31 @@ export function useProductos() {
     }
   };
 
+  const eliminarProducto = async (id) => {
+    try {
+      const res = await fetch(`${API}/${id}`, {
+        method: 'DELETE',
+        headers: getHeaders(),
+      });
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Error al eliminar producto');
+      }
+      await fetchData();
+      return { ok: true };
+    } catch (err) {
+      console.error("Error en eliminarProducto:", err);
+      return { ok: false, error: err.message };
+    }
+  };
+
   return { 
     inventario, 
     categorias, 
     marcas, 
     loading, 
     crearProducto, 
+    eliminarProducto,
     refetch: fetchData 
   };
 }
