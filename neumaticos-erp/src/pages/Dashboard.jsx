@@ -64,10 +64,10 @@ function Dashboard() {
   // ── Hooks de API ─────────────────────────────────────────
   const { proveedores } = useProveedores();
 
-  const { inventario } = useProductos();
+  const { inventario, categorias, marcas, eliminarProducto } = useProductos();
 
   const productosBajoMinimo = () =>
-    inventario.filter((p) => Number(p.stock) <= Number(p.min));
+    inventario.filter((p) => !p.esServicio && Number(p.stock) <= Number(p.min));
 
   const {
     cotizacionesProveedor,
@@ -270,7 +270,7 @@ function Dashboard() {
         return <AsientosCompras asientos={asientosCompras} />;
 
       case 'stock':
-        return <Stock proveedoresMaestro={proveedoresMaestro} />;
+        return <Stock proveedoresMaestro={proveedoresMaestro} onDelete={eliminarProducto} />;
 
       case 'servicios':
         return <Services servicios={servicios} actions={actionsServicios} />;
@@ -389,7 +389,7 @@ function Dashboard() {
         if (mostrarFormulario) {
           return (
             <NuevoPedidoForm
-              inventario={inventario}
+              inventario={inventario.filter(p => !p.esServicio)}
               sugeridos={productosBajoMinimo()}
               onCancelar={() => setMostrarFormulario(false)}
               onGuardarPedido={guardarNuevoPedido}

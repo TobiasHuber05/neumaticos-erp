@@ -5,7 +5,7 @@ import { useProductos } from '../hooks/useProductos';
 
 const Stock = ({ proveedoresMaestro = [] }) => {
   // ✅ CORRECCIÓN 1: Se agregó 'marcas' a la desestructuración del hook
-  const { inventario, categorias, marcas, crearProducto, loading } = useProductos();
+  const { inventario, categorias, marcas, crearProducto, eliminarProducto, loading } = useProductos();
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -20,8 +20,12 @@ const Stock = ({ proveedoresMaestro = [] }) => {
   };
 
   const inventarioFiltrado = inventario.filter((item) => {
+    // Solo mostramos productos que NO son servicios en el Control de Existencias
+    if (item.esServicio) return false;
+
     const q = searchTerm.trim().toLowerCase();
     if (!q) return true;
+    
     // Filtramos por nombre del producto o nombre de categoría
     return [item.nombre, item.categoria].some((campo) => 
       String(campo).toLowerCase().includes(q)

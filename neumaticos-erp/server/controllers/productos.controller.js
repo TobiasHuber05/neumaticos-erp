@@ -6,34 +6,55 @@ export const getProductos = async (req, res) => {
     const productos = await prisma.producto.findMany({
       include: {
         categoria: true,
-        marcas: true, // Relación con el modelo marcas
+        marcas: true,
         stock: true,
+        producto_servicio: true,
       },
       orderBy: { descripcion: 'asc' }
     });
 
-    const data = productos.map((p) => {
+    const data = await Promise.all(productos.map(async (p) => {
       const stockRow = p.stock?.[0];
+      let serviceRow = p.producto_servicio?.[0];
+
+      // MIGRACIÓN AUTOMÁTICA: Si es servicio pero no tiene registro en producto_servicio, lo creamos
+      if (p.es_servicio && !serviceRow) {
+        try {
+          serviceRow = await prisma.producto_servicio.create({
+            data: {
+              id_producto: p.id_producto,
+              duracion_aprox: '—',
+              estado: 'Disponible'
+            }
+          });
+        } catch (err) {
+          console.error(`❌ Error al crear registro automático para ${p.descripcion}:`, err);
+        }
+      }
+
       return {
         id: p.id_producto,
         nombre: p.descripcion,
-        codigo: p.codigo,
+        codigo: p.codigo || '',
         categoria: p.categoria?.nombre ?? '—',
         categoriaId: p.id_categoria,
         marca: p.marcas?.nombre ?? '—',
         marcaId: p.id_marca,
-        esServicio: p.es_servicio ?? false,
+        esServicio: !!p.es_servicio,
         stock: stockRow?.cantidad ?? 0,
-        min: 10,
+        min: 10, // Valor por defecto o puedes mapearlo si existe en la DB
         precio: stockRow?.precio ? Number(stockRow.precio) : 0,
         idStock: stockRow?.id_stock ?? null,
+        duracion_aprox: serviceRow?.duracion_aprox ?? '—',
+        estado: serviceRow?.estado ?? 'Disponible',
+        id_producto_servicio: serviceRow?.id_producto_servicio ?? null,
       };
-    });
+    }));
 
     return res.json(data);
   } catch (error) {
-    console.error('❌ Error al obtener productos:', error);
-    return res.status(500).json({ error: 'Error al obtener productos' });
+    console.error('❌ Error en getProductos:', error);
+    return res.status(500).json({ error: 'Error en el servidor: ' + error.message });
   }
 };
 
@@ -43,12 +64,13 @@ export const getProductoById = async (req, res) => {
   try {
     const p = await prisma.producto.findUnique({
       where: { id_producto: Number(id) },
-      include: { categoria: true, marcas: true, stock: true }
+      include: { categoria: true, marcas: true, stock: true, producto_servicio: true }
     });
 
     if (!p) return res.status(404).json({ error: 'Producto no encontrado' });
 
     const stockRow = p.stock?.[0];
+    const serviceRow = p.producto_servicio?.[0];
     return res.json({
       id: p.id_producto,
       nombre: p.descripcion,
@@ -61,6 +83,9 @@ export const getProductoById = async (req, res) => {
       stock: stockRow?.cantidad ?? 0,
       precio: stockRow?.precio ? Number(stockRow.precio) : 0,
       idStock: stockRow?.id_stock ?? null,
+      duracion_aprox: serviceRow?.duracion_aprox ?? '—',
+      estado: serviceRow?.estado ?? 'Disponible',
+      id_producto_servicio: serviceRow?.id_producto_servicio ?? null,
     });
   } catch (error) {
     console.error('❌ Error al obtener producto:', error);
@@ -70,7 +95,9 @@ export const getProductoById = async (req, res) => {
 
 // POST /api/productos
 export const createProducto = async (req, res) => {
-  const { nombre, codigo, categoriaId, marcaId, esServicio, precio } = req.body;
+  // Aceptamos tanto esServicio como es_servicio
+  const esServ = req.body.esServicio === true || req.body.es_servicio === true || req.body.es_servicio === 'true';
+  const { nombre, codigo, categoriaId, marcaId, precio, duracion_aprox, estado } = req.body;
 
   if (!nombre) return res.status(400).json({ error: 'El nombre es requerido' });
 
@@ -83,7 +110,7 @@ export const createProducto = async (req, res) => {
           codigo: codigo || null,
           id_categoria: categoriaId ? Number(categoriaId) : null,
           id_marca: marcaId ? Number(marcaId) : null,
-          es_servicio: !!esServicio,
+          es_servicio: esServ,
         }
       });
 
@@ -97,7 +124,19 @@ export const createProducto = async (req, res) => {
         }
       });
 
-      return { producto, stockRow };
+      // 3. Si es servicio, crear entrada en producto_servicio
+      let serviceRow = null;
+      if (esServ) {
+        serviceRow = await tx.producto_servicio.create({
+          data: {
+            id_producto: producto.id_producto,
+            duracion_aprox: duracion_aprox || '—',
+            estado: estado || 'Disponible',
+          }
+        });
+      }
+
+      return { producto, stockRow, serviceRow };
     });
 
     return res.status(201).json({
@@ -110,6 +149,9 @@ export const createProducto = async (req, res) => {
       stock: 0,
       precio: precio ? Number(precio) : 0,
       idStock: resultado.stockRow.id_stock,
+      duracion_aprox: resultado.serviceRow?.duracion_aprox ?? '—',
+      estado: resultado.serviceRow?.estado ?? 'Disponible',
+      id_producto_servicio: resultado.serviceRow?.id_producto_servicio ?? null,
     });
   } catch (error) {
     console.error('❌ Error crítico al crear producto:', error);
@@ -123,34 +165,101 @@ export const createProducto = async (req, res) => {
 // PUT /api/productos/:id
 export const updateProducto = async (req, res) => {
   const { id } = req.params;
-  const { nombre, codigo, categoriaId, marcaId, esServicio, precio, idStock } = req.body;
+  const { nombre, codigo, categoriaId, marcaId, esServicio, precio, idStock, duracion_aprox, estado, id_producto_servicio } = req.body;
 
   try {
-    const producto = await prisma.producto.update({
-      where: { id_producto: Number(id) },
-      data: {
-        descripcion: nombre,
-        codigo: codigo || null,
-        id_categoria: categoriaId ? Number(categoriaId) : null,
-        id_marca: marcaId ? Number(marcaId) : null,
-        es_servicio: !!esServicio,
-      }
-    });
-
-    if (idStock) {
-      await prisma.stock.update({
-        where: { id_stock: Number(idStock) },
+    await prisma.$transaction(async (tx) => {
+      // 1. Actualizar producto base
+      await tx.producto.update({
+        where: { id_producto: Number(id) },
         data: {
-          precio: precio ? Number(precio) : 0,
-          fecha_modificacion: new Date(),
+          descripcion: nombre,
+          codigo: codigo || null,
+          id_categoria: categoriaId ? Number(categoriaId) : null,
+          id_marca: marcaId ? Number(marcaId) : null,
+          es_servicio: !!esServicio,
         }
       });
-    }
+
+      // 2. Actualizar stock/precio
+      if (idStock) {
+        await tx.stock.update({
+          where: { id_stock: Number(idStock) },
+          data: {
+            precio: precio ? Number(precio) : 0,
+            fecha_modificacion: new Date(),
+          }
+        });
+      }
+
+      // 3. Actualizar metadatos de servicio
+      if (esServicio) {
+        if (id_producto_servicio) {
+          await tx.producto_servicio.update({
+            where: { id_producto_servicio: Number(id_producto_servicio) },
+            data: {
+              duracion_aprox: duracion_aprox || '—',
+              estado: estado || 'Disponible',
+            }
+          });
+        } else {
+          const existe = await tx.producto_servicio.findFirst({
+            where: { id_producto: Number(id) }
+          });
+
+          if (existe) {
+            await tx.producto_servicio.update({
+              where: { id_producto_servicio: existe.id_producto_servicio },
+              data: {
+                duracion_aprox: duracion_aprox || '—',
+                estado: estado || 'Disponible',
+              }
+            });
+          } else {
+            await tx.producto_servicio.create({
+              data: {
+                id_producto: Number(id),
+                duracion_aprox: duracion_aprox || '—',
+                estado: estado || 'Disponible',
+              }
+            });
+          }
+        }
+      }
+    });
 
     return res.json({ message: 'Producto actualizado correctamente' });
   } catch (error) {
     console.error('❌ Error al actualizar producto:', error);
-    return res.status(500).json({ error: 'Error al actualizar producto' });
+    return res.status(500).json({ error: 'Error al actualizar producto: ' + error.message });
+  }
+};
+
+// DELETE /api/productos/:id
+export const deleteProducto = async (req, res) => {
+  const { id } = req.params;
+  console.log(`🗑️ Intentando eliminar Producto ID: ${id}`);
+  try {
+    await prisma.$transaction(async (tx) => {
+      // 1. Eliminar de tablas de metadata (hijas directas)
+      await tx.stock.deleteMany({ where: { id_producto: Number(id) } });
+      await tx.producto_servicio.deleteMany({ where: { id_producto: Number(id) } });
+      
+      // 2. Intentar eliminar el producto
+      await tx.producto.delete({ where: { id_producto: Number(id) } });
+    });
+    return res.json({ message: 'Eliminado correctamente' });
+  } catch (error) {
+    console.error('❌ Error al eliminar producto:', error);
+    
+    // Error P2003: Foreign key constraint failed
+    if (error.code === 'P2003') {
+      return res.status(400).json({ 
+        error: 'No se puede eliminar: este item está siendo usado en facturas, presupuestos o pedidos.' 
+      });
+    }
+    
+    return res.status(500).json({ error: 'Error interno del servidor: ' + error.message });
   }
 };
 
