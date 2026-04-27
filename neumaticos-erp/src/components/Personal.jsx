@@ -18,7 +18,7 @@ const Personal = ({ defaultTab }) => {
   const tabs = [
     { id: 'funcionarios', label: 'Funcionarios', icon: Users, count: personal.funcionarios.length },
     { id: 'nomina', label: 'Nómina / Pagos', icon: ClipboardList, count: personal.procesosPago.filter(p => p.estado === 'Abierto').length },
-    { id: 'asientos', label: 'Asientos Nomina', icon: TrendingUp, count: personal.asientosNomina.length },
+    { id: 'asientos', label: 'Asientos Nomina', icon: TrendingUp, count: personal.procesosPago.filter(p => p.estado === 'Cerrado').length },
     { id: 'conceptos', label: 'Conceptos', icon: CreditCard, count: personal.conceptos.length },
   ];
 

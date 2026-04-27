@@ -1,23 +1,143 @@
 import { useState } from 'react';
-import { PlayCircle, CheckCircle2, FileText, Users, DollarSign, Calendar, ChevronRight, Calculator, AlertCircle } from 'lucide-react';
+import { PlayCircle, CheckCircle2, FileText, DollarSign, Calendar, Calculator, AlertCircle, X, Printer } from 'lucide-react';
 import { formatGua } from '../../utils/personalLogic';
 
+// ── Modal de Recibo ──────────────────────────────────────────────
+const ModalRecibo = ({ liq, proceso, onClose }) => {
+  if (!liq) return null;
+
+  const handlePrint = () => window.print();
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden">
+
+        <div className="flex justify-between items-center p-6 border-b border-gray-100">
+          <h2 className="text-lg font-black text-gray-800 uppercase tracking-tighter">Recibo de Pago</h2>
+          <div className="flex gap-2">
+            <button onClick={handlePrint}
+              className="flex items-center gap-2 px-4 py-2 bg-erp-orange text-white rounded-xl font-bold text-xs hover:bg-orange-600 transition-colors">
+              <Printer size={16} /> Imprimir
+            </button>
+            <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
+              <X size={20} />
+            </button>
+          </div>
+        </div>
+
+        {/* Contenido imprimible — original y duplicado */}
+        <div className="p-6 space-y-6 max-h-[75vh] overflow-y-auto print:max-h-none" id="recibo-print">
+
+          {['ORIGINAL', 'DUPLICADO'].map((tipo) => (
+            <div key={tipo} className="border-2 border-gray-200 rounded-2xl p-6 print:border-black print:rounded-none print:mb-8">
+
+              {/* Encabezado */}
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <h3 className="text-xl font-black text-erp-orange uppercase">Neumáticos ERP</h3>
+                  <p className="text-xs text-gray-500 font-bold">RECIBO DE PAGO DE SALARIO — {tipo}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-gray-400 font-bold uppercase">Periodo</p>
+                  <p className="text-lg font-black text-gray-800">{proceso?.periodo}</p>
+                  <p className="text-xs text-gray-400 mt-1">{proceso?.fechaPago}</p>
+                </div>
+              </div>
+
+              {/* Datos del funcionario */}
+              <div className="bg-orange-50 rounded-xl p-4 mb-4">
+                <p className="text-[10px] font-black text-gray-400 uppercase mb-1">Funcionario</p>
+                <p className="text-lg font-black text-gray-800">{liq.funcionarioNombre}</p>
+              </div>
+
+              {/* Conceptos */}
+              <table className="w-full text-sm mb-4">
+                <thead>
+                  <tr className="border-b-2 border-gray-200">
+                    <th className="text-left py-2 text-[10px] font-black text-gray-400 uppercase">Concepto</th>
+                    <th className="text-right py-2 text-[10px] font-black text-gray-400 uppercase">Tipo</th>
+                    <th className="text-right py-2 text-[10px] font-black text-gray-400 uppercase">Monto</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {liq.lineas?.map((linea, idx) => (
+                    <tr key={idx}>
+                      <td className="py-2 font-medium text-gray-700">{linea.nombre}</td>
+                      <td className="py-2 text-right">
+                        <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+                          linea.tipo === 'Ingreso' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
+                        }`}>
+                          {linea.tipo}
+                        </span>
+                      </td>
+                      <td className={`py-2 text-right font-black ${
+                        linea.tipo === 'Ingreso' ? 'text-green-600' : 'text-red-500'
+                      }`}>
+                        {linea.tipo === 'Egreso' ? '- ' : ''}{formatGua(linea.monto)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {/* Totales */}
+              <div className="border-t-2 border-gray-200 pt-3 space-y-1">
+                <div className="flex justify-between text-sm">
+                  <span className="font-bold text-gray-500">Total Ingresos</span>
+                  <span className="font-black text-green-600">{formatGua(liq.totalIngresos)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="font-bold text-gray-500">Total Descuentos</span>
+                  <span className="font-black text-red-500">- {formatGua(liq.totalEgresos)}</span>
+                </div>
+                <div className="flex justify-between text-lg mt-2 pt-2 border-t border-gray-200">
+                  <span className="font-black text-gray-800 uppercase">Neto a Cobrar</span>
+                  <span className="font-black text-erp-orange">{formatGua(liq.neto)}</span>
+                </div>
+              </div>
+
+              {/* Firma */}
+              <div className="flex justify-between mt-8 pt-4 border-t border-dashed border-gray-200">
+                <div className="text-center">
+                  <div className="w-32 border-t border-gray-400 mx-auto mb-1" />
+                  <p className="text-[10px] text-gray-400 font-bold uppercase">Firma Empleador</p>
+                </div>
+                <div className="text-center">
+                  <div className="w-32 border-t border-gray-400 mx-auto mb-1" />
+                  <p className="text-[10px] text-gray-400 font-bold uppercase">Firma Funcionario</p>
+                </div>
+              </div>
+
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── Componente principal ─────────────────────────────────────────
 const NominaProceso = ({ personal }) => {
   const { procesosPago, actions, config } = personal;
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [procesoActivo, setProcesoActivo] = useState(null);
+  const [showConfirm, setShowConfirm]   = useState(false);
+  const [reciboLiq,   setReciboLiq]     = useState(null);
 
-  const handleIniciar = () => {
-    const mes = new Date().toISOString().slice(0, 7); // YYYY-MM
-    const fecha = new Date().toISOString().split('T')[0];
-    const p = actions.iniciarProcesoPago(mes, fecha);
-    setProcesoActivo(p.id);
+  const mesActual        = new Date().toISOString().slice(0, 7);
+  const procesoMesActual = procesosPago.find(p => p.periodo === mesActual);
+  const currentProceso   = procesoMesActual || procesosPago[procesosPago.length - 1];
+
+  const handleIniciar = async () => {
+    try {
+      const fecha = new Date().toISOString().split('T')[0];
+      await actions.iniciarProcesoPago(mesActual, fecha);
+    } catch (err) {
+      alert(err?.response?.data?.error || 'Error al iniciar proceso');
+    }
   };
-
-  const currentProceso = procesosPago.find(p => p.id === procesoActivo) || procesosPago[procesosPago.length - 1];
 
   return (
     <div className="space-y-6">
+      {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-orange-50 flex items-center gap-4">
           <div className="w-12 h-12 bg-erp-orange/10 rounded-xl flex items-center justify-center text-erp-orange">
@@ -48,6 +168,7 @@ const NominaProceso = ({ personal }) => {
         </div>
       </div>
 
+      {/* Proceso */}
       <div className="bg-white rounded-3xl shadow-sm border border-orange-50 overflow-hidden">
         <div className="p-8 border-b border-orange-50 flex justify-between items-center bg-gray-50/50">
           <div>
@@ -55,34 +176,23 @@ const NominaProceso = ({ personal }) => {
               <PlayCircle className={currentProceso?.estado === 'Abierto' ? 'text-green-500 animate-pulse' : 'text-erp-orange'} />
               Proceso Actual: {currentProceso?.periodo || 'Ninguno'}
             </h3>
-            <p className="text-xs text-gray-500 font-bold uppercase mt-1">Estado: {currentProceso?.estado || 'Sin iniciar'}</p>
+            <p className="text-xs text-gray-500 font-bold uppercase mt-1">
+              Estado: {currentProceso?.estado || 'Sin iniciar'}
+            </p>
           </div>
           <div className="flex gap-3">
-            {(!currentProceso || currentProceso.estado === 'Cerrado') && (
-              <button 
-                onClick={handleIniciar}
-                className="bg-erp-orange text-white px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-orange-600 transition-all shadow-lg shadow-orange-200"
-              >
+            {!procesoMesActual && (
+              <button onClick={handleIniciar}
+                className="bg-erp-orange text-white px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-orange-600 transition-all shadow-lg shadow-orange-200">
                 Iniciar Nómina Mes
               </button>
             )}
-            {currentProceso?.estado === 'Abierto' && (
-              <>
-                <button 
-                  onClick={() => actions.calcularNominaMasiva(currentProceso.id)}
-                  className="bg-blue-600 text-white px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 flex items-center gap-2"
-                >
-                  <Calculator size={16} />
-                  Cálculo Masivo
-                </button>
-                <button 
-                  onClick={() => setShowConfirm(true)}
-                  className="bg-green-600 text-white px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-green-700 transition-all shadow-lg shadow-green-200 flex items-center gap-2"
-                >
-                  <CheckCircle2 size={16} />
-                  Cerrar y Contabilizar
-                </button>
-              </>
+            {procesoMesActual?.estado === 'Abierto' && (
+              <button onClick={() => setShowConfirm(true)}
+                className="bg-green-600 text-white px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-green-700 transition-all shadow-lg shadow-green-200 flex items-center gap-2">
+                <CheckCircle2 size={16} />
+                Cerrar y Contabilizar
+              </button>
             )}
           </div>
         </div>
@@ -99,25 +209,25 @@ const NominaProceso = ({ personal }) => {
               </tr>
             </thead>
             <tbody className="divide-y divide-orange-50">
-              {currentProceso?.liquidaciones.map((liq, idx) => (
+              {currentProceso?.liquidaciones?.map((liq, idx) => (
                 <tr key={idx} className="hover:bg-orange-50/20 transition-colors">
                   <td className="px-8 py-5">
                     <div className="font-bold text-gray-800">{liq.funcionarioNombre}</div>
                     <div className="text-[10px] text-gray-400 font-black uppercase">Liquidación Generada</div>
                   </td>
-                  <td className="px-8 py-5 text-right font-bold text-green-600">
-                    {formatGua(liq.totalIngresos)}
-                  </td>
-                  <td className="px-8 py-5 text-right font-bold text-red-500">
-                    {formatGua(liq.totalEgresos)}
-                  </td>
+                  <td className="px-8 py-5 text-right font-bold text-green-600">{formatGua(liq.totalIngresos)}</td>
+                  <td className="px-8 py-5 text-right font-bold text-red-500">{formatGua(liq.totalEgresos)}</td>
                   <td className="px-8 py-5 text-right">
                     <span className="bg-orange-50 text-erp-orange px-3 py-1 rounded-lg font-black">
                       {formatGua(liq.neto)}
                     </span>
                   </td>
                   <td className="px-8 py-5 text-center">
-                    <button className="p-2 text-erp-orange hover:bg-orange-100 rounded-lg transition-colors" title="Ver Recibo">
+                    <button
+                      onClick={() => setReciboLiq(liq)}
+                      className="p-2 text-erp-orange hover:bg-orange-100 rounded-lg transition-colors"
+                      title="Ver Recibo"
+                    >
                       <FileText size={18} />
                     </button>
                   </td>
@@ -127,8 +237,8 @@ const NominaProceso = ({ personal }) => {
                 <tr>
                   <td colSpan="5" className="px-8 py-20 text-center">
                     <div className="flex flex-col items-center gap-2 opacity-30">
-                        <Calculator size={48} />
-                        <p className="font-black uppercase text-sm tracking-tighter">No hay cálculos realizados en este periodo</p>
+                      <Calculator size={48} />
+                      <p className="font-black uppercase text-sm tracking-tighter">No hay cálculos realizados en este periodo</p>
                     </div>
                   </td>
                 </tr>
@@ -138,33 +248,46 @@ const NominaProceso = ({ personal }) => {
         </div>
       </div>
 
+      {/* Modal Confirmar Cierre */}
       {showConfirm && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-              <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
-                  <div className="p-8 text-center space-y-4">
-                      <div className="w-20 h-20 bg-orange-100 text-erp-orange rounded-full flex items-center justify-center mx-auto">
-                          <AlertCircle size={40} />
-                      </div>
-                      <h2 className="text-2xl font-black text-gray-800 uppercase tracking-tighter">¿Cerrar Nómina?</h2>
-                      <p className="text-gray-500 font-medium">
-                          Al cerrar el proceso se generará el asiento contable de "Pago de Salarios" y los recibos quedarán disponibles para impresión. 
-                          <span className="block mt-2 font-bold text-erp-orange underline">Esta acción no se puede deshacer.</span>
-                      </p>
-                  </div>
-                  <div className="p-6 bg-gray-50 flex gap-3">
-                      <button onClick={() => setShowConfirm(false)} className="flex-1 py-4 rounded-2xl font-bold text-gray-500 hover:bg-gray-100 transition-colors">Volver</button>
-                      <button 
-                        onClick={() => {
-                            actions.cerrarProcesoPago(currentProceso.id);
-                            setShowConfirm(false);
-                        }} 
-                        className="flex-1 py-4 bg-erp-orange text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-orange-600 transition-colors shadow-lg shadow-orange-200"
-                      >
-                        Confirmar Cierre
-                      </button>
-                  </div>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden">
+            <div className="p-8 text-center space-y-4">
+              <div className="w-20 h-20 bg-orange-100 text-erp-orange rounded-full flex items-center justify-center mx-auto">
+                <AlertCircle size={40} />
               </div>
+              <h2 className="text-2xl font-black text-gray-800 uppercase tracking-tighter">¿Cerrar Nómina?</h2>
+              <p className="text-gray-500 font-medium">
+                Al cerrar el proceso se generará el asiento contable de "Pago de Salarios" y los
+                recibos quedarán disponibles para impresión.
+                <span className="block mt-2 font-bold text-erp-orange underline">Esta acción no se puede deshacer.</span>
+              </p>
+            </div>
+            <div className="p-6 bg-gray-50 flex gap-3">
+              <button onClick={() => setShowConfirm(false)}
+                className="flex-1 py-4 rounded-2xl font-bold text-gray-500 hover:bg-gray-100 transition-colors">
+                Volver
+              </button>
+              <button
+                onClick={async () => {
+                  await actions.cerrarProcesoPago(currentProceso.id);
+                  setShowConfirm(false);
+                }}
+                className="flex-1 py-4 bg-erp-orange text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-orange-600 transition-colors shadow-lg shadow-orange-200">
+                Confirmar Cierre
+              </button>
+            </div>
           </div>
+        </div>
+      )}
+
+      {/* Modal Recibo */}
+      {reciboLiq && (
+        <ModalRecibo
+          liq={reciboLiq}
+          proceso={currentProceso}
+          onClose={() => setReciboLiq(null)}
+        />
       )}
     </div>
   );

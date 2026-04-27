@@ -1,19 +1,94 @@
-import { useState } from 'react';
-import { Users, UserPlus, Search, Calendar, Briefcase, Trash2, Edit2, Users2, ChevronRight, Baby } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { UserPlus, Search, Briefcase, Trash2, Edit2, Users2 } from 'lucide-react';
 import { formatGua } from '../../utils/personalLogic';
+import axios from 'axios';
+
+const API = 'http://localhost:3000/api';
 
 const Funcionarios = ({ personal }) => {
   const { funcionarios, actions } = personal;
-  const [filtro, setFiltro] = useState('');
-  const [showForm, setShowForm] = useState(false);
-  
-  const funcionariosFiltrados = funcionarios.filter(f => 
-    f.nombre.toLowerCase().includes(filtro.toLowerCase()) || 
+  const [filtro, setFiltro]       = useState('');
+  const [showForm, setShowForm]   = useState(false);
+  const [guardando, setGuardando] = useState(false);
+  const [errorForm, setErrorForm] = useState('');
+  const [cargos, setCargos]       = useState([]);
+
+  const [form, setForm] = useState({
+    nombre: '', apellido: '', ci: '', ruc: '',
+    estado_civil: '', sexo: '', fecha_nacimiento: '',
+    id_cargo: '', fecha_ingreso: '',
+  });
+
+  // ── Cargar cargos desde la API ──────────────────────────────
+  useEffect(() => {
+    axios.get(`${API}/cargos`)
+      .then(res => setCargos(res.data))
+      .catch(() => setCargos([]));
+  }, []);
+
+  // ── El salario base se toma del cargo seleccionado ──────────
+  const cargoSeleccionado = cargos.find(c => c.id_cargo === Number(form.id_cargo));
+
+  const handleChange = (e) => {
+    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const handleGuardar = async () => {
+    if (!form.nombre || !form.apellido || !form.ci) {
+      setErrorForm('Nombre, apellido y CI son obligatorios.');
+      return;
+    }
+    if (!form.id_cargo) {
+      setErrorForm('Debés seleccionar un cargo.');
+      return;
+    }
+    setErrorForm('');
+    setGuardando(true);
+    try {
+      await actions.agregarFuncionario({
+        nombre:           form.nombre,
+        apellido:         form.apellido,
+        ci:               form.ci,
+        ruc:              form.ruc,
+        estado_civil:     form.estado_civil,
+        sexo:             form.sexo,
+        fecha_nacimiento: form.fecha_nacimiento || null,
+        id_cargo:         Number(form.id_cargo),
+        fecha_ingreso:    form.fecha_ingreso || null,
+        // El salario base viene del cargo, no del form
+        salario_base:     cargoSeleccionado?.sueldo_base
+                            ? Number(cargoSeleccionado.sueldo_base)
+                            : null,
+        familiares: [],
+      });
+      setForm({
+        nombre: '', apellido: '', ci: '', ruc: '',
+        estado_civil: '', sexo: '', fecha_nacimiento: '',
+        id_cargo: '', fecha_ingreso: '',
+      });
+      setShowForm(false);
+    } catch {
+      setErrorForm('Error al guardar. Revisá los datos.');
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  const handleEliminar = async (id) => {
+    if (!confirm('¿Dar de baja a este funcionario?')) return;
+    try { await actions.eliminarFuncionario(id); }
+    catch { alert('Error al eliminar.'); }
+  };
+
+  const funcionariosFiltrados = funcionarios.filter(f =>
+    f.nombre.toLowerCase().includes(filtro.toLowerCase()) ||
     f.documento.includes(filtro)
   );
 
   return (
     <div className="space-y-6">
+
+      {/* Barra superior */}
       <div className="flex justify-between items-center">
         <div className="relative w-96">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
@@ -25,7 +100,7 @@ const Funcionarios = ({ personal }) => {
             onChange={(e) => setFiltro(e.target.value)}
           />
         </div>
-        <button 
+        <button
           onClick={() => setShowForm(true)}
           className="bg-erp-orange text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-orange-600 transition-colors shadow-lg shadow-orange-200"
         >
@@ -34,6 +109,7 @@ const Funcionarios = ({ personal }) => {
         </button>
       </div>
 
+      {/* Tabla */}
       <div className="bg-white rounded-2xl shadow-sm border border-orange-50 overflow-hidden">
         <table className="w-full text-left">
           <thead className="bg-orange-50/50 text-erp-orange text-xs font-black uppercase tracking-wider">
@@ -45,6 +121,13 @@ const Funcionarios = ({ personal }) => {
             </tr>
           </thead>
           <tbody className="divide-y divide-orange-50">
+            {funcionariosFiltrados.length === 0 && (
+              <tr>
+                <td colSpan={4} className="px-6 py-10 text-center text-gray-400 text-sm">
+                  No hay funcionarios registrados.
+                </td>
+              </tr>
+            )}
             {funcionariosFiltrados.map((f) => (
               <tr key={f.id} className="hover:bg-orange-50/30 transition-colors group">
                 <td className="px-6 py-4">
@@ -72,10 +155,12 @@ const Funcionarios = ({ personal }) => {
                     {f.nucleoFamiliar.map((m, idx) => (
                       <span key={idx} className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-600 rounded-md text-[10px] font-bold">
                         <Users2 size={10} />
-                        {m.nombre} ({m.parentesco})
+                        {m.parentesco}
                       </span>
                     ))}
-                    {f.nucleoFamiliar.length === 0 && <span className="text-xs text-gray-400 italic">Sin datos</span>}
+                    {f.nucleoFamiliar.length === 0 && (
+                      <span className="text-xs text-gray-400 italic">Sin datos</span>
+                    )}
                   </div>
                 </td>
                 <td className="px-6 py-4 text-center">
@@ -83,7 +168,11 @@ const Funcionarios = ({ personal }) => {
                     <button className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors" title="Editar">
                       <Edit2 size={16} />
                     </button>
-                    <button className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Eliminar">
+                    <button
+                      onClick={() => handleEliminar(f.id)}
+                      className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Dar de baja"
+                    >
                       <Trash2 size={16} />
                     </button>
                   </div>
@@ -94,41 +183,149 @@ const Funcionarios = ({ personal }) => {
         </table>
       </div>
 
+      {/* Modal */}
       {showForm && (
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-              <div className="bg-white rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden border border-orange-100 animate-in fade-in zoom-in duration-200">
-                  <div className="p-8 border-b border-orange-50 bg-gradient-to-r from-orange-50 to-white">
-                      <h2 className="text-2xl font-black text-erp-orange uppercase tracking-tighter">Registrar Funcionario</h2>
-                      <p className="text-sm text-gray-500 font-medium">Complete los datos básicos del nuevo personal</p>
-                  </div>
-                  <div className="p-8 grid grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                          <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Nombre Completo</label>
-                          <input type="text" className="w-full px-4 py-3 rounded-xl border border-gray-100 focus:ring-2 focus:ring-erp-orange outline-none bg-gray-50/50" placeholder="Ej. Juan Pérez" />
-                      </div>
-                      <div className="space-y-2">
-                          <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Documento de Identidad</label>
-                          <input type="text" className="w-full px-4 py-3 rounded-xl border border-gray-100 focus:ring-2 focus:ring-erp-orange outline-none bg-gray-50/50" placeholder="Ej. 1.234.567" />
-                      </div>
-                      <div className="space-y-2">
-                          <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Fecha de Ingreso</label>
-                          <input type="date" className="w-full px-4 py-3 rounded-xl border border-gray-100 focus:ring-2 focus:ring-erp-orange outline-none bg-gray-50/50" />
-                      </div>
-                      <div className="space-y-2">
-                          <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Salario Base</label>
-                          <input type="number" className="w-full px-4 py-3 rounded-xl border border-gray-100 focus:ring-2 focus:ring-erp-orange outline-none bg-gray-50/50" placeholder="0" />
-                      </div>
-                      <div className="space-y-2 col-span-2">
-                          <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Cargo Inicial</label>
-                          <input type="text" className="w-full px-4 py-3 rounded-xl border border-gray-100 focus:ring-2 focus:ring-erp-orange outline-none bg-gray-50/50" placeholder="Ej. Vendedor" />
-                      </div>
-                  </div>
-                  <div className="p-8 bg-gray-50 border-t border-orange-50 flex justify-end gap-3">
-                      <button onClick={() => setShowForm(false)} className="px-6 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-100 transition-colors">Cancelar</button>
-                      <button onClick={() => setShowForm(false)} className="px-8 py-3 bg-erp-orange text-white rounded-xl font-black uppercase tracking-widest text-xs hover:bg-orange-600 transition-colors shadow-lg shadow-orange-200">Guardar Registro</button>
-                  </div>
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden border border-orange-100">
+
+            <div className="p-8 border-b border-orange-50 bg-gradient-to-r from-orange-50 to-white">
+              <h2 className="text-2xl font-black text-erp-orange uppercase tracking-tighter">Registrar Funcionario</h2>
+              <p className="text-sm text-gray-500 font-medium">Complete los datos del nuevo personal</p>
+            </div>
+
+            <div className="p-8 grid grid-cols-2 gap-5 max-h-[60vh] overflow-y-auto">
+
+              {/* Nombre */}
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-gray-400 uppercase ml-1">
+                  Nombre <span className="text-red-400">*</span>
+                </label>
+                <input name="nombre" value={form.nombre} onChange={handleChange}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-100 focus:ring-2 focus:ring-erp-orange outline-none bg-gray-50/50"
+                  placeholder="Ej. Juan" />
               </div>
+
+              {/* Apellido */}
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-gray-400 uppercase ml-1">
+                  Apellido <span className="text-red-400">*</span>
+                </label>
+                <input name="apellido" value={form.apellido} onChange={handleChange}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-100 focus:ring-2 focus:ring-erp-orange outline-none bg-gray-50/50"
+                  placeholder="Ej. Pérez" />
+              </div>
+
+              {/* CI */}
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-gray-400 uppercase ml-1">
+                  CI <span className="text-red-400">*</span>
+                </label>
+                <input name="ci" value={form.ci} onChange={handleChange}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-100 focus:ring-2 focus:ring-erp-orange outline-none bg-gray-50/50"
+                  placeholder="Ej. 1234567" />
+              </div>
+
+              {/* RUC */}
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-gray-400 uppercase ml-1">RUC</label>
+                <input name="ruc" value={form.ruc} onChange={handleChange}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-100 focus:ring-2 focus:ring-erp-orange outline-none bg-gray-50/50"
+                  placeholder="Ej. 1234567-0" />
+              </div>
+
+              {/* Sexo */}
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Sexo</label>
+                <select name="sexo" value={form.sexo} onChange={handleChange}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-100 focus:ring-2 focus:ring-erp-orange outline-none bg-gray-50/50">
+                  <option value="">Seleccionar...</option>
+                  <option value="Masculino">Masculino</option>
+                  <option value="Femenino">Femenino</option>
+                </select>
+              </div>
+
+              {/* Estado Civil */}
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Estado Civil</label>
+                <select name="estado_civil" value={form.estado_civil} onChange={handleChange}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-100 focus:ring-2 focus:ring-erp-orange outline-none bg-gray-50/50">
+                  <option value="">Seleccionar...</option>
+                  <option value="Soltero">Soltero/a</option>
+                  <option value="Casado">Casado/a</option>
+                  <option value="Divorciado">Divorciado/a</option>
+                  <option value="Viudo">Viudo/a</option>
+                </select>
+              </div>
+
+              {/* Fecha nacimiento */}
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Fecha de Nacimiento</label>
+                <input type="date" name="fecha_nacimiento" value={form.fecha_nacimiento} onChange={handleChange}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-100 focus:ring-2 focus:ring-erp-orange outline-none bg-gray-50/50" />
+              </div>
+
+              {/* Fecha ingreso */}
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Fecha de Ingreso</label>
+                <input type="date" name="fecha_ingreso" value={form.fecha_ingreso} onChange={handleChange}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-100 focus:ring-2 focus:ring-erp-orange outline-none bg-gray-50/50" />
+              </div>
+
+              {/* Selector de Cargo — ocupa las 2 columnas */}
+              <div className="col-span-2 space-y-1">
+                <label className="text-[10px] font-black text-gray-400 uppercase ml-1">
+                  Cargo <span className="text-red-400">*</span>
+                </label>
+                <select name="id_cargo" value={form.id_cargo} onChange={handleChange}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-100 focus:ring-2 focus:ring-erp-orange outline-none bg-gray-50/50">
+                  <option value="">Seleccionar cargo...</option>
+                  {cargos.map(c => (
+                    <option key={c.id_cargo} value={c.id_cargo}>
+                      {c.nombre_cargo}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Preview del salario base según cargo — solo si hay cargo seleccionado */}
+              {cargoSeleccionado && (
+                <div className="col-span-2 flex items-center gap-3 px-4 py-3 bg-orange-50 rounded-xl border border-orange-100">
+                  <Briefcase size={16} className="text-erp-orange" />
+                  <div>
+                    <p className="text-[10px] font-black text-gray-400 uppercase">Salario base del cargo</p>
+                    <p className="text-sm font-black text-erp-orange">
+                      {formatGua(Number(cargoSeleccionado.sueldo_base))}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {errorForm && (
+                <div className="col-span-2 bg-red-50 border border-red-100 text-red-600 text-sm font-medium px-4 py-3 rounded-xl">
+                  {errorForm}
+                </div>
+              )}
+            </div>
+
+            <div className="p-8 bg-gray-50 border-t border-orange-50 flex justify-end gap-3">
+              <button
+                onClick={() => { setShowForm(false); setErrorForm(''); }}
+                className="px-6 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-100 transition-colors"
+                disabled={guardando}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleGuardar}
+                disabled={guardando}
+                className="px-8 py-3 bg-erp-orange text-white rounded-xl font-black uppercase tracking-widest text-xs hover:bg-orange-600 transition-colors shadow-lg shadow-orange-200 disabled:opacity-60"
+              >
+                {guardando ? 'Guardando...' : 'Guardar Registro'}
+              </button>
+            </div>
+
           </div>
+        </div>
       )}
     </div>
   );

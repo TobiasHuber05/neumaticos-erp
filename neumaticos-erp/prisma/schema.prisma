@@ -132,10 +132,10 @@ model conciliacion_bancaria {
   id_cuenta            Int?
   fecha                DateTime?              @db.Date
   descripcion          String?                @db.VarChar(255)
-  saldo_banco          Decimal?               @db.Decimal(15, 2)
-  monto_erp            Decimal?               @db.Decimal(15, 2)
   diferencia           Decimal?               @db.Decimal(15, 2)
-  estado               String?                @default("Pendiente") @db.VarChar(20) // Pendiente, Cerrada
+  estado               String?                @default("Pendiente") @db.VarChar(20)
+  monto_erp            Decimal?               @db.Decimal(15, 2)
+  saldo_banco          Decimal?               @db.Decimal(15, 2)
   cuenta_bancaria      cuenta_bancaria?       @relation(fields: [id_cuenta], references: [id_cuenta], onDelete: NoAction, onUpdate: NoAction, map: "fk_conciliacion_cuenta")
   detalle_conciliacion detalle_conciliacion[]
 }
