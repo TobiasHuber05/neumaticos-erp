@@ -17,6 +17,7 @@ import {
   PieChart,
   Calendar,
   FileText,
+  Home,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -93,6 +94,21 @@ const Sidebar = ({ setModulo, moduloActual }) => {
 
       {/* Menú */}
       <nav className="flex-1 mt-4 overflow-y-auto overflow-x-hidden">
+        {/* Inicio */}
+        <div className="px-2 mb-2">
+          <button
+            type="button"
+            onClick={() => setModulo('inicio')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all font-bold text-sm
+              ${moduloActual === 'inicio'
+                ? 'bg-erp-orange text-white shadow-inner'
+                : 'text-orange-900 hover:bg-orange-200'}`}
+          >
+            <Home size={20} />
+            <span>Inicio</span>
+          </button>
+        </div>
+
         {/* Modulo Compras */}
         <div className="px-2">
           <button

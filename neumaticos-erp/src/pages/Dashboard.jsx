@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import Sidebar from '../components/Sidebar';
+import backgroundImage from '../assets/taller_pro.png';
 
 // Imports compras
 import PedidosCompra from '../components/ModuloCompras/PedidosCompra';
@@ -63,9 +64,7 @@ function getHeaders() {
 function Dashboard() {
   // ── Hooks de API ─────────────────────────────────────────
   const { proveedores } = useProveedores();
-
   const { inventario, categorias, marcas, eliminarProducto } = useProductos();
-
   const productosBajoMinimo = () =>
     inventario.filter((p) => !p.esServicio && Number(p.stock) <= Number(p.min));
 
@@ -92,7 +91,6 @@ function Dashboard() {
     registrarOrdenPago,
   } = usePagosProveedores({ onPagoRegistrado: refetchFacturas });
 
-  // ── Tesorería desde API ───────────────────────────────────
   const {
     cuentas,
     bancos,
@@ -120,7 +118,7 @@ function Dashboard() {
 
   // ── Estado local de pedidos (con API) ────────────────────
   const [pedidos, setPedidos] = useState([]);
-  const [moduloActual, setModuloActual] = useState('compras');
+  const [moduloActual, setModuloActual] = useState('inicio');
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [mostrarFormCuenta, setMostrarFormCuenta] = useState(false);
 
@@ -136,7 +134,6 @@ function Dashboard() {
 
   useMemo(() => { fetchPedidos(); }, []);
 
-  // ── Hook local solo para notas de devolución y NC (sin backend aún) ──
   const compras = useModuloCompras();
   const {
     notasDevolucion,
@@ -146,7 +143,6 @@ function Dashboard() {
     registrarNotaCreditoProveedor,
   } = compras;
 
-  // ── Ventas y Servicios ────────────────────────────────────
   const moduloVentas = useModuloVentas();
   const { servicios, actions: actionsServicios } = useServicios();
 
@@ -193,6 +189,7 @@ function Dashboard() {
 
   const tituloModulo = () => {
     const map = {
+      inicio: 'Panel de Inicio',
       compras: 'Pedidos de compra',
       proveedores: 'Proveedores',
       cotizaciones: 'Cotizaciones',
@@ -224,6 +221,44 @@ function Dashboard() {
 
   const renderContenido = () => {
     switch (moduloActual) {
+      case 'inicio':
+        return (
+          <div className="relative h-full w-full flex flex-col items-center justify-center text-center p-10 overflow-hidden">
+             {/* Imagen de fondo nítida y a pantalla completa */}
+            <div 
+              className="absolute inset-0 z-0 bg-cover bg-center opacity-90 transform scale-100"
+              style={{ backgroundImage: `url(${backgroundImage})` }}
+            ></div>
+            
+            {/* Overlay de luz blanca brillante */}
+            <div className="absolute inset-0 bg-white/30 z-0"></div>
+
+            <div className="relative z-10 max-w-4xl">
+              <h2 className="text-8xl font-black text-erp-orange uppercase tracking-tighter mb-4 drop-shadow-xl">
+                BIENVENIDO
+              </h2>
+              <p className="text-2xl text-gray-800 font-black mb-12 uppercase tracking-[0.3em] drop-shadow-sm">
+                Neumáticos ERP — Gestión Pro
+              </p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+                <div className="bg-white/95 backdrop-blur-md p-10 rounded-2xl shadow-2xl border-b-8 border-erp-orange hover:translate-y-[-10px] transition-all cursor-pointer group" onClick={() => setModuloActual('compras')}>
+                  <h3 className="text-erp-orange font-black text-5xl mb-2 group-hover:scale-110 transition-transform">{pedidos.length}</h3>
+                  <p className="text-gray-500 font-black text-[10px] uppercase tracking-widest">Pedidos Activos</p>
+                </div>
+                <div className="bg-white/95 backdrop-blur-md p-10 rounded-2xl shadow-2xl border-b-8 border-blue-500 hover:translate-y-[-10px] transition-all cursor-pointer group" onClick={() => setModuloActual('stock')}>
+                  <h3 className="text-blue-500 font-black text-5xl mb-2 group-hover:scale-110 transition-transform">{inventario.length}</h3>
+                  <p className="text-gray-500 font-black text-[10px] uppercase tracking-widest">Productos en Stock</p>
+                </div>
+                <div className="bg-white/95 backdrop-blur-md p-10 rounded-2xl shadow-2xl border-b-8 border-green-500 hover:translate-y-[-10px] transition-all cursor-pointer group" onClick={() => setModuloActual('tesoreria')}>
+                  <h3 className="text-green-500 font-black text-5xl mb-2 group-hover:scale-110 transition-transform">{cuentas.length}</h3>
+                  <p className="text-gray-500 font-black text-[10px] uppercase tracking-widest">Cuentas Bancarias</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
       case 'proveedores':
         return <Proveedores />;
 
@@ -426,25 +461,38 @@ function Dashboard() {
   };
 
   return (
-    <div className="flex h-screen bg-orange-50 font-sans text-gray-900">
-      <Sidebar setModulo={setModuloActual} moduloActual={moduloActual} />
-      <main className="flex-1 overflow-auto p-10">
-        <header className="mb-8 border-b-2 border-erp-yellow pb-4 flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-black text-erp-orange uppercase tracking-tighter">
-              {tituloModulo()}
-            </h1>
-          </div>
-          <div className="bg-white px-4 py-2 rounded-lg shadow-sm border border-orange-100 text-right">
-            <span className="block text-[9px] font-black text-erp-orange uppercase">Estado del sistema</span>
-            <span className="text-xs font-bold text-green-500 flex items-center gap-1 justify-end">
-              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-              ONLINE
-            </span>
-          </div>
-        </header>
-        {renderContenido()}
-      </main>
+    <div className="flex h-screen bg-white font-sans text-gray-900 relative overflow-hidden">
+      {/* Imagen de fondo global con máxima nitidez (Igual al inicio) */}
+      <div 
+        className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat opacity-[0.9] pointer-events-none fixed"
+        style={{ backgroundImage: `url(${backgroundImage})` }}
+      ></div>
+
+      {/* Capa de Brillo sutil (Igual al inicio) */}
+      <div className="absolute inset-0 bg-white/30 z-0"></div>
+
+      <div className="relative z-10 flex w-full h-full">
+        <Sidebar setModulo={setModuloActual} moduloActual={moduloActual} />
+        <main className={`flex-1 overflow-auto ${moduloActual === 'inicio' ? 'p-0' : 'p-10'} relative`}>
+          {moduloActual !== 'inicio' && (
+            <header className="mb-8 border-b-2 border-erp-yellow pb-4 flex justify-between items-center">
+              <div>
+                <h1 className="text-3xl font-black text-erp-orange uppercase tracking-tighter">
+                  {tituloModulo()}
+                </h1>
+              </div>
+              <div className="bg-white/80 backdrop-blur px-4 py-2 rounded-lg shadow-sm border border-orange-100 text-right">
+                <span className="block text-[9px] font-black text-erp-orange uppercase">Estado del sistema</span>
+                <span className="text-xs font-bold text-green-500 flex items-center gap-1 justify-end">
+                  <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                  ONLINE
+                </span>
+              </div>
+            </header>
+          )}
+          {renderContenido()}
+        </main>
+      </div>
     </div>
   );
 }

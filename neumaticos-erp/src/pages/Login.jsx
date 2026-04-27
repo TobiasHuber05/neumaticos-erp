@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import axios from 'axios';
 import { Mail, Lock, LogIn } from 'lucide-react';
+import backgroundImage from '../assets/taller_pro.png';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -30,8 +31,14 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-orange-50 flex items-center justify-center p-4 font-sans">
-      <div className="w-full max-w-md">
+    <div 
+      className="min-h-screen bg-cover bg-center bg-no-repeat flex items-center justify-center p-4 font-sans relative overflow-hidden"
+      style={{ backgroundImage: `url(${backgroundImage})` }}
+    >
+      {/* Capa de superposición oscura con desenfoque */}
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]"></div>
+
+      <div className="w-full max-w-md relative z-10 animate-in fade-in zoom-in duration-700">
         <div className="bg-white rounded-2xl shadow-2xl overflow-hidden border-t-8 border-erp-orange transform transition-all hover:scale-[1.01]">
           <div className="p-8">
             <div className="text-center mb-10">
