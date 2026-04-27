@@ -1,18 +1,16 @@
 import { useState } from 'react';
 import { X, Save, Package } from 'lucide-react';
 
-const categoriasProducto = ['Mantenimiento', 'Alineacion', 'Instalacion'];
-
 const formatPrecioGs = (valor) => {
+    if (!valor) return '';
     const limpio = String(valor).replace(/\./g, '').replace(/,/g, '').trim();
     const n = Number(limpio);
-    if (!Number.isFinite(n) || n < 0) return null;
+    if (!Number.isFinite(n) || n < 0) return valor;
     return n.toLocaleString('de-DE');
 };
 
 const ServicesForm = ({ onCancelar, onGuardar }) => {
     const [nombre, setNombre] = useState('');
-    const [categoria, setCategoria] = useState(categoriasProducto[0]);
     const [precio, setPrecio] = useState('');   
     const [duracion_aprox, setDuracion] = useState('');
 
@@ -20,12 +18,10 @@ const ServicesForm = ({ onCancelar, onGuardar }) => {
         const nombreTrim = nombre.trim();
         const duracionTrim = duracion_aprox.trim();
         if (!nombreTrim || !duracionTrim) return;
-        const formateado = formatPrecioGs(precio);
-        if (formateado === null) return;
+        
         onGuardar({
             nombre: nombreTrim,
-            categoria,
-            precio: formateado,
+            precio: precio, // useServicios se encargará de limpiar los puntos
             duracion_aprox: duracionTrim,
         });
     };
@@ -60,42 +56,27 @@ const ServicesForm = ({ onCancelar, onGuardar }) => {
                     />
                 </div>
                 <div>
-                    <label className="block text-sm font-bold text-orange-800 mb-1">Categoría</label>
-                    <select
-                        value={categoria}
-                        onChange={(e) => setCategoria(e.target.value)}
-                        className="w-full p-2 border border-orange-300 rounded focus:ring-2 focus:ring-erp-orange outline-none bg-white"
-                    >
-                    {categoriasProducto.map((c) => (
-                        <option key={c} value={c}>
-                            {c}
-                        </option>
-                    ))}
-                    </select>
-                </div>
-                <div>
-                    <label className="block text-sm font-bold text-orange-800 mb-1">Precio</label>
+                    <label className="block text-sm font-bold text-orange-800 mb-1">Precio (Gs.)</label>
                     <input
                         type="text"
                         inputMode="numeric"
                         value={precio}
-                        onChange={(e) => setPrecio(e.target.value)}
-                        placeholder="Ej: 1200000 o 1.200.000"
+                        onChange={(e) => setPrecio(formatPrecioGs(e.target.value))}
+                        placeholder="Ej: 120.000"
                         className="w-full p-2 border border-orange-300 rounded focus:ring-2 focus:ring-erp-orange outline-none bg-white"
-                    >
-                    </input>
+                    />
                 </div>
-                    <div className="md:col-span-2">
-                        <label className="block text-sm font-bold text-orange-800 mb-1">Duración aproximada</label>
-                        <input
-                            type="text"
-                            value={duracion_aprox}
-                            onChange={(e) => setDuracion(e.target.value)}
-                            placeholder="Ej: 30 min"
-                            className="w-full p-2 border border-orange-300 rounded focus:ring-2 focus:ring-erp-orange outline-none bg-white"
-                        />
-                    </div>
+                <div>
+                    <label className="block text-sm font-bold text-orange-800 mb-1">Duración aproximada</label>
+                    <input
+                        type="text"
+                        value={duracion_aprox}
+                        onChange={(e) => setDuracion(e.target.value)}
+                        placeholder="Ej: 30 min"
+                        className="w-full p-2 border border-orange-300 rounded focus:ring-2 focus:ring-erp-orange outline-none bg-white"
+                    />
                 </div>
+            </div>
             <div className="flex justify-end gap-3">
                 <button
                     type="button"

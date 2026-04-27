@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Plus, Lock, Unlock, CheckCircle2 } from 'lucide-react';
 
+import { usePeriodosContables } from '../../hooks/usePeriodosContables';
+
 const PeriodosContables = () => {
-  const [periodos, setPeriodos] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { periodos, loading, crearPeriodo, cerrarPeriodo } = usePeriodosContables();
   const [mostrarForm, setMostrarForm] = useState(false);
   const [nuevoPeriodo, setNuevoPeriodo] = useState({
     periodo_anho: '',
@@ -13,46 +14,33 @@ const PeriodosContables = () => {
     moneda: 'PYG'
   });
 
-  const fetchPeriodos = async () => {
-    try {
-      const res = await fetch('/api/contabilidad/periodos');
-      const data = await res.json();
-      setPeriodos(data);
-      setLoading(false);
-    } catch (error) {
-      console.error('Error:', error);
-    }
-  };
-
-  useEffect(() => {
-    fetchPeriodos();
-  }, []);
-
   const handleCrear = async (e) => {
     e.preventDefault();
-    try {
-      const res = await fetch('/api/contabilidad/periodos', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(nuevoPeriodo)
+    const res = await crearPeriodo(nuevoPeriodo);
+    if (res.ok) {
+      setMostrarForm(false);
+      setNuevoPeriodo({
+        periodo_anho: '',
+        descripcion: '',
+        fecha_inicio: '',
+        fecha_fin: '',
+        moneda: 'PYG'
       });
-      if (res.ok) {
-        fetchPeriodos();
-        setMostrarForm(false);
-      }
-    } catch (error) {
-      console.error('Error:', error);
+    } else {
+      alert(res.error);
     }
   };
 
-  const cerrarPeriodo = async (id) => {
+  const handleCerrar = async (id) => {
     if (!confirm('¿Está seguro de cerrar este periodo? Esta acción es irreversible.')) return;
-    try {
-      const res = await fetch(`/api/contabilidad/periodos/${id}/cerrar`, { method: 'PUT' });
-      if (res.ok) fetchPeriodos();
-    } catch (error) {
-      console.error('Error:', error);
-    }
+    const res = await cerrarPeriodo(id);
+    if (!res.ok) alert(res.error);
+  };
+
+  const formatFecha = (fechaStr) => {
+    if (!fechaStr) return '';
+    const date = new Date(fechaStr);
+    return `${date.getUTCDate().toString().padStart(2, '0')}/${(date.getUTCMonth() + 1).toString().padStart(2, '0')}/${date.getUTCFullYear()}`;
   };
 
   return (
@@ -149,7 +137,7 @@ const PeriodosContables = () => {
                 <td className="px-6 py-4 font-bold text-gray-800">{p.periodo_anho}</td>
                 <td className="px-6 py-4 text-gray-600">{p.descripcion}</td>
                 <td className="px-6 py-4 text-gray-600 text-sm">
-                  {new Date(p.fecha_inicio).toLocaleDateString()} - {new Date(p.fecha_fin).toLocaleDateString()}
+                  {formatFecha(p.fecha_inicio)} - {formatFecha(p.fecha_fin)}
                 </td>
                 <td className="px-6 py-4">
                   <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold ${
@@ -162,7 +150,7 @@ const PeriodosContables = () => {
                 <td className="px-6 py-4">
                   {p.estado === 'Abierto' && (
                     <button
-                      onClick={() => cerrarPeriodo(p.id_proc_contable)}
+                      onClick={() => handleCerrar(p.id_proc_contable)}
                       className="text-red-500 hover:text-red-700 font-bold text-xs flex items-center gap-1 uppercase"
                     >
                       <Lock size={14} /> Cerrar Periodo

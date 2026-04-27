@@ -14,7 +14,7 @@ const Services = ({ servicios = [], actions }) => {
   const ServiciosFiltrado = servicios.filter((item) => {
     const q = searchTerm.trim().toLowerCase();
     if (!q) return true;
-    return [item.nombre, item.categoria].some((campo) => String(campo).toLowerCase().includes(q));
+    return String(item.nombre).toLowerCase().includes(q);
   });
 
   if (mostrarFormulario) {
@@ -25,6 +25,12 @@ const Services = ({ servicios = [], actions }) => {
       />
     );
   }
+
+  const formatPrecioGs = (valor) => {
+    const n = Number(valor);
+    if (isNaN(n)) return '0';
+    return n.toLocaleString('de-DE');
+  };
 
   return (
     <div className="bg-white rounded-xl shadow-md overflow-hidden border border-orange-100">
@@ -48,7 +54,7 @@ const Services = ({ servicios = [], actions }) => {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
             <input
               type="text"
-              placeholder="Buscar por nombre o categoría..."
+              placeholder="Buscar por nombre..."
               className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-erp-orange outline-none"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -62,7 +68,6 @@ const Services = ({ servicios = [], actions }) => {
           <thead className="bg-orange-50 text-erp-orange uppercase text-xs font-black">
             <tr>
               <th className="px-6 py-4">Servicio</th>
-              <th className="px-6 py-4">Categoria</th>
               <th className="px-6 py-4 text-center">Duracion Aprox.</th>
               <th className="px-6 py-4 text-right">Precio</th>
               <th className="px-6 py-4 text-center">Estado</th>
@@ -72,14 +77,17 @@ const Services = ({ servicios = [], actions }) => {
             {ServiciosFiltrado.map((servicio) => (
               <tr key={servicio.id} className="hover:bg-orange-50/50 transition-colors text-sm">
                 <td className="px-6 py-4 font-bold text-gray-700">{servicio.nombre}</td>
-                <td className="px-6 py-4 text-gray-600">{servicio.categoria}</td>
                 <td className="px-6 py-4 text-center text-gray-600">
-                  <span className="inline-flex items-center gap-1">
-                    <Clock3 size={14} />
-                    {servicio.duracion_aprox}
-                  </span>
+                  <div className="flex items-center justify-center gap-2">
+                    <Clock3 size={16} className="text-erp-orange/70" />
+                    <span className="font-medium">
+                      {servicio.duracion_aprox && servicio.duracion_aprox !== '—' 
+                        ? servicio.duracion_aprox 
+                        : 'No definida'}
+                    </span>
+                  </div>
                 </td>
-                <td className="px-6 py-4 text-right font-bold text-gray-700">Gs. {servicio.precio}</td>
+                <td className="px-6 py-4 text-right font-bold text-gray-700">Gs. {formatPrecioGs(servicio.precio)}</td>
                 <td className="px-6 py-4 text-center">
                   {servicio.estado === 'Alta Demanda' ? (
                     <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-yellow-100 text-yellow-700 text-[10px] font-black uppercase border border-yellow-200">
