@@ -40,6 +40,8 @@ app.use('/api/asientos-contables', asientosContablesRoutes);
 app.use('/api/periodos-contables', periodosContablesRoutes);
 app.use('/api/reportes-contables', reportesContablesRoutes);
 
+// --- MÓDULO DE CONTABILIDAD COMPLETADO ---
+
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Servidor funcionando' });
