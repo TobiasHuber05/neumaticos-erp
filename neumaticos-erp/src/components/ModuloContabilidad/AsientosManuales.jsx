@@ -1,9 +1,12 @@
 import React, { useState, useMemo } from 'react';
-import { asientosContablesIniciales, planDeCuentasInicial } from '../../data/erpInitialContabilidad';
+import { usePlanCuentas } from '../../hooks/usePlanCuentas';
+import { useAsientosContables } from '../../hooks/useAsientosContables';
 
 const AsientosManuales = () => {
-  const [asientos, setAsientos] = useState(asientosContablesIniciales);
+  const { periodos, periodoActivo, setPeriodoActivo, cuentas } = usePlanCuentas();
+  const { asientos, loading, crearAsiento } = useAsientosContables(periodoActivo);
   const [showForm, setShowForm] = useState(false);
+  const [errorMsg, setErrorMsg] = useState(null);
   
   // Estado para el nuevo asiento
   const [nuevoAsiento, setNuevoAsiento] = useState({
@@ -16,8 +19,8 @@ const AsientosManuales = () => {
   });
 
   const cuentasAsentables = useMemo(() => 
-    planDeCuentasInicial.filter(c => c.tipo === 'Asentable'), 
-  []);
+    cuentas.filter(c => c.asentable === true), 
+  [cuentas]);
 
   const handleAddLine = () => {
     setNuevoAsiento({
@@ -45,47 +48,65 @@ const AsientosManuales = () => {
 
   const totalDebe = nuevoAsiento.lineas.reduce((sum, l) => sum + Number(l.debe || 0), 0);
   const totalHaber = nuevoAsiento.lineas.reduce((sum, l) => sum + Number(l.haber || 0), 0);
-  const isBalanced = totalDebe === totalHaber && totalDebe > 0;
+  const isBalanced = Math.abs(totalDebe - totalHaber) < 0.01 && totalDebe > 0;
 
-  const handleGuardar = () => {
+  const handleGuardar = async () => {
     if (!isBalanced) {
-      alert('El asiento no está balanceado (Debe != Haber)');
+      setErrorMsg('El asiento no está balanceado (Debe != Haber)');
       return;
     }
-    const asientoFinal = {
-      ...nuevoAsiento,
-      id: asientos.length + 1,
-      numero: `AS-2026-00${asientos.length + 1}`,
-      estado: 'Asentado',
-      totalDebe,
-      totalHaber
+    
+    if (!nuevoAsiento.descripcion) {
+      setErrorMsg('La descripción es obligatoria');
+      return;
+    }
+
+    const payload = {
+      fecha: nuevoAsiento.fecha,
+      descripcion: nuevoAsiento.descripcion,
+      id_proc_contable: periodoActivo,
+      detalles: nuevoAsiento.lineas.map(l => ({
+        id_cuenta: l.cuentaId,
+        monto: Number(l.debe) > 0 ? Number(l.debe) : Number(l.haber),
+        debe_haber: Number(l.debe) > 0 // true = debe, false = haber
+      }))
     };
-    setAsientos([asientoFinal, ...asientos]);
-    setShowForm(false);
-    setNuevoAsiento({
-      fecha: new Date().toISOString().split('T')[0],
-      descripcion: '',
-      lineas: [
-        { id: Date.now(), cuentaId: '', glosa: '', debe: 0, haber: 0 },
-        { id: Date.now() + 1, cuentaId: '', glosa: '', debe: 0, haber: 0 },
-      ]
-    });
+
+    const res = await crearAsiento(payload);
+    if (res.ok) {
+      setShowForm(false);
+      setNuevoAsiento({
+        fecha: new Date().toISOString().split('T')[0],
+        descripcion: '',
+        lineas: [
+          { id: Date.now(), cuentaId: '', glosa: '', debe: 0, haber: 0 },
+          { id: Date.now() + 1, cuentaId: '', glosa: '', debe: 0, haber: 0 },
+        ]
+      });
+      setErrorMsg(null);
+    } else {
+      setErrorMsg(res.error);
+    }
   };
 
   return (
     <div className="space-y-6">
-      {/* Header con estadísticas rápidas */}
-      <div className="flex justify-between items-center">
-        <div className="flex gap-4">
-          <div className="bg-white p-4 rounded-xl shadow-sm border-t-4 border-erp-orange">
-            <p className="text-[10px] font-bold text-gray-400 uppercase">Total Asientos</p>
-            <p className="text-2xl font-black text-gray-700">{asientos.length}</p>
-          </div>
-          <div className="bg-white p-4 rounded-xl shadow-sm border-t-4 border-green-500">
-            <p className="text-[10px] font-bold text-gray-400 uppercase">Balanceados</p>
-            <p className="text-2xl font-black text-green-600">{asientos.filter(a => a.totalDebe === a.totalHaber).length}</p>
-          </div>
+      {/* Header con Periodo y Nuevo Asiento */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="flex items-center gap-3 bg-white border border-orange-100 rounded-2xl px-4 py-3 shadow-sm w-fit">
+          <span className="text-xs font-black text-erp-orange uppercase">Periodo:</span>
+          <select 
+            value={periodoActivo || ''}
+            onChange={(e) => setPeriodoActivo(e.target.value ? Number(e.target.value) : null)}
+            className="text-sm font-bold text-gray-700 focus:outline-none bg-transparent"
+          >
+            <option value="">Todos los Periodos</option>
+            {periodos.map(p => (
+              <option key={p.id} value={p.id}>{p.periodo} — {p.estado}</option>
+            ))}
+          </select>
         </div>
+
         <button 
           onClick={() => setShowForm(true)}
           className="bg-erp-orange hover:bg-orange-600 text-white font-black py-3 px-6 rounded-xl shadow-lg transition-all transform hover:scale-105 flex items-center gap-2"
@@ -95,38 +116,61 @@ const AsientosManuales = () => {
         </button>
       </div>
 
+      {/* Estadísticas rápidas */}
+      <div className="flex gap-4">
+        <div className="bg-white p-4 rounded-xl shadow-sm border-t-4 border-erp-orange w-48">
+          <p className="text-[10px] font-bold text-gray-400 uppercase">Total Asientos</p>
+          <p className="text-2xl font-black text-gray-700">{asientos.length}</p>
+        </div>
+      </div>
+
       {/* Lista de Asientos */}
-      <div className="bg-white rounded-2xl shadow-xl border border-orange-100 overflow-hidden">
-        <table className="w-full text-left">
-          <thead className="bg-orange-50 border-b border-orange-100">
-            <tr>
-              <th className="p-4 text-[10px] font-black text-erp-orange uppercase">Número</th>
-              <th className="p-4 text-[10px] font-black text-erp-orange uppercase">Fecha</th>
-              <th className="p-4 text-[10px] font-black text-erp-orange uppercase">Descripción</th>
-              <th className="p-4 text-[10px] font-black text-erp-orange uppercase text-right">Debe</th>
-              <th className="p-4 text-[10px] font-black text-erp-orange uppercase text-right">Haber</th>
-              <th className="p-4 text-[10px] font-black text-erp-orange uppercase text-center">Estado</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-50">
-            {asientos.map((asiento) => (
-              <tr key={asiento.id} className="hover:bg-orange-50/30 transition-colors">
-                <td className="p-4 font-bold text-gray-700">{asiento.numero}</td>
-                <td className="p-4 text-gray-500 text-sm">{asiento.fecha}</td>
-                <td className="p-4 text-gray-700 font-medium">{asiento.descripcion}</td>
-                <td className="p-4 text-right font-bold text-gray-800">{asiento.totalDebe.toLocaleString()}</td>
-                <td className="p-4 text-right font-bold text-gray-800">{asiento.totalHaber.toLocaleString()}</td>
-                <td className="p-4 text-center">
-                  <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${
-                    asiento.estado === 'Asentado' ? 'bg-green-100 text-green-700' : 'bg-erp-yellow/20 text-erp-yellow'
-                  }`}>
-                    {asiento.estado}
-                  </span>
-                </td>
+      <div className="bg-white rounded-3xl shadow-xl border border-orange-50 overflow-hidden">
+        {loading ? (
+          <div className="p-20 text-center text-gray-400 font-bold animate-pulse">Cargando asientos...</div>
+        ) : (
+          <table className="w-full text-left">
+            <thead className="bg-orange-50/50 border-b border-orange-100">
+              <tr>
+                <th className="p-5 text-[10px] font-black text-erp-orange uppercase tracking-widest">N° Asiento</th>
+                <th className="p-5 text-[10px] font-black text-erp-orange uppercase tracking-widest">Fecha</th>
+                <th className="p-5 text-[10px] font-black text-erp-orange uppercase tracking-widest">Descripción</th>
+                <th className="p-5 text-[10px] font-black text-erp-orange uppercase tracking-widest text-right">Debe</th>
+                <th className="p-5 text-[10px] font-black text-erp-orange uppercase tracking-widest text-right">Haber</th>
+                <th className="p-5 text-[10px] font-black text-erp-orange uppercase tracking-widest text-center">Estado</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-orange-50">
+              {asientos.length === 0 ? (
+                <tr>
+                  <td colSpan="6" className="p-10 text-center text-gray-400 italic">No hay asientos registrados en este periodo</td>
+                </tr>
+              ) : (
+                asientos.map((asiento) => (
+                  <tr key={asiento.id_asiento} className="hover:bg-orange-50/30 transition-colors">
+                    <td className="p-5 font-bold text-gray-700">#{asiento.numero_asiento}</td>
+                    <td className="p-5 text-gray-500 text-sm">{new Date(asiento.fecha).toLocaleDateString()}</td>
+                    <td className="p-5 text-gray-700 font-medium">
+                      {asiento.descripcion}
+                      <div className="text-[10px] text-gray-400 mt-1">
+                        {asiento.asiento_detalle?.length || 0} movimientos
+                      </div>
+                    </td>
+                    <td className="p-5 text-right font-black text-gray-800">{Number(asiento.total_debe).toLocaleString()}</td>
+                    <td className="p-5 text-right font-black text-gray-800">{Number(asiento.total_haber).toLocaleString()}</td>
+                    <td className="p-5 text-center">
+                      <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${
+                        asiento.estado === 'pendiente' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'
+                      }`}>
+                        {asiento.estado}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        )}
       </div>
 
       {/* Modal de Formulario */}
@@ -141,6 +185,13 @@ const AsientosManuales = () => {
             </div>
             
             <div className="p-8 space-y-6">
+              {errorMsg && (
+                <div className="bg-red-50 text-red-600 p-4 rounded-xl text-sm font-bold border border-red-100 flex items-center gap-2">
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"/></svg>
+                  {errorMsg}
+                </div>
+              )}
+
               {/* Cabecera del Asiento */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
@@ -165,12 +216,12 @@ const AsientosManuales = () => {
               </div>
 
               {/* Tabla de Líneas */}
-              <div className="border-2 border-orange-50 rounded-2xl overflow-hidden">
-                <table className="w-full">
-                  <thead className="bg-orange-50">
+              <div className="border-2 border-orange-50 rounded-2xl overflow-hidden max-h-80 overflow-y-auto">
+                <table className="w-full border-collapse">
+                  <thead className="bg-orange-50 sticky top-0 z-10">
                     <tr>
-                      <th className="p-3 text-[9px] font-black text-erp-orange uppercase w-1/3">Cuenta Contable</th>
-                      <th className="p-3 text-[9px] font-black text-erp-orange uppercase">Glosa Detalle</th>
+                      <th className="p-3 text-[9px] font-black text-erp-orange uppercase w-1/3 text-left">Cuenta Contable</th>
+                      <th className="p-3 text-[9px] font-black text-erp-orange uppercase text-left">Glosa Detalle</th>
                       <th className="p-3 text-[9px] font-black text-erp-orange uppercase w-32 text-right">Debe</th>
                       <th className="p-3 text-[9px] font-black text-erp-orange uppercase w-32 text-right">Haber</th>
                       <th className="p-3 w-10"></th>
@@ -183,7 +234,7 @@ const AsientosManuales = () => {
                           <select 
                             value={linea.cuentaId}
                             onChange={(e) => handleLineChange(linea.id, 'cuentaId', e.target.value)}
-                            className="w-full bg-white border border-gray-200 rounded-lg p-2 text-sm focus:ring-2 ring-erp-orange outline-none"
+                            className="w-full bg-white border border-gray-200 rounded-lg p-2 text-xs font-bold focus:ring-2 ring-erp-orange outline-none"
                           >
                             <option value="">Seleccionar cuenta...</option>
                             {cuentasAsentables.map(c => (
@@ -196,7 +247,7 @@ const AsientosManuales = () => {
                             type="text" 
                             value={linea.glosa}
                             onChange={(e) => handleLineChange(linea.id, 'glosa', e.target.value)}
-                            className="w-full bg-white border border-gray-200 rounded-lg p-2 text-sm outline-none"
+                            className="w-full bg-white border border-gray-200 rounded-lg p-2 text-xs outline-none"
                             placeholder="Glosa opcional..."
                           />
                         </td>
@@ -205,7 +256,7 @@ const AsientosManuales = () => {
                             type="number" 
                             value={linea.debe}
                             onChange={(e) => handleLineChange(linea.id, 'debe', e.target.value)}
-                            className="w-full bg-white border border-gray-200 rounded-lg p-2 text-sm text-right font-bold outline-none"
+                            className="w-full bg-white border border-gray-200 rounded-lg p-2 text-xs text-right font-black outline-none"
                           />
                         </td>
                         <td className="p-2">
@@ -213,7 +264,7 @@ const AsientosManuales = () => {
                             type="number" 
                             value={linea.haber}
                             onChange={(e) => handleLineChange(linea.id, 'haber', e.target.value)}
-                            className="w-full bg-white border border-gray-200 rounded-lg p-2 text-sm text-right font-bold outline-none"
+                            className="w-full bg-white border border-gray-200 rounded-lg p-2 text-xs text-right font-black outline-none"
                           />
                         </td>
                         <td className="p-2">
@@ -248,7 +299,7 @@ const AsientosManuales = () => {
                   </div>
                   <div className="text-right border-l border-orange-200 pl-8">
                     <p className="text-[9px] font-black text-gray-400 uppercase">Diferencia</p>
-                    <p className={`text-xl font-black ${totalDebe - totalHaber === 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    <p className={`text-xl font-black ${Math.abs(totalDebe - totalHaber) < 0.01 ? 'text-green-600' : 'text-red-600'}`}>
                       {(totalDebe - totalHaber).toLocaleString()}
                     </p>
                   </div>
@@ -258,7 +309,7 @@ const AsientosManuales = () => {
                   {!isBalanced && (
                     <span className="text-[10px] font-black text-red-500 uppercase animate-pulse flex items-center gap-1">
                       <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"/></svg>
-                      El asiento debe estar balanceado
+                      {totalDebe === 0 ? 'Debe haber montos' : 'El asiento no está cuadrado'}
                     </span>
                   )}
                   <button 
