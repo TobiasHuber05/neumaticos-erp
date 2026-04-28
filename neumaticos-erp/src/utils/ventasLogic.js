@@ -2,7 +2,6 @@
 
 import { CATEGORIAS_PRODUCTO } from '../data/erpInitialData.js'; // Existing
 
-const HOY = new Date();
 const addDiasHabiles = (fecha, dias) => {
   let fechaNueva = new Date(fecha);
   let diasRestantes = dias;
@@ -23,21 +22,24 @@ const nextNumero = (tipo, existentes) => {
 
 // 1. Validar presupuesto vigente
 export const isBudgetVigente = (presupuesto) => {
-  return new Date(presupuesto.fechaExpiracion) > HOY && presupuesto.estado === 'Vigente';
+  return new Date(presupuesto.fechaExpiracion) > new Date() && presupuesto.estado === 'Vigente';
 };
 
 // 2. Crear factura desde presupuesto
-export const crearFacturaFromPresupuesto = (presupuesto) => ({
-  id: Date.now(), // Temp, update later
-  numero: nextNumero('FACV', []), // Pass facturas list
-  presupuestoId: presupuesto.id,
-  clientId: presupuesto.clientId,
-  fechaFactura: HOY.toISOString().split('T')[0],
-  lineas: [...presupuesto.lineas],
-  total: presupuesto.total,
-  estado: 'Emitida',
-  fecha48h: new Date(HOY.getTime() + 48*60*60*1000).toISOString().split('T')[0],
-});
+export const crearFacturaFromPresupuesto = (presupuesto) => {
+  const ahora = new Date();
+  return {
+    id: Date.now(),
+    numero: nextNumero('FACV', []),
+    presupuestoId: presupuesto.id,
+    clientId: presupuesto.clientId,
+    fechaFactura: ahora.toISOString().split('T')[0],
+    lineas: [...presupuesto.lineas],
+    total: presupuesto.total,
+    estado: 'Emitida',
+    fecha48h: new Date(ahora.getTime() + 48 * 60 * 60 * 1000).toISOString().split('T')[0],
+  };
+};
 
 // 3. Descontar stock al facturar
 export const deductStockFromFactura = (factura, inventarioActual) => {
@@ -53,7 +55,7 @@ export const deductStockFromFactura = (factura, inventarioActual) => {
 
 // 4. Validar y procesar devolución NC <48h
 export const validarDevolucion = (factura) => {
-  return new Date(factura.fecha48h) > HOY;
+  return new Date(factura.fecha48h) > new Date();
 };
 
 export const restockFromNotaCredito = (notaCredito, inventarioActual) => {
@@ -94,4 +96,3 @@ export const generateAsientoNotaCredito = (notaCredito) => ({
 // Helpers
 export const getClienteById = (clientId, clientes) => clientes.find(c => c.id === clientId);
 export const formatMonto = (monto) => `Gs. ${parseInt(monto).toLocaleString()}`;
-

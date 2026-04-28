@@ -15,7 +15,7 @@ export const crearPresupuesto = async (req, res) => {
         id_cliente,
         fecha_emision: fechaEmision,
         fecha_vencimiento: fechaVencimiento,
-        estado: "Pendiente",
+        estado: "Vigente",
         total: items.reduce((acc, item) => acc + (item.cantidad_producto * item.precio_unitario), 0),
         detalle_presupuesto: {
           create: items.map(item => ({
