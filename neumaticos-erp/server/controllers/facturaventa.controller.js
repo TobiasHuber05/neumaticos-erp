@@ -40,13 +40,20 @@ export const generarFactura = async (req, res) => {
 
       // 3. Descontar del stock correspondiente 
       for (const item of factura.detalle_factura_venta) {
-        await tx.stock.updateMany({
-          where: { id_producto: item.id_producto_servicio },
-          data: {
-            cantidad: { decrement: item.cantidad },
-            fecha_modificacion: new Date()
-          }
+        // Obtenemos el producto real desde producto_servicio
+        const prodServ = await tx.producto_servicio.findUnique({
+          where: { id_producto_servicio: item.id_producto_servicio }
         });
+
+        if (prodServ && prodServ.id_producto) {
+          await tx.stock.updateMany({
+            where: { id_producto: prodServ.id_producto },
+            data: {
+              cantidad: { decrement: item.cantidad },
+              fecha_modificacion: new Date()
+            }
+          });
+        }
       }
 
       return factura;

@@ -54,7 +54,7 @@ const Proveedores = () => {
   }
 
   return (
-    <div className="bg-orange-50 overflow-hidden">
+    <div className="bg-orange-50 overflow-hidden rounded-t-xl">
       <div className="p-4 border border-gray-500 rounded-t-xl flex justify-between items-center bg-gray-50">
         <div className="flex items-center gap-2">
           <Users className="text-erp-orange" />

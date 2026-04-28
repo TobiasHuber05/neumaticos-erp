@@ -37,7 +37,7 @@ import PlanCuentas from '../components/ModuloContabilidad/PlanCuentas';
 import AsientosManuales from '../components/ModuloContabilidad/AsientosManuales';
 import ReportesContables from '../components/ModuloContabilidad/ReportesContables';
 
-// ── Hooks reales de API ──────────────────────────────────────
+// ── Hooks de API ──────────────────────────────────────
 import { useProveedores } from '../hooks/useProveedores';
 import { useProductos } from '../hooks/useProductos';
 import { useCotizaciones } from '../hooks/useCotizaciones';
@@ -99,10 +99,10 @@ function Dashboard() {
     refetchCuentas
   } = useTesoreria();
 
-  const { 
-    movimientos, 
-    refetch: refetchMovimientos, 
-    registrarMovimiento, 
+  const {
+    movimientos,
+    refetch: refetchMovimientos,
+    registrarMovimiento,
     getEstadisticasTesoreria,
     confirmarMovimientos
   } = useMovimientosBancarios();
@@ -224,12 +224,12 @@ function Dashboard() {
       case 'inicio':
         return (
           <div className="relative h-full w-full flex flex-col items-center justify-center text-center p-10 overflow-hidden">
-             {/* Imagen de fondo nítida y a pantalla completa */}
-            <div 
+            {/* Imagen de fondo nítida y a pantalla completa */}
+            <div
               className="absolute inset-0 z-0 bg-cover bg-center opacity-90 transform scale-100"
               style={{ backgroundImage: `url(${backgroundImage})` }}
             ></div>
-            
+
             {/* Overlay de luz blanca brillante */}
             <div className="absolute inset-0 bg-white/30 z-0"></div>
 
@@ -238,9 +238,9 @@ function Dashboard() {
                 BIENVENIDO
               </h2>
               <p className="text-2xl text-gray-800 font-black mb-12 uppercase tracking-[0.3em] drop-shadow-sm">
-                Neumáticos ERP — Gestión Pro
+                Neumáticos ERP
               </p>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
                 <div className="bg-white/95 backdrop-blur-md p-10 rounded-2xl shadow-2xl border-b-8 border-erp-orange hover:translate-y-[-10px] transition-all cursor-pointer group" onClick={() => setModuloActual('compras')}>
                   <h3 className="text-erp-orange font-black text-5xl mb-2 group-hover:scale-110 transition-transform">{pedidos.length}</h3>
@@ -463,7 +463,7 @@ function Dashboard() {
   return (
     <div className="flex h-screen bg-white font-sans text-gray-900 relative overflow-hidden">
       {/* Imagen de fondo global con máxima nitidez (Igual al inicio) */}
-      <div 
+      <div
         className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat opacity-[0.9] pointer-events-none fixed"
         style={{ backgroundImage: `url(${backgroundImage})` }}
       ></div>

@@ -17,13 +17,13 @@ export const getProductos = async (req, res) => {
       const stockRow = p.stock?.[0];
       let serviceRow = p.producto_servicio?.[0];
 
-      // MIGRACIÓN AUTOMÁTICA: Si es servicio pero no tiene registro en producto_servicio, lo creamos
-      if (p.es_servicio && !serviceRow) {
+      // MIGRACIÓN AUTOMÁTICA: Si no tiene registro en producto_servicio, lo creamos (necesario para presupuestos)
+      if (!serviceRow) {
         try {
           serviceRow = await prisma.producto_servicio.create({
             data: {
               id_producto: p.id_producto,
-              duracion_aprox: '—',
+              duracion_aprox: p.es_servicio ? '—' : null,
               estado: 'Disponible'
             }
           });
@@ -42,7 +42,7 @@ export const getProductos = async (req, res) => {
         marcaId: p.id_marca,
         esServicio: !!p.es_servicio,
         stock: stockRow?.cantidad ?? 0,
-        min: 10, // Valor por defecto o puedes mapearlo si existe en la DB
+        min: 10,
         precio: stockRow?.precio ? Number(stockRow.precio) : 0,
         idStock: stockRow?.id_stock ?? null,
         duracion_aprox: serviceRow?.duracion_aprox ?? '—',
@@ -124,17 +124,14 @@ export const createProducto = async (req, res) => {
         }
       });
 
-      // 3. Si es servicio, crear entrada en producto_servicio
-      let serviceRow = null;
-      if (esServ) {
-        serviceRow = await tx.producto_servicio.create({
-          data: {
-            id_producto: producto.id_producto,
-            duracion_aprox: duracion_aprox || '—',
-            estado: estado || 'Disponible',
-          }
-        });
-      }
+      // 3. Crear entrada en producto_servicio (necesario para presupuestos y facturas)
+      const serviceRow = await tx.producto_servicio.create({
+        data: {
+          id_producto: producto.id_producto,
+          duracion_aprox: duracion_aprox || (esServ ? '—' : null),
+          estado: estado || 'Disponible',
+        }
+      });
 
       return { producto, stockRow, serviceRow };
     });
@@ -244,21 +241,21 @@ export const deleteProducto = async (req, res) => {
       // 1. Eliminar de tablas de metadata (hijas directas)
       await tx.stock.deleteMany({ where: { id_producto: Number(id) } });
       await tx.producto_servicio.deleteMany({ where: { id_producto: Number(id) } });
-      
+
       // 2. Intentar eliminar el producto
       await tx.producto.delete({ where: { id_producto: Number(id) } });
     });
     return res.json({ message: 'Eliminado correctamente' });
   } catch (error) {
     console.error('❌ Error al eliminar producto:', error);
-    
+
     // Error P2003: Foreign key constraint failed
     if (error.code === 'P2003') {
-      return res.status(400).json({ 
-        error: 'No se puede eliminar: este item está siendo usado en facturas, presupuestos o pedidos.' 
+      return res.status(400).json({
+        error: 'No se puede eliminar: este item está siendo usado en facturas, presupuestos o pedidos.'
       });
     }
-    
+
     return res.status(500).json({ error: 'Error interno del servidor: ' + error.message });
   }
 };
@@ -276,13 +273,13 @@ export const getCategorias = async (req, res) => {
 // GET /api/productos/marcas
 export const getMarcas = async (req, res) => {
   try {
-    const marcas = await prisma.marcas.findMany({ 
-      orderBy: { nombre: 'asc' } 
+    const marcas = await prisma.marcas.findMany({
+      orderBy: { nombre: 'asc' }
     });
 
-    const data = marcas.map(m => ({ 
-      id: m.id_marca, 
-      nombre: m.nombre 
+    const data = marcas.map(m => ({
+      id: m.id_marca,
+      nombre: m.nombre
     }));
 
     return res.json(data);

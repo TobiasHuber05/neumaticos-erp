@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { ShoppingBag, Clock, CheckCircle, RotateCcw, User, Package, Plus, Search, FileText, X } from 'lucide-react';
+import { ShoppingBag, Clock, CheckCircle, RotateCcw, User } from 'lucide-react';
 import NotaCreditoVentaForm from '../Forms/NotaCreditoVentaForm';
-import FacturaVentaForm from '../Forms/FacturaVentaForm';
 import * as ventasLogic from '../../utils/ventasLogic.js';
 
 /**
@@ -10,9 +9,6 @@ import * as ventasLogic from '../../utils/ventasLogic.js';
  */
 const FacturasVentas = ({ ventas, clientes, inventario, setInventario }) => {
   const [devolviendoFactura, setDevolviendoFactura] = useState(null);
-  const [mostrandoSelector, setMostrandoSelector] = useState(false);
-  const [clienteSelId, setClienteSelId] = useState('');
-  const [presupuestoSel, setPresupuestoSel] = useState(null);
 
   const facturasPendientes = ventas.facturasVentas?.filter(f => ['Emitida', 'Con NC'].includes(f.estado)) || [];
   const facturasCobradas = ventas.facturasVentas?.filter(f => f.estado === 'Cobrado') || [];
@@ -26,18 +22,11 @@ const FacturasVentas = ({ ventas, clientes, inventario, setInventario }) => {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex justify-between items-center bg-white p-6 rounded-xl shadow-sm border border-orange-100 mb-8">
+      <div className="flex items-center bg-white p-6 rounded-xl shadow-sm border border-orange-100 mb-8">
         <div className="flex items-center gap-3">
           <ShoppingBag className="text-erp-orange w-8 h-8" />
           <h2 className="text-2xl font-black text-gray-800 uppercase tracking-tighter">Facturas de Venta</h2>
         </div>
-        <button
-          onClick={() => setMostrandoSelector(true)}
-          className="flex items-center gap-2 bg-erp-orange text-white px-6 py-3 rounded-xl font-bold hover:bg-orange-600 transition-all shadow-md"
-        >
-          <Plus size={20} />
-          Nueva Factura
-        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -58,79 +47,7 @@ const FacturasVentas = ({ ventas, clientes, inventario, setInventario }) => {
         </div>
       </div>
 
-      {/* Selector de Cliente y Presupuesto */}
-      {mostrandoSelector && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl p-8 max-w-xl w-full shadow-2xl border border-orange-100">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-black text-gray-800 flex items-center gap-2">
-                <FileText className="text-erp-orange" />
-                Generar Factura desde Presupuesto
-              </h3>
-              <button onClick={() => { setMostrandoSelector(false); setClienteSelId(''); setPresupuestoSel(null); }} className="text-gray-400 hover:bg-gray-100 p-2 rounded-lg">
-                <X size={20} />
-              </button>
-            </div>
 
-            <div className="space-y-6">
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-2 ml-1">1. Seleccionar Cliente</label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <select
-                    value={clienteSelId}
-                    onChange={(e) => { setClienteSelId(e.target.value); setPresupuestoSel(null); }}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-erp-orange outline-none"
-                  >
-                    <option value="">-- Elige un cliente --</option>
-                    {clientes.map(c => (
-                      <option key={c.id} value={c.id}>{c.nombre} {c.apellido} - {c.documento}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {clienteSelId && (
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2 ml-1">2. Seleccionar Presupuesto Vigente</label>
-                  <div className="space-y-2">
-                    {ventas.presupuestos
-                      ?.filter(p => p.clientId === parseInt(clienteSelId) && ventasLogic.isBudgetVigente(p) && p.estado === 'Vigente')
-                      .map(p => (
-                        <button
-                          key={p.id}
-                          onClick={() => { setPresupuestoSel(p); setMostrandoSelector(false); }}
-                          className="w-full p-4 border border-gray-100 rounded-xl hover:border-erp-orange hover:bg-orange-50 text-left transition-all group flex justify-between items-center"
-                        >
-                          <div>
-                            <div className="font-bold text-gray-800 group-hover:text-erp-orange">Presupuesto #{p.numero}</div>
-                            <div className="text-xs text-gray-500">Total: Gs. {p.total.toLocaleString()}</div>
-                          </div>
-                          <Plus size={16} className="text-gray-300 group-hover:text-erp-orange" />
-                        </button>
-                      ))}
-                    {ventas.presupuestos?.filter(p => p.clientId === parseInt(clienteSelId) && ventasLogic.isBudgetVigente(p) && p.estado === 'Vigente').length === 0 && (
-                      <p className="text-sm text-gray-400 text-center py-4 italic">No hay presupuestos vigentes para este cliente.</p>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Form de confirmación Factura (cuando ya seleccionamos presupuesto) */}
-      {presupuestoSel && (
-        <FacturaVentaForm
-          presupuesto={presupuestoSel}
-          clientes={clientes}
-          inventario={inventario}
-          setInventario={setInventario}
-          ventas={ventas}
-          onCancelar={() => setPresupuestoSel(null)}
-        />
-      )}
 
       {/* Form NC */}
       {devolviendoFactura && (

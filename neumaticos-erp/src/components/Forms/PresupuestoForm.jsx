@@ -34,7 +34,7 @@ const PresupuestoForm = ({ clientes = [], inventario = [], servicios = [], onCan
 
     const totalLinea = qty * precioLimpio;
     const nuevaLinea = { 
-      productoId: item.id, 
+      productoId: item.id_producto_servicio || item.id, 
       tipo: tipoItem,
       nombre: item.nombre,
       cantidad: qty, 
