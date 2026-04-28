@@ -23,6 +23,12 @@ import cargosRouter from './routes/cargos.routes.js';
 import funcionariosRouter from './routes/funcionarios.routes.js';
 import salariosRouter from './routes/salarios.routes.js';
 
+//ventas
+import clienteRoutes from './routes/cliente.routes.js';
+import presupuestoRoutes from './routes/presupuesto.routes.js';
+import facturaRoutes from './routes/facturaventa.routes.js';
+import devolucionRoutes from './routes/devolucion.routes.js';
+
 dotenv.config();
 
 const app = express();
@@ -52,6 +58,11 @@ app.use('/api/reportes-contables', reportesContablesRoutes);
 app.use('/api', cargosRouter);
 app.use('/api', funcionariosRouter);
 app.use('/api', salariosRouter);
+//ventas
+app.use('/api/clientes', clienteRoutes);
+app.use('/api/presupuestos', presupuestoRoutes);
+app.use('/api/facturas', facturaRoutes);
+app.use('/api/devoluciones', devolucionRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Servidor funcionando' });
