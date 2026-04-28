@@ -15,10 +15,14 @@ const Presupuestos = ({ ventas, clientes, inventario, setInventario, servicios =
   const vigentes = ventas.presupuestos?.filter(p => ventasLogic.isBudgetVigente(p)) || [];
   const expirados = ventas.presupuestos?.filter(p => !ventasLogic.isBudgetVigente(p)) || [];
 
-  const handleGuardarPresupuesto = (lineas, clientId, total) => {
-    ventas.actions.solicitarPresupuesto(clientId, lineas);
+  const handleGuardarPresupuesto = async (lineas, clientId, total) => {
+  try {
+    await ventas.actions.solicitarPresupuesto(clientId, lineas);
     setMostrarNuevo(false);
-  };
+  } catch (err) {
+    alert(err.message);
+  }
+};
 
   const handleFacturaClick = (presupuesto) => {
     if (ventasLogic.isBudgetVigente(presupuesto)) {

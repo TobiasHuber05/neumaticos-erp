@@ -1,121 +1,300 @@
-// src/hooks/useModuloVentas.js - Estado y acciones para módulo Ventas (Zustand-like)
+// src/hooks/useModuloVentas.js
 
 import { useState, useEffect, useCallback } from 'react';
-import {
-  clientesIniciales,
-  presupuestosIniciales,
-  facturasVentasIniciales,
-  notasCreditoVentasIniciales,
-  asientosVentasIniciales,
-} from '../data/erpInitialVentas.js';
 import * as ventasLogic from '../utils/ventasLogic.js';
 
+const API_CLIENTES     = '/api/clientes';
+const API_PRESUPUESTOS = '/api/presupuestos';
+const API_FACTURAS     = '/api/facturas';
+const API_DEVOLUCIONES = '/api/devoluciones';
+
+function getHeaders() {
+  return {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${localStorage.getItem('token')}`,
+  };
+}
+
 export const useModuloVentas = () => {
-  // Estado principal
-  const [clientes, setClientes] = useState([]);
-  const [presupuestos, setPresupuestos] = useState([]);
-  const [facturasVentas, setFacturasVentas] = useState([]);
+  const [clientes, setClientes]                     = useState([]);
+  const [presupuestos, setPresupuestos]             = useState([]);
+  const [facturasVentas, setFacturasVentas]         = useState([]);
   const [notasCreditoVentas, setNotasCreditoVentas] = useState([]);
-  const [asientosVentas, setAsientosVentas] = useState([]);
+  const [asientosVentas, setAsientosVentas]         = useState([]);
+  const [loading, setLoading]                       = useState(false);
+  const [error, setError]                           = useState(null);
 
-  // Load initial data
+  // ── Carga inicial ────────────────────────────────────────────────────────────
+  const fetchDatos = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [resClientes, resPresupuestos, resFacturas] = await Promise.all([
+        fetch(API_CLIENTES,     { headers: getHeaders() }),
+        fetch(API_PRESUPUESTOS, { headers: getHeaders() }),
+        fetch(API_FACTURAS,     { headers: getHeaders() }),
+      ]);
+
+      const [clientesData, presupuestosData, facturasData] = await Promise.all([
+        resClientes.json(),
+        resPresupuestos.json(),
+        resFacturas.json(),
+      ]);
+
+      // Backend: { id_cliente, nombre, apellido, ruc, fecha_nacimiento, email }
+      // Frontend: { id, nombre, apellido, documento, fechaNacimiento, email }
+      setClientes(clientesData.map(c => ({
+        id:              c.id_cliente,
+        nombre:          c.nombre,
+        apellido:        c.apellido,
+        documento:       c.ruc,
+        fechaNacimiento: c.fecha_nacimiento?.split('T')[0],
+        email:           c.correo,
+      })));
+
+      // Backend devuelve presupuesto con include: { cliente: true, detalle_presupuesto: true }
+      setPresupuestos(presupuestosData.map(p => ({
+        id:              p.id_presupuesto,
+        clientId:        p.id_cliente,
+        fechaCreacion:   p.fecha_emision?.split('T')[0],
+        fechaExpiracion: p.fecha_vencimiento?.split('T')[0],
+        estado:          p.estado,
+        total:           p.total,
+        lineas: (p.detalle_presupuesto ?? []).map(d => ({
+          productoId:     d.id_producto_servicio,
+          cantidad:       d.cantidad_producto,
+          precioUnitario: d.precio_unitario,
+          totalLinea:     d.cantidad_producto * d.precio_unitario,
+        })),
+      })));
+
+      // Backend: { id_factura_venta, id_presupuesto, id_cliente, fecha_emision, total, detalle_factura_venta }
+      setFacturasVentas(facturasData.map(f => ({
+        id:            f.id_factura_venta,
+        presupuestoId: f.id_presupuesto,
+        clientId:      f.id_cliente,
+        fechaFactura:  f.fecha_emision?.split('T')[0],
+        total:         f.total,
+        estado:        f.estado ?? 'Emitida',
+        fecha48h: new Date(
+          new Date(f.fecha_emision).getTime() + 48 * 60 * 60 * 1000
+        ).toISOString().split('T')[0],
+        lineas: (f.detalle_factura_venta ?? []).map(d => ({
+          productoId:     d.id_producto_servicio,
+          cantidad:       d.cantidad,
+          precioUnitario: d.precio_unitario,
+          totalLinea:     d.subtotal,
+        })),
+      })));
+
+    } catch (err) {
+      setError('Error al cargar datos de ventas');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
-    setClientes(clientesIniciales);
-    setPresupuestos(presupuestosIniciales);
-    setFacturasVentas(facturasVentasIniciales);
-    setNotasCreditoVentas(notasCreditoVentasIniciales);
-    setAsientosVentas(asientosVentasIniciales);
-  }, []);
+    fetchDatos();
+  }, [fetchDatos]);
 
-  // Acción: Agregar cliente
-  const agregarCliente = useCallback((nuevoCliente) => {
-    setClientes(prev => [...prev, { id: Date.now(), ...nuevoCliente }]);
-  }, []);
+  // ── CLIENTES ─────────────────────────────────────────────────────────────────
 
-  // Acción: Solicitar presupuesto
-  const solicitarPresupuesto = useCallback((clientId, lineas) => {
-    const numero = ventasLogic.nextNumero('PRES', presupuestos);
-    const fechaCreacion = new Date().toISOString().split('T')[0];
-    const fechaExpiracion = ventasLogic.addDiasHabiles(fechaCreacion, 10).split('T')[0];
-    const total = lineas.reduce((sum, l) => sum + l.totalLinea, 0);
+  // POST /api/clientes → { nombre, apellido, ruc, fecha_nacimiento, email }
+  const agregarCliente = useCallback(async (nuevoCliente) => {
+    const res = await fetch(API_CLIENTES, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({
+        nombre:           nuevoCliente.nombre,
+        apellido:         nuevoCliente.apellido,
+        ruc:              nuevoCliente.documento,
+        fecha_nacimiento: nuevoCliente.fechaNacimiento,
+        email:            nuevoCliente.correo,
+      }),
+    });
 
-    const nuevoPresupuesto = {
-      id: Date.now(),
-      numero,
-      clientId,
-      fechaCreacion,
-      fechaExpiracion,
-      lineas,
-      total,
-      estado: 'Vigente',
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Error al crear cliente');
+    }
+
+    const data = await res.json();
+    const clienteCreado = {
+      id:              data.id_cliente,
+      nombre:          data.nombre,
+      apellido:        data.apellido,
+      documento:       data.ruc,
+      fechaNacimiento: data.fecha_nacimiento?.split('T')[0],
+      correo:           data.correo,
     };
 
-    setPresupuestos(prev => [...prev, nuevoPresupuesto]);
-    return nuevoPresupuesto;
-  }, [presupuestos]);
+    setClientes(prev => [...prev, clienteCreado]);
+    return clienteCreado;
+  }, []);
 
-  // Acción: Generar factura desde presupuesto
-  const generarFactura = useCallback((presupuestoId, inventarioActual, setInventarioExterno) => {
+  // ── PRESUPUESTOS ─────────────────────────────────────────────────────────────
+
+  // POST /api/presupuestos → { id_cliente, items: [{ id_producto_servicio, cantidad_producto, precio_unitario }] }
+  const solicitarPresupuesto = useCallback(async (clientId, lineas) => {
+    const res = await fetch(API_PRESUPUESTOS, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({
+        id_cliente: clientId,
+        items: lineas.map(l => ({
+          id_producto_servicio: l.productoId,
+          cantidad_producto:    l.cantidad,
+          precio_unitario:      l.precioUnitario,
+        })),
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Error al crear presupuesto');
+    }
+
+    const data = await res.json();
+    const presupuestoCreado = {
+      id:              data.id_presupuesto,
+      clientId:        data.id_cliente,
+      fechaCreacion:   data.fecha_emision?.split('T')[0],
+      fechaExpiracion: data.fecha_vencimiento?.split('T')[0],
+      estado:          data.estado,
+      total:           data.total,
+      lineas,
+    };
+
+    setPresupuestos(prev => [...prev, presupuestoCreado]);
+    return presupuestoCreado;
+  }, []);
+
+  // ── FACTURAS ─────────────────────────────────────────────────────────────────
+
+  // POST /api/facturas/generar → { id_presupuesto, nro_factura, timbrado, contado_credito }
+  const generarFactura = useCallback(async (presupuestoId, datosFactura, inventarioActual, setInventarioExterno) => {
     const presupuesto = presupuestos.find(p => p.id === presupuestoId);
     if (!ventasLogic.isBudgetVigente(presupuesto)) {
       throw new Error('Presupuesto expirado o no vigente');
     }
 
-    const factura = ventasLogic.crearFacturaFromPresupuesto(presupuesto);
-    const nuevoInventario = ventasLogic.deductStockFromFactura(factura, inventarioActual);
+    const res = await fetch(`${API_FACTURAS}/generar`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({
+        id_presupuesto:  presupuestoId,
+        nro_factura:     datosFactura.nro_factura,
+        timbrado:        datosFactura.timbrado,
+        contado_credito: datosFactura.contado_credito,
+      }),
+    });
 
-    // Update stock externo (compras)
-    setInventarioExterno(nuevoInventario);
-
-    // Update local
-    setPresupuestos(prev => prev.map(p => p.id === presupuestoId ? {...p, estado: 'Convertido'} : p));
-    setFacturasVentas(prev => [...prev, factura]);
-
-    // Asiento auto
-    const asiento = ventasLogic.generateAsientoFactura(factura);
-    setAsientosVentas(prev => [...prev, asiento]);
-
-    return factura;
-  }, [presupuestos]);
-
-  // Acción: Nota crédito devolución
-  const solicitarNotaCredito = useCallback((facturaId, lineasDevueltas, motivo, inventarioActual, setInventarioExterno) => {
-    const factura = facturasVentas.find(f => f.id === facturaId);
-    if (!ventasLogic.validarDevolucion(factura)) {
-      throw new Error('Devolución fuera de 48 horas');
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Error al generar factura');
     }
 
-    const numero = ventasLogic.nextNumero('NCV', notasCreditoVentas);
-    const fecha = new Date().toISOString().split('T')[0];
-    const total = lineasDevueltas.reduce((sum, l) => sum + (l.cantidad * l.precioUnitario), 0);
-
-    const nuevaNC = {
-      id: Date.now(),
-      numero,
-      facturaId,
-      fecha,
-      motivo,
-      lineasDevueltas,
-      total,
+    const data = await res.json();
+    const facturaCreada = {
+      id:            data.id_factura_venta,
+      presupuestoId: data.id_presupuesto,
+      clientId:      data.id_cliente,
+      fechaFactura:  data.fecha_emision?.split('T')[0],
+      total:         data.total,
+      estado:        'Emitida',
+      fecha48h: new Date(
+        new Date(data.fecha_emision).getTime() + 48 * 60 * 60 * 1000
+      ).toISOString().split('T')[0],
+      lineas: (data.detalle_factura_venta ?? []).map(d => ({
+        productoId:     d.id_producto_servicio,
+        cantidad:       d.cantidad,
+        precioUnitario: d.precio_unitario,
+        totalLinea:     d.subtotal,
+      })),
     };
 
-    const nuevoInventario = ventasLogic.restockFromNotaCredito(nuevaNC, inventarioActual);
+    // El backend ya descontó el stock — reflejamos el cambio en el inventario local
+    const nuevoInventario = ventasLogic.deductStockFromFactura(
+      { lineas: facturaCreada.lineas },
+      inventarioActual
+    );
+    setInventarioExterno(nuevoInventario);
+
+    setPresupuestos(prev =>
+      prev.map(p => p.id === presupuestoId ? { ...p, estado: 'Convertido' } : p)
+    );
+    setFacturasVentas(prev => [...prev, facturaCreada]);
+
+    const asiento = ventasLogic.generateAsientoFactura(facturaCreada);
+    setAsientosVentas(prev => [...prev, asiento]);
+
+    return facturaCreada;
+  }, [presupuestos]);
+
+  // ── DEVOLUCIONES / NOTA DE CRÉDITO ───────────────────────────────────────────
+
+  // POST /api/devoluciones → { id_factura_venta, motivo, items_a_devolver: [{ id_producto_servicio, cantidad, precio_unitario }] }
+  const solicitarNotaCredito = useCallback(async (
+    facturaId, lineasDevueltas, motivo, inventarioActual, setInventarioExterno
+  ) => {
+    const factura = facturasVentas.find(f => f.id === facturaId);
+    if (!ventasLogic.validarDevolucion(factura)) {
+      throw new Error('Devolución fuera de las 48 horas permitidas');
+    }
+
+    const res = await fetch(API_DEVOLUCIONES, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({
+        id_factura_venta: facturaId,
+        motivo,
+        items_a_devolver: lineasDevueltas.map(l => ({
+          id_producto_servicio: l.productoId,
+          cantidad:             l.cantidad,
+          precio_unitario:      l.precioUnitario,
+        })),
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Error al procesar devolución');
+    }
+
+    const data = await res.json();
+    const nuevaNC = {
+      id:              data.id_devolucion,
+      facturaId,
+      fecha:           new Date().toISOString().split('T')[0],
+      motivo,
+      lineasDevueltas,
+      total: lineasDevueltas.reduce((sum, l) => sum + l.cantidad * l.precioUnitario, 0),
+    };
+
+    // El backend ya repuso el stock — reflejamos el cambio en el inventario local
+    const nuevoInventario = ventasLogic.restockFromNotaCredito(
+      { lineasDevueltas },
+      inventarioActual
+    );
     setInventarioExterno(nuevoInventario);
 
     setNotasCreditoVentas(prev => [...prev, nuevaNC]);
-    setFacturasVentas(prev => prev.map(f => f.id === facturaId ? {...f, estado: 'Con NC'} : f));
+    setFacturasVentas(prev =>
+      prev.map(f => f.id === facturaId ? { ...f, estado: 'Con NC' } : f)
+    );
 
     const asiento = ventasLogic.generateAsientoNotaCredito(nuevaNC);
     setAsientosVentas(prev => [...prev, asiento]);
 
     return nuevaNC;
-  }, [facturasVentas, notasCreditoVentas]);
+  }, [facturasVentas]);
 
-  // Computed: KPIs para dashboard
+  // ── KPIs ─────────────────────────────────────────────────────────────────────
   const kpis = {
     presupuestosVigentes: presupuestos.filter(p => ventasLogic.isBudgetVigente(p)).length,
-    facturasPendientes: facturasVentas.filter(f => f.estado !== 'Cobrado').length,
-    totalVentasMes: facturasVentas.reduce((sum, f) => sum + f.total, 0),
+    facturasPendientes:   facturasVentas.filter(f => f.estado !== 'Cobrado').length,
+    totalVentasMes:       facturasVentas.reduce((sum, f) => sum + f.total, 0),
   };
 
   return {
@@ -125,12 +304,14 @@ export const useModuloVentas = () => {
     notasCreditoVentas,
     asientosVentas,
     kpis,
+    loading,
+    error,
     actions: {
       agregarCliente,
       solicitarPresupuesto,
       generarFactura,
       solicitarNotaCredito,
     },
+    refetch: fetchDatos,
   };
 };
-

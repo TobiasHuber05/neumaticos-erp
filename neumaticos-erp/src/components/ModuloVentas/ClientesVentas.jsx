@@ -93,10 +93,14 @@ const ClientesVentas = ({ ventas }) => {
       {mostrarClienteForm && (
         <ClienteForm
           onCancelar={() => setMostrarClienteForm(false)}
-          onGuardar={(nuevoCliente) => {
-            ventas.actions.agregarCliente(nuevoCliente);
-            setMostrarClienteForm(false);
-          }}
+          onGuardar={async (nuevoCliente) => {
+  try {
+    await ventas.actions.agregarCliente(nuevoCliente);
+    setMostrarClienteForm(false);
+  } catch (err) {
+    alert(err.message); // o mostrarlo en el form
+  }
+}}
         />
       )}
     </div>
