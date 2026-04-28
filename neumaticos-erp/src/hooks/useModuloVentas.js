@@ -48,7 +48,7 @@ export const useModuloVentas = () => {
         apellido:        c.apellido,
         documento:       c.ruc,
         fechaNacimiento: c.fecha_nacimiento?.split('T')[0],
-        email:           c.correo,
+        correo:           c.correo,
       })));
 
       // Backend devuelve presupuesto con include: { cliente: true, detalle_presupuesto: true }
@@ -110,13 +110,13 @@ export const useModuloVentas = () => {
         apellido:         nuevoCliente.apellido,
         ruc:              nuevoCliente.documento,
         fecha_nacimiento: nuevoCliente.fechaNacimiento,
-        email:            nuevoCliente.correo,
+        correo:           nuevoCliente.correo,
       }),
     });
 
     if (!res.ok) {
       const err = await res.json();
-      throw new Error(err.error || 'Error al crear cliente');
+      throw new Error(err.detalle || err.error || 'Error al crear cliente');
     }
 
     const data = await res.json();

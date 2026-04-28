@@ -61,7 +61,9 @@ const PresupuestoForm = ({ clientes = [], inventario = [], servicios = [], onCan
     onGuardar(lineas, parseInt(clientId), total);
   };
 
-  const catalogoActual = tipoItem === 'producto' ? inventario : servicios;
+  const catalogoActual = tipoItem === 'producto' 
+    ? inventario.filter(i => !i.esServicio) 
+    : servicios;
   const filteredItems = catalogoActual.filter(i =>
     i.nombre.toLowerCase().includes(itemSearch.toLowerCase())
   );
@@ -109,7 +111,7 @@ const PresupuestoForm = ({ clientes = [], inventario = [], servicios = [], onCan
             </select>
           </div>
           {clienteSeleccionado && (
-            <p className="text-xs text-gray-500 mt-2 ml-1">{clienteSeleccionado.email}</p>
+            <p className="text-xs text-gray-500 mt-2 ml-1">{clienteSeleccionado.correo}</p>
           )}
         </div>
 

@@ -27,15 +27,18 @@ export const getClienteById = async (req, res) => {
 
 // Crear un nuevo cliente (Requerido para Presupuestos y Facturas)
 export const createCliente = async (req, res) => {
-  const { nombre, apellido, ruc, fecha_nacimiento, email } = req.body;
+  const { nombre, apellido, ruc, fecha_nacimiento, correo } = req.body;
+  if (!correo) {
+    return res.status(400).json({ error: "El campo 'correo' es obligatorio en el servidor" });
+  }
   try {
     const nuevoCliente = await prisma.cliente.create({
       data: {
         nombre,
         apellido,
         ruc, // Puede ser CI o RUC según el documento
-        fecha_nacimiento: new Date(fecha_nacimiento),
-        email
+        fecha_nacimiento: fecha_nacimiento ? new Date(fecha_nacimiento) : null,
+        correo: correo
       }
     });
     res.status(201).json(nuevoCliente);
@@ -47,7 +50,7 @@ export const createCliente = async (req, res) => {
 // Actualizar datos del cliente
 export const updateCliente = async (req, res) => {
   const { id } = req.params;
-  const { nombre, apellido, ruc, fecha_nacimiento, email } = req.body;
+  const { nombre, apellido, ruc, fecha_nacimiento, correo } = req.body;
   try {
     const clienteActualizado = await prisma.cliente.update({
       where: { id_cliente: parseInt(id) },
@@ -56,7 +59,7 @@ export const updateCliente = async (req, res) => {
         apellido,
         ruc,
         fecha_nacimiento: fecha_nacimiento ? new Date(fecha_nacimiento) : undefined,
-        email
+        correo: correo
       }
     });
     res.json(clienteActualizado);

@@ -98,8 +98,8 @@ model cliente {
   nombre           String?         @db.VarChar(100)
   apellido         String?         @db.VarChar(100)
   fecha_nacimiento DateTime?       @db.Date
-  correo           String?         @db.VarChar(50)
-  ruc              String?         @db.VarChar(20)
+  correo           String?         @map("correo") @db.VarChar(50)
+  ruc              String?         @map("ruc") @db.VarChar(20)
   direccion        String?         @db.VarChar(150)
   factura_venta    factura_venta[]
   presupuesto      presupuesto[]

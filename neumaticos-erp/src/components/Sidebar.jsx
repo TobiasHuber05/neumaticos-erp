@@ -22,7 +22,7 @@ import {
 import { useState } from 'react';
 
 const Sidebar = ({ setModulo, moduloActual }) => {
-  const [comprasAbierto, setComprasAbierto] = useState(true);
+  const [comprasAbierto, setComprasAbierto] = useState(false);
   const [tesoreriaAbierto, setTesoreriaAbierto] = useState(false);
   const [ventasAbierto, setVentasAbierto] = useState(false);
   const [contabilidadAbierto, setContabilidadAbierto] = useState(false);

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FileText, X, PackageCheck, AlertCircle, CheckCircle } from 'lucide-react';
+import { FileText, X, PackageCheck, AlertCircle, CheckCircle, User } from 'lucide-react';
 
 /**
  * Form confirmación factura desde presupuesto vigente.
@@ -76,7 +76,7 @@ const FacturaVentaForm = ({ presupuesto, clientes, inventario, setInventario, ve
             <div className="space-y-1">
               <p className="font-bold text-gray-900">{cliente.nombre} {cliente.apellido}</p>
               <p className="text-sm text-gray-600">{cliente.documento}</p>
-              <p className="text-sm text-gray-500">{cliente.email}</p>
+              <p className="text-sm text-gray-500">{cliente.correo}</p>
             </div>
           ) : (
             <p className="text-gray-500 text-sm">Cargando cliente...</p>

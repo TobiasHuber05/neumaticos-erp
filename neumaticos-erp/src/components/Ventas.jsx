@@ -24,7 +24,7 @@ const Ventas = ({ ventas, inventario, setInventario, defaultTab }) => {
   const clientesCount = ventas.clientes?.length || 0;
 
   const filteredClientes = ventas.clientes?.filter(c =>
-    `${c.nombre} ${c.apellido} ${c.documento} ${c.email}`.toLowerCase().includes(search.toLowerCase())
+    `${c.nombre} ${c.apellido} ${c.documento} ${c.correo}`.toLowerCase().includes(search.toLowerCase())
   ) || [];
 
   const tabs = [
@@ -80,7 +80,7 @@ const Ventas = ({ ventas, inventario, setInventario, defaultTab }) => {
                       <tr key={c.id} className="hover:bg-orange-50">
                         <td className="px-6 py-4 font-bold">{c.nombre} {c.apellido}</td>
                         <td className="px-6 py-4 font-mono">{c.documento}</td>
-                        <td className="px-6 py-4 text-sm max-w-sm truncate">{c.email}</td>
+                        <td className="px-6 py-4 text-sm max-w-sm truncate">{c.correo}</td>
                         <td className="px-6 py-4 text-center text-sm">{c.fechaNacimiento}</td>
                       </tr>
                     ))}

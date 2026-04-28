@@ -25,7 +25,7 @@ const ClientesVentas = ({ ventas }) => {
             <p className="text-sm text-gray-500 font-bold uppercase tracking-wider">Gestión de base de datos de clientes</p>
           </div>
         </div>
-        
+
         <div className="flex items-center gap-3 w-full md:w-auto">
           <div className="relative flex-1 md:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -53,7 +53,7 @@ const ClientesVentas = ({ ventas }) => {
             <thead className="bg-gray-50/50">
               <tr>
                 <th className="px-6 py-4 text-left font-bold text-gray-700 uppercase text-xs tracking-wider">Nombre</th>
-                <th className="px-6 py-4 text-left font-bold text-gray-700 uppercase text-xs tracking-wider">Documento</th>
+                <th className="px-6 py-4 text-left font-bold text-gray-700 uppercase text-xs tracking-wider">Documento/RUC</th>
                 <th className="px-6 py-4 text-left font-bold text-gray-700 uppercase text-xs tracking-wider">Email</th>
                 <th className="px-6 py-4 text-center font-bold text-gray-700 uppercase text-xs tracking-wider">Nacimiento</th>
               </tr>
@@ -67,7 +67,7 @@ const ClientesVentas = ({ ventas }) => {
                   <td className="px-6 py-4">
                     <div className="font-mono text-sm bg-gray-50 px-2 py-1 rounded w-fit text-gray-600">{c.documento}</div>
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600 max-w-sm truncate">{c.email}</td>
+                  <td className="px-6 py-4 text-sm text-gray-600 max-w-sm truncate">{c.correo}</td>
                   <td className="px-6 py-4 text-center text-sm text-gray-500">{c.fechaNacimiento}</td>
                 </tr>
               ))}
@@ -83,9 +83,9 @@ const ClientesVentas = ({ ventas }) => {
             </tbody>
           </table>
         </div>
-        
+
         <div className="bg-gray-50 px-6 py-3 border-t border-gray-100 flex justify-between items-center">
-            <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Total: {clientesCount} clientes</span>
+          <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Total: {clientesCount} clientes</span>
         </div>
       </div>
 
@@ -94,13 +94,13 @@ const ClientesVentas = ({ ventas }) => {
         <ClienteForm
           onCancelar={() => setMostrarClienteForm(false)}
           onGuardar={async (nuevoCliente) => {
-  try {
-    await ventas.actions.agregarCliente(nuevoCliente);
-    setMostrarClienteForm(false);
-  } catch (err) {
-    alert(err.message); // o mostrarlo en el form
-  }
-}}
+            try {
+              await ventas.actions.agregarCliente(nuevoCliente);
+              setMostrarClienteForm(false);
+            } catch (err) {
+              alert(err.message); // o mostrarlo en el form
+            }
+          }}
         />
       )}
     </div>

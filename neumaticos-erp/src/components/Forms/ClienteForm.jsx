@@ -11,7 +11,7 @@ const ClienteForm = ({ onCancelar, onGuardar }) => {
     apellido: '',
     documento: '',
     fechaNacimiento: '',
-    email: '',
+    correo: '',
   });
   const [error, setError] = useState('');
 
@@ -21,11 +21,11 @@ const ClienteForm = ({ onCancelar, onGuardar }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!formData.nombre || !formData.apellido || !formData.documento || !formData.email) {
+    if (!formData.nombre || !formData.apellido || !formData.documento || !formData.correo) {
       setError('Todos los campos son obligatorios');
       return;
     }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.correo)) {
       setError('Email inválido');
       return;
     }
@@ -129,9 +129,9 @@ const ClienteForm = ({ onCancelar, onGuardar }) => {
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <input
-                  name="email"
+                  name="correo"
                   type="email"
-                  value={formData.email}
+                  value={formData.correo}
                   onChange={handleChange}
                   className="w-full pl-10 px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-erp-orange focus:border-transparent text-sm"
                   required
