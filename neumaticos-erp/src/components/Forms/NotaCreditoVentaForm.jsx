@@ -10,7 +10,7 @@ import * as ventasLogic from '../../utils/ventasLogic.js';
 const NotaCreditoVentaForm = ({ factura, inventario, setInventario, ventas, onCancelar }) => {
   const [motivo, setMotivo] = useState('Defecto de fabricación');
   const [lineasDevueltas, setLineasDevueltas] = useState(
-    factura.lineas.map(l => ({ ...l, cantidadDevolver: 1 }))
+    factura.lineas.map(l => ({ ...l, cantidadDevolver: 0 }))
   );
   const [procesando, setProcesando] = useState(false);
   const [error, setError] = useState('');
@@ -28,7 +28,7 @@ const NotaCreditoVentaForm = ({ factura, inventario, setInventario, ventas, onCa
 
   const handleCantidadChange = (index, qty) => {
     const newLineas = [...lineasDevueltas];
-    newLineas[index].cantidadDevolver = Math.min(Math.max(1, qty), newLineas[index].cantidad);
+    newLineas[index].cantidadDevolver = Math.min(Math.max(0, qty), newLineas[index].cantidad);
     setLineasDevueltas(newLineas);
   };
 
@@ -56,7 +56,7 @@ const NotaCreditoVentaForm = ({ factura, inventario, setInventario, ventas, onCa
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white rounded-2xl p-8 max-w-3xl w-full shadow-2xl border border-orange-100">
+      <div className="bg-white rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-orange-100">
         <div className="flex justify-between items-center mb-8">
           <div className="flex items-center gap-3">
             <div className="bg-red-500/10 p-3 rounded-xl">
@@ -130,7 +130,7 @@ const NotaCreditoVentaForm = ({ factura, inventario, setInventario, ventas, onCa
                     <td className="px-6 py-4 text-center">
                       <input
                         type="number"
-                        min="1"
+                        min="0"
                         max={linea.cantidad}
                         value={linea.cantidadDevolver}
                         onChange={(e) => handleCantidadChange(index, parseInt(e.target.value))}

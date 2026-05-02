@@ -64,6 +64,7 @@ export const generarFactura = async (req, res) => {
     res.status(400).json({ error: error.message });
   }
 };
+
 export const getFactura = async (req, res) => {
   try {
     const facturas = await prisma.factura_venta.findMany({

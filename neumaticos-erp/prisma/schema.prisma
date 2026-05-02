@@ -364,8 +364,8 @@ model factura_venta {
   id_modelo_asiento     Int?
   fecha_emision         DateTime?               @db.Date
   fecha_vencimiento     DateTime?               @db.Date
-  timbrado              Int?
-  nro_factura           Int?
+  timbrado              String?                 @db.VarChar(30)
+  nro_factura           String?                 @db.VarChar(30)
   contado_credito       String?                 @db.VarChar(20)
   total                 Decimal?                @db.Decimal(10, 2)
   cobranza              cobranza[]
@@ -511,8 +511,8 @@ model nota_credito_venta {
   id_devolucion         Int?
   fecha_emision         DateTime?              @db.Date
   fecha_vencimiento     DateTime?              @db.Date
-  nro_nota              Int?
-  timbrado              Int?
+  nro_nota              String?                @db.VarChar(30)
+  timbrado              String?                @db.VarChar(30)
   detalle_nota_credito  detalle_nota_credito[]
   devolucion_cliente    devolucion_cliente?    @relation(fields: [id_devolucion], references: [id_devolucion], onDelete: NoAction, onUpdate: NoAction, map: "fk_notacredventa_devolucion")
 }

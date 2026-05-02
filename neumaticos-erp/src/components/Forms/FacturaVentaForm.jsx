@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { FileText, X, PackageCheck, AlertCircle, CheckCircle, User } from 'lucide-react';
+import * as ventasLogic from '../../utils/ventasLogic.js';
 
 /**
  * Form confirmación factura desde presupuesto vigente.
@@ -9,6 +10,9 @@ import { FileText, X, PackageCheck, AlertCircle, CheckCircle, User } from 'lucid
 const FacturaVentaForm = ({ presupuesto, clientes, inventario, setInventario, ventas, onCancelar }) => {
   const [procesando, setProcesando] = useState(false);
   const [error, setError] = useState('');
+  const [nroFactura, setNroFactura] = useState('');
+  const [timbrado, setTimbrado] = useState(''); // Default or empty
+  const [tipoPago, setTipoPago] = useState('Contado');
 
   const cliente = clientes.find(c => c.id === presupuesto.clientId);
   const vigente = ventas ? ventas.presupuestos?.some(p => p.id === presupuesto.id && ventasLogic.isBudgetVigente(p)) : true;
@@ -21,7 +25,12 @@ const FacturaVentaForm = ({ presupuesto, clientes, inventario, setInventario, ve
     setProcesando(true);
     setError('');
     try {
-      await ventas.actions.generarFactura(presupuesto.id, inventario, setInventario);
+      const datosFactura = {
+        nro_factura: nroFactura,
+        timbrado: timbrado,
+        contado_credito: tipoPago
+      };
+      await ventas.actions.generarFactura(presupuesto.id, datosFactura, inventario, setInventario);
       onCancelar(); // Close after success
     } catch (err) {
       setError(err.message);
@@ -31,7 +40,7 @@ const FacturaVentaForm = ({ presupuesto, clientes, inventario, setInventario, ve
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white rounded-2xl p-8 max-w-2xl w-full shadow-2xl border border-orange-100">
+      <div className="bg-white rounded-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-orange-100">
         <div className="flex justify-between items-center mb-8">
           <div className="flex items-center gap-3">
             <div className="bg-green-500/10 p-3 rounded-xl">
@@ -66,21 +75,61 @@ const FacturaVentaForm = ({ presupuesto, clientes, inventario, setInventario, ve
           </div>
         )}
 
-        {/* Resumen cliente */}
-        <div className="mb-8 p-6 bg-gray-50 rounded-xl">
-          <h4 className="font-bold text-lg text-gray-800 mb-3 flex items-center gap-2">
-            <User className="w-5 h-5" />
-            Cliente
-          </h4>
-          {cliente ? (
-            <div className="space-y-1">
-              <p className="font-bold text-gray-900">{cliente.nombre} {cliente.apellido}</p>
-              <p className="text-sm text-gray-600">{cliente.documento}</p>
-              <p className="text-sm text-gray-500">{cliente.correo}</p>
+        {/* Resumen cliente y Datos Factura */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <div className="p-6 bg-gray-50 rounded-xl">
+            <h4 className="font-bold text-lg text-gray-800 mb-3 flex items-center gap-2">
+              <User className="w-5 h-5" />
+              Cliente
+            </h4>
+            {cliente ? (
+              <div className="space-y-1">
+                <p className="font-bold text-gray-900">{cliente.nombre} {cliente.apellido}</p>
+                <p className="text-sm text-gray-600">{cliente.documento}</p>
+                <p className="text-sm text-gray-500">{cliente.correo}</p>
+              </div>
+            ) : (
+              <p className="text-gray-500 text-sm">Cargando cliente...</p>
+            )}
+          </div>
+
+          <div className="p-6 bg-orange-50/50 border border-orange-100 rounded-xl space-y-4">
+            <h4 className="font-bold text-lg text-gray-800 flex items-center gap-2">
+              <FileText className="w-5 h-5 text-erp-orange" />
+              Datos de Factura
+            </h4>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[10px] font-black uppercase text-gray-500 block mb-1">Nro. Factura</label>
+                <input
+                  value={nroFactura}
+                  onChange={(e) => setNroFactura(e.target.value)}
+                  placeholder="001-001-0000001"
+                  className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-erp-orange"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-black uppercase text-gray-500 block mb-1">Timbrado</label>
+                <input 
+                  value={timbrado}
+                  onChange={(e) => setTimbrado(e.target.value)}
+                  placeholder="12345678"
+                  className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-erp-orange"
+                />
+              </div>
             </div>
-          ) : (
-            <p className="text-gray-500 text-sm">Cargando cliente...</p>
-          )}
+            <div>
+              <label className="text-[10px] font-black uppercase text-gray-500 block mb-1">Tipo de Pago</label>
+              <select
+                value={tipoPago}
+                onChange={(e) => setTipoPago(e.target.value)}
+                className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-erp-orange bg-white"
+              >
+                <option value="Contado">Contado</option>
+                <option value="Crédito">Crédito</option>
+              </select>
+            </div>
+          </div>
         </div>
 
         {/* Tabla líneas */}
@@ -141,7 +190,7 @@ const FacturaVentaForm = ({ presupuesto, clientes, inventario, setInventario, ve
           <button
             type="button"
             onClick={handleConfirmar}
-            disabled={!vigente || procesando}
+            disabled={!vigente || procesando || !nroFactura}
             className="flex-1 bg-green-500 hover:bg-green-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-black py-4 rounded-xl shadow-lg hover:shadow-xl transition-all uppercase text-sm tracking-wide flex items-center justify-center gap-2"
           >
             {procesando ? (
@@ -162,8 +211,4 @@ const FacturaVentaForm = ({ presupuesto, clientes, inventario, setInventario, ve
   );
 };
 
-// Import logic for isBudgetVigente
-import * as ventasLogic from '../../utils/ventasLogic.js';
-
 export default FacturaVentaForm;
-

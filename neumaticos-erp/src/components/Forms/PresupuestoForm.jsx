@@ -70,7 +70,7 @@ const PresupuestoForm = ({ clientes = [], inventario = [], servicios = [], onCan
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white rounded-2xl p-8 max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-orange-100">
+      <div className="bg-white rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-orange-100">
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-3">
             <div className="bg-orange-500/10 p-3 rounded-xl">
@@ -146,7 +146,7 @@ const PresupuestoForm = ({ clientes = [], inventario = [], servicios = [], onCan
           </div>
 
           {/* Agregar línea */}
-          <div className="flex flex-col md:flex-row gap-4 mb-8 p-6 bg-orange-50/50 rounded-2xl border-2 border-dashed border-orange-200 items-end">
+          <div className="flex flex-col sm:flex-row gap-4 mb-8 p-4 bg-orange-50/50 rounded-2xl border-2 border-dashed border-orange-200 items-end">
             <div className="flex-1 w-full space-y-2">
               <label className="text-xs font-bold text-gray-500 uppercase ml-1">
                 {tipoItem === 'producto' ? 'Buscar Producto' : 'Buscar Servicio'}
