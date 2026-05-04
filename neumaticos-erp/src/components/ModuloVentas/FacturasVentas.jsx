@@ -7,7 +7,7 @@ import * as ventasLogic from '../../utils/ventasLogic.js';
  * Lista facturas ventas, NC si <48h.
  * Props: ventas, clientes, inventario, setInventario
  */
-const FacturasVentas = ({ ventas, clientes, inventario, setInventario }) => {
+const FacturasVentas = ({ ventas, clientes, inventario, setInventario, servicios = [] }) => {
   const [devolviendoFactura, setDevolviendoFactura] = useState(null);
 
   const facturasPendientes = ventas.facturasVentas?.filter(f => ['Emitida', 'Con NC'].includes(f.estado)) || [];
@@ -54,6 +54,7 @@ const FacturasVentas = ({ ventas, clientes, inventario, setInventario }) => {
         <NotaCreditoVentaForm
           factura={devolviendoFactura}
           inventario={inventario}
+          servicios={servicios}
           setInventario={setInventario}
           ventas={ventas}
           onCancelar={() => setDevolviendoFactura(null)}

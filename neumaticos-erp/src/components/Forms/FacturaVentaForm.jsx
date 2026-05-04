@@ -7,7 +7,7 @@ import * as ventasLogic from '../../utils/ventasLogic.js';
  * Props: presupuesto, clientes[], inventario, setInventario (from compras), ventas (hook), onCancelar
  * Llama ventas.generarFactura → stock update + asiento
  */
-const FacturaVentaForm = ({ presupuesto, clientes, inventario, setInventario, ventas, onCancelar }) => {
+const FacturaVentaForm = ({ presupuesto, clientes, inventario, servicios = [], setInventario, ventas, onCancelar }) => {
   const [procesando, setProcesando] = useState(false);
   const [error, setError] = useState('');
   const [nroFactura, setNroFactura] = useState('');
@@ -150,7 +150,11 @@ const FacturaVentaForm = ({ presupuesto, clientes, inventario, setInventario, ve
               <tbody>
                 {presupuesto.lineas.map((linea, index) => (
                   <tr key={index} className="border-t">
-                    <td className="px-6 py-4 font-medium text-gray-900">{inventario.find(p => p.id === linea.productoId)?.nombre || 'N/A'}</td>
+                    <td className="px-6 py-4 font-medium text-gray-900">
+                      {(inventario.find(p => p.id_producto_servicio === linea.productoId) || 
+                        servicios.find(s => s.id_producto_servicio === linea.productoId) ||
+                        inventario.find(p => p.id === linea.productoId))?.nombre || 'N/A'}
+                    </td>
                     <td className="px-6 py-4 text-center font-mono">{linea.cantidad}</td>
                     <td className="px-6 py-4 text-right font-mono">Gs. {linea.precioUnitario.toLocaleString()}</td>
                     <td className="px-6 py-4 text-right font-bold text-erp-orange text-lg">

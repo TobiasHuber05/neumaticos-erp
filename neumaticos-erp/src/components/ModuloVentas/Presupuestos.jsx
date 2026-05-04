@@ -76,6 +76,7 @@ const Presupuestos = ({ ventas, clientes, inventario, setInventario, servicios =
           presupuesto={editandoPresupuesto}
           clientes={clientes}
           inventario={inventario}
+          servicios={servicios}
           setInventario={setInventario}
           ventas={ventas}
           onCancelar={() => setEditandoPresupuesto(null)}

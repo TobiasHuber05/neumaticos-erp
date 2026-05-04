@@ -45,7 +45,7 @@ export const crearFacturaFromPresupuesto = (presupuesto) => {
 export const deductStockFromFactura = (factura, inventarioActual) => {
   const nuevoInventario = [...inventarioActual];
   factura.lineas.forEach(linea => {
-    const prodIdx = nuevoInventario.findIndex(p => p.id === linea.productoId);
+    const prodIdx = nuevoInventario.findIndex(p => (p.id_producto_servicio === linea.productoId) || (p.id === linea.productoId));
     if (prodIdx !== -1) {
       nuevoInventario[prodIdx].stock -= linea.cantidad;
     }
@@ -61,7 +61,7 @@ export const validarDevolucion = (factura) => {
 export const restockFromNotaCredito = (notaCredito, inventarioActual) => {
   const nuevoInventario = [...inventarioActual];
   notaCredito.lineasDevueltas.forEach(linea => {
-    const prodIdx = nuevoInventario.findIndex(p => p.id === linea.productoId);
+    const prodIdx = nuevoInventario.findIndex(p => (p.id_producto_servicio === linea.productoId) || (p.id === linea.productoId));
     if (prodIdx !== -1) {
       nuevoInventario[prodIdx].stock += linea.cantidad;
     }

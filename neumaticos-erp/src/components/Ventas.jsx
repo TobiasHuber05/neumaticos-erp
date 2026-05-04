@@ -12,7 +12,7 @@ import AsientosVentas from './ModuloVentas/AsientosVentas';
  * Props: ventas (hook), inventario, setInventario
  * Tabs: Presupuestos | Facturas | Clientes | NC | Asientos
  */
-const Ventas = ({ ventas, inventario, setInventario, defaultTab }) => {
+const Ventas = ({ ventas, inventario, setInventario, servicios = [], defaultTab }) => {
   const [tab, setTab] = useState(defaultTab || 'presupuestos');
   const [search, setSearch] = useState('');
   const [mostrarClienteForm, setMostrarClienteForm] = useState(false);
@@ -38,9 +38,9 @@ const Ventas = ({ ventas, inventario, setInventario, defaultTab }) => {
   const renderContent = () => {
     switch (tab) {
       case 'presupuestos':
-        return <Presupuestos ventas={ventas} clientes={ventas.clientes} inventario={inventario} setInventario={setInventario} />;
+        return <Presupuestos ventas={ventas} clientes={ventas.clientes} inventario={inventario} setInventario={setInventario} servicios={servicios} />;
       case 'facturas':
-        return <FacturasVentas ventas={ventas} clientes={ventas.clientes} inventario={inventario} setInventario={setInventario} />;
+        return <FacturasVentas ventas={ventas} clientes={ventas.clientes} inventario={inventario} setInventario={setInventario} servicios={servicios} />;
       case 'notascredito':
         return <NotasCreditoVentas ventas={ventas} clientes={ventas.clientes} />;
       case 'asientos':

@@ -7,7 +7,7 @@ import * as ventasLogic from '../../utils/ventasLogic.js';
  * Props: factura, inventario, setInventario, ventas (hook), onCancelar
  * Motivo dropdown, líneas qty devolver (≤ facturada), call hook.solicitarNotaCredito
  */
-const NotaCreditoVentaForm = ({ factura, inventario, setInventario, ventas, onCancelar }) => {
+const NotaCreditoVentaForm = ({ factura, inventario, servicios = [], setInventario, ventas, onCancelar }) => {
   const [motivo, setMotivo] = useState('Defecto de fabricación');
   const [lineasDevueltas, setLineasDevueltas] = useState(
     factura.lineas.map(l => ({ ...l, cantidadDevolver: 0 }))
@@ -124,7 +124,9 @@ const NotaCreditoVentaForm = ({ factura, inventario, setInventario, ventas, onCa
                 {lineasDevueltas.map((linea, index) => (
                   <tr key={index} className="border-t hover:bg-red-50">
                     <td className="px-6 py-4 font-medium">
-                      {inventario.find(p => p.id === linea.productoId)?.nombre || 'N/A'}
+                      {(inventario.find(p => p.id_producto_servicio === linea.productoId) || 
+                        servicios.find(s => s.id_producto_servicio === linea.productoId) ||
+                        inventario.find(p => p.id === linea.productoId))?.nombre || 'N/A'}
                     </td>
                     <td className="px-6 py-4 text-center font-mono font-bold text-gray-900">{linea.cantidad}</td>
                     <td className="px-6 py-4 text-center">
