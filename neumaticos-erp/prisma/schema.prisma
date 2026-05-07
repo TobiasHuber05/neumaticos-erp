@@ -4,6 +4,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model asiento_detalle {
@@ -293,13 +294,13 @@ model detalle_pago {
 }
 
 model detalle_presupuesto {
-  id_detalle_presupuesto Int                @id @default(autoincrement())
+  id_detalle_presupuesto Int          @id @default(autoincrement())
   id_presupuesto         Int?
-  id_producto_servicio   Int?
+  id_producto            Int?
   cantidad_producto      Int?
-  precio_unitario        Decimal?           @db.Decimal(10, 2)
-  presupuesto            presupuesto?       @relation(fields: [id_presupuesto], references: [id_presupuesto], onDelete: NoAction, onUpdate: NoAction, map: "fk_detpres_presupuesto")
-  producto_servicio      producto_servicio? @relation(fields: [id_producto_servicio], references: [id_producto_servicio], onDelete: NoAction, onUpdate: NoAction, map: "fk_detpres_producto")
+  precio_unitario        Decimal?     @db.Decimal(10, 2)
+  presupuesto            presupuesto? @relation(fields: [id_presupuesto], references: [id_presupuesto], onDelete: NoAction, onUpdate: NoAction, map: "fk_detpres_presupuesto")
+  producto               producto?    @relation(fields: [id_producto], references: [id_producto], onDelete: NoAction, onUpdate: NoAction, map: "fk_detpres_producto")
 }
 
 model detalle_provision {
@@ -502,7 +503,7 @@ model nota_credito_detalle {
   id_pedido_devolucion Int?
   id_producto          Int?
   producto_cantidad    Int?
-  pedido_devolucion    pedido_devolucion? @relation(fields: [id_pedido_devolucion], references: [id_pedido_d], onDelete: NoAction, onUpdate: NoAction, map: "fk_notacreddet_peddev")
+  pedido_devolucion    pedido_devolucion? @relation(fields: [id_pedido_d], references: [id_pedido_d], onDelete: NoAction, onUpdate: NoAction, map: "fk_notacreddet_peddev")
   producto             producto?          @relation(fields: [id_producto], references: [id_producto], onDelete: NoAction, onUpdate: NoAction, map: "fk_notacreddet_producto")
 }
 
@@ -649,6 +650,7 @@ model producto {
   detalle_cotizacion   detalle_cotizacion[]
   detalle_factura      detalle_factura[]
   detalle_orden_compra detalle_orden_compra[]
+  detalle_presupuesto  detalle_presupuesto[]
   detalle_provision    detalle_provision[]
   detalles_pedidos     detalles_pedidos[]
   lotes                lotes[]
@@ -668,7 +670,6 @@ model producto_servicio {
   detalle_devolucion    detalle_devolucion[]
   detalle_factura_venta detalle_factura_venta[]
   detalle_nota_credito  detalle_nota_credito[]
-  detalle_presupuesto   detalle_presupuesto[]
   producto              producto?               @relation(fields: [id_producto], references: [id_producto], onDelete: NoAction, onUpdate: NoAction, map: "fk_productoservicio_producto")
 }
 

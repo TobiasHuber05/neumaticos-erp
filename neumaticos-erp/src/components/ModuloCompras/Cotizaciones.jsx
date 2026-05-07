@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Send, Users, Gavel, AlertTriangle, Pencil, Eye, X } from 'lucide-react';
+import { Send, Users, Gavel, AlertTriangle, Pencil, Eye, X, ChevronDown, ChevronUp } from 'lucide-react';
 import CotizacionProveedorForm from '../Forms/CotizacionProveedorForm';
 import { ESTADOS_PEDIDO_COMPRA } from '../Forms/comprasFormDefaults';
 
@@ -17,6 +17,7 @@ const Cotizaciones = ({
   const [loadingGenerar, setLoadingGenerar] = useState(null); // id del pedido en proceso
   const [loadingAdjudicar, setLoadingAdjudicar] = useState(null);
   const [pedidoDetalle, setPedidoDetalle] = useState(null);
+  const [expandedPcs, setExpandedPcs] = useState([]);
 
   const nombreProv = (id) => proveedores.find((p) => p.id === id)?.nombre ?? `Proveedor ${id}`;
 
@@ -67,13 +68,12 @@ const Cotizaciones = ({
       {/* Mensaje de feedback */}
       {mensaje && (
         <div
-          className={`rounded-lg border p-4 text-sm font-medium ${
-            mensaje.tipo === 'err'
+          className={`rounded-lg border p-4 text-sm font-medium ${mensaje.tipo === 'err'
               ? 'bg-red-50 border-red-200 text-red-800'
               : mensaje.tipo === 'warn'
                 ? 'bg-amber-50 border-amber-200 text-amber-900'
                 : 'bg-green-50 border-green-200 text-green-800'
-          }`}
+            }`}
         >
           {mensaje.tipo === 'warn' && (
             <AlertTriangle className="inline mr-2 mb-0.5" size={16} />
@@ -158,63 +158,113 @@ const Cotizaciones = ({
           <h2 className="text-xl font-bold text-gray-800">Cotizaciones por proveedor</h2>
         </div>
         <div className="divide-y max-h-[480px] overflow-y-auto">
-          {pedidosCotizacion.map((pc) => (
-            <div key={pc.id} className="p-4 hover:bg-orange-50/30">
-              <div className="flex flex-wrap justify-between gap-2 items-start mb-3">
-                <div>
-                  <p className="font-black text-erp-orange">
-                    PED-{String(pc.id).padStart(4, '0')}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    Enviado {pc.fechaEnvio ?? '—'}
-                  </p>
-                  {pc.advertencia && (
-                    <p className="text-xs text-amber-700 mt-1 flex items-center gap-1">
-                      <AlertTriangle size={12} /> {pc.advertencia}
-                    </p>
-                  )}
+          {pedidosCotizacion.map((pc) => {
+            const isExpanded = expandedPcs.includes(pc.id);
+            const toggleExpand = () => {
+              setExpandedPcs((prev) =>
+                prev.includes(pc.id) ? prev.filter((id) => id !== pc.id) : [...prev, pc.id],
+              );
+            };
+
+            return (
+              <div key={pc.id} className="p-0 border-b last:border-0 border-orange-50">
+                <div
+                  onClick={toggleExpand}
+                  className="p-4 flex flex-wrap justify-between gap-2 items-center cursor-pointer hover:bg-orange-50/50 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex flex-col">
+                      <p className="font-black text-erp-orange leading-none">
+                        PED-{String(pc.id).padStart(4, '0')}
+                      </p>
+                      <p className="text-[10px] text-gray-400 mt-1">
+                        Enviado {pc.fechaEnvio ?? '—'}
+                      </p>
+                    </div>
+                    {pc.advertencia && (
+                      <p className="text-xs text-amber-700 flex items-center gap-1 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-100">
+                        <AlertTriangle size={12} /> {pc.advertencia}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    {pc.estado !== 'Adjudicado' ? (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onAdjudicar(pc);
+                        }}
+                        disabled={loadingAdjudicar === pc.id}
+                        className="flex items-center gap-1.5 text-[10px] font-black uppercase bg-gray-900 text-white px-3 py-2 rounded-lg disabled:opacity-50 hover:bg-black transition-colors"
+                      >
+                        <Gavel size={14} />
+                        {loadingAdjudicar === pc.id
+                          ? 'Adjudicando...'
+                          : 'Adjudicar menor precio'}
+                      </button>
+                    ) : (
+                      <span className="text-[10px] font-black uppercase text-green-700 bg-green-100 px-2 py-1 rounded border border-green-200">
+                        Adjudicado
+                      </span>
+                    )}
+                    <div className="text-gray-400">
+                      {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                    </div>
+                  </div>
                 </div>
-                {pc.estado !== 'Adjudicado' ? (
-                  <button
-                    type="button"
-                    onClick={() => onAdjudicar(pc)}
-                    disabled={loadingAdjudicar === pc.id}
-                    className="flex items-center gap-1 text-xs font-black uppercase bg-gray-900 text-white px-3 py-2 rounded-lg disabled:opacity-50"
-                  >
-                    <Gavel size={14} />
-                    {loadingAdjudicar === pc.id ? 'Adjudicando...' : 'Adjudicar menor precio y generar OC'}
-                  </button>
-                ) : (
-                  <span className="text-xs font-black uppercase text-green-700 bg-green-100 px-2 py-1 rounded border border-green-200">
-                    Adjudicado
-                  </span>
+
+                {isExpanded && (
+                  <div className="px-4 pb-6 pt-2 bg-orange-50/20 animate-in slide-in-from-top-2 duration-200">
+                    <div className="mb-3 flex items-center gap-2">
+                      <div className="h-px flex-1 bg-orange-100"></div>
+                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                        Cotizaciones de Proveedores
+                      </span>
+                      <div className="h-px flex-1 bg-orange-100"></div>
+                    </div>
+                    <ul className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {cotizacionesDe(pc.id).map((c) => (
+                        <li
+                          key={c.id}
+                          className="border border-orange-100 rounded-xl p-4 flex flex-col justify-between bg-white shadow-sm hover:shadow-md transition-shadow"
+                        >
+                          <div>
+                            <p className="font-bold text-sm text-gray-800">
+                              {nombreProv(c.proveedorId)}
+                            </p>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span
+                                className={`text-[9px] uppercase font-black px-1.5 py-0.5 rounded ${c.estado === 'Respondido'
+                                    ? 'bg-green-100 text-green-700'
+                                    : 'bg-gray-100 text-gray-500'
+                                  }`}
+                              >
+                                {c.estado}
+                              </span>
+                              {c.fechaRespuesta && (
+                                <p className="text-[10px] text-gray-400">
+                                  Resp. {c.fechaRespuesta}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setCotEdit(c)}
+                            className="mt-4 text-xs font-bold bg-orange-50 text-erp-orange hover:bg-erp-orange hover:text-white px-3 py-2 rounded-lg transition-all flex items-center justify-center gap-2"
+                          >
+                            <Pencil size={14} /> Cargar / editar precios
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 )}
               </div>
-              <ul className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                {cotizacionesDe(pc.id).map((c) => (
-                  <li
-                    key={c.id}
-                    className="border border-orange-100 rounded-lg p-3 flex flex-col justify-between bg-white shadow-sm"
-                  >
-                    <div>
-                      <p className="font-bold text-sm">{nombreProv(c.proveedorId)}</p>
-                      <p className="text-[10px] text-gray-500 uppercase font-bold">{c.estado}</p>
-                      {c.fechaRespuesta && (
-                        <p className="text-xs text-gray-400">Resp. {c.fechaRespuesta}</p>
-                      )}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setCotEdit(c)}
-                      className="mt-2 text-xs font-bold text-erp-orange flex items-center gap-1"
-                    >
-                      <Pencil size={12} /> Cargar / editar precios
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+            );
+          })}
           {!pedidosCotizacion.length && (
             <p className="p-8 text-center text-gray-400 text-sm">
               Todavía no hay pedidos de cotización generados.

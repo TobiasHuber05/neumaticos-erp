@@ -34,7 +34,7 @@ const PresupuestoForm = ({ clientes = [], inventario = [], servicios = [], onCan
 
     const totalLinea = qty * precioLimpio;
     const nuevaLinea = { 
-      productoId: item.id_producto_servicio || item.id, 
+      productoId: item.id, // Usamos siempre el id_producto para presupuestos
       tipo: tipoItem,
       nombre: item.nombre,
       cantidad: qty, 
@@ -271,4 +271,3 @@ const PresupuestoForm = ({ clientes = [], inventario = [], servicios = [], onCan
 };
 
 export default PresupuestoForm;
-

@@ -9,9 +9,9 @@ const Stock = ({ proveedoresMaestro = [] }) => {
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const guardarProducto = async ({ nombre, categoriaId, precio, marcaId, esServicio }) => {
+  const guardarProducto = async ({ nombre, categoriaId, precio, marcaId, esServicio, stock }) => {
     // Aquí enviamos los datos al backend mediante el hook
-    const res = await crearProducto({ nombre, categoriaId, precio, marcaId, esServicio });
+    const res = await crearProducto({ nombre, categoriaId, precio, marcaId, esServicio, stock });
     if (res.ok) {
       setMostrarFormulario(false);
     } else {
@@ -25,9 +25,9 @@ const Stock = ({ proveedoresMaestro = [] }) => {
 
     const q = searchTerm.trim().toLowerCase();
     if (!q) return true;
-    
+
     // Filtramos por nombre del producto o nombre de categoría
-    return [item.nombre, item.categoria].some((campo) => 
+    return [item.nombre, item.categoria].some((campo) =>
       String(campo).toLowerCase().includes(q)
     );
   });
@@ -104,13 +104,17 @@ const Stock = ({ proveedoresMaestro = [] }) => {
                     <tr key={item.id} className="hover:bg-orange-50/50 transition-colors text-sm">
                       <td className="px-6 py-4 font-bold text-gray-700">{item.nombre}</td>
                       <td className="px-6 py-4 text-gray-600">{item.categoria}</td>
-                      <td className="px-6 py-4 text-center font-mono font-bold">{item.stock}</td>
-                      <td className="px-6 py-4 text-center text-gray-400">{item.min}</td>
+                      <td className="px-6 py-4 text-center font-bold">
+                        {Number(item.stock).toLocaleString('de-DE')}
+                      </td>
+                      <td className="px-6 py-4 text-center text-gray-400">
+                        {Number(item.min).toLocaleString('de-DE')}
+                      </td>
                       <td className="px-6 py-4 text-right font-bold text-gray-700">
                         {item.precio === '—' || item.precio == null ? (
                           <span className="text-gray-400 font-medium">—</span>
                         ) : (
-                          <>Gs. {item.precio}</>
+                          <>Gs. {Number(item.precio.toString().replace(/\./g, '')).toLocaleString('de-DE')}</>
                         )}
                       </td>
                       <td className="px-6 py-4 text-center">

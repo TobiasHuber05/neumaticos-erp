@@ -97,7 +97,7 @@ export const getProductoById = async (req, res) => {
 export const createProducto = async (req, res) => {
   // Aceptamos tanto esServicio como es_servicio
   const esServ = req.body.esServicio === true || req.body.es_servicio === true || req.body.es_servicio === 'true';
-  const { nombre, codigo, categoriaId, marcaId, precio, duracion_aprox, estado } = req.body;
+  const { nombre, codigo, categoriaId, marcaId, precio, stock, duracion_aprox, estado } = req.body;
 
   if (!nombre) return res.status(400).json({ error: 'El nombre es requerido' });
 
@@ -118,7 +118,7 @@ export const createProducto = async (req, res) => {
       const stockRow = await tx.stock.create({
         data: {
           id_producto: producto.id_producto,
-          cantidad: 0,
+          cantidad: stock ? Number(stock) : 0,
           precio: precio ? Number(precio) : 0,
           fecha_modificacion: new Date(),
         }
@@ -143,7 +143,7 @@ export const createProducto = async (req, res) => {
       categoriaId: resultado.producto.id_categoria,
       marcaId: resultado.producto.id_marca,
       esServicio: resultado.producto.es_servicio,
-      stock: 0,
+      stock: resultado.stockRow.cantidad,
       precio: precio ? Number(precio) : 0,
       idStock: resultado.stockRow.id_stock,
       duracion_aprox: resultado.serviceRow?.duracion_aprox ?? '—',

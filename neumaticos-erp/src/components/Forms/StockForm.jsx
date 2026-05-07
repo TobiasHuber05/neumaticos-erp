@@ -6,6 +6,22 @@ const StockForm = ({ proveedores = [], categorias = [], marcas = [], onCancelar,
   const [categoriaId, setCategoriaId] = useState('');
   const [marcaId, setMarcaId] = useState('');
   const [precio, setPrecio] = useState('');
+  const [stock, setStock] = useState('0');
+
+  // Helper para formatear miles con puntos
+  const formatNumber = (val) => {
+    if (!val) return '';
+    const num = val.toString().replace(/\D/g, '');
+    return num.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  };
+
+  const handlePrecioChange = (e) => {
+    setPrecio(formatNumber(e.target.value));
+  };
+
+  const handleStockChange = (e) => {
+    setStock(formatNumber(e.target.value));
+  };
 
   // Auto-seleccionar el primero cuando carguen
   useEffect(() => {
@@ -21,6 +37,7 @@ const StockForm = ({ proveedores = [], categorias = [], marcas = [], onCancelar,
       categoriaId: categoriaId ? Number(categoriaId) : null,
       marcaId: marcaId ? Number(marcaId) : null,
       precio: precio ? Number(precio.replace(/\./g, '')) : null,
+      stock: stock ? Number(stock.replace(/\./g, '')) : 0,
       esServicio: false
     });
   };
@@ -35,7 +52,7 @@ const StockForm = ({ proveedores = [], categorias = [], marcas = [], onCancelar,
       <div className="p-6 space-y-4">
         <div>
           <label className="block text-sm font-bold text-gray-700">Nombre del Producto</label>
-          <input 
+          <input
             type="text" value={nombre} onChange={(e) => setNombre(e.target.value)}
             className="w-full p-2 border rounded outline-none focus:ring-2 focus:ring-erp-orange"
             placeholder="Ej: Neumático 205/55R16"
@@ -57,12 +74,23 @@ const StockForm = ({ proveedores = [], categorias = [], marcas = [], onCancelar,
           </div>
         </div>
 
-        <div>
-          <label className="block text-sm font-bold text-gray-700">Precio Inicial (Gs.)</label>
-          <input 
-            type="number" value={precio} onChange={(e) => setPrecio(e.target.value)}
-            className="w-full p-2 border rounded outline-none focus:ring-2 focus:ring-erp-orange"
-          />
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-bold text-gray-700">Cantidad actual</label>
+            <input
+              type="text" value={stock} onChange={handleStockChange}
+              className="w-full p-2 border rounded outline-none focus:ring-2 focus:ring-erp-orange"
+              placeholder="0"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-bold text-gray-700">Precio Inicial (Gs.)</label>
+            <input
+              type="text" value={precio} onChange={handlePrecioChange}
+              className="w-full p-2 border rounded outline-none focus:ring-2 focus:ring-erp-orange"
+              placeholder="0"
+            />
+          </div>
         </div>
 
         <div className="flex justify-end gap-3 pt-4">

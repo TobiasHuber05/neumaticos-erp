@@ -39,8 +39,8 @@ const FacturaVentaForm = ({ presupuesto, clientes, inventario, servicios = [], s
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white rounded-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-orange-100">
+    <div className="w-full bg-white rounded-2xl shadow-sm border border-orange-100 overflow-hidden">
+      <div className="p-6 lg:p-10">
         <div className="flex justify-between items-center mb-8">
           <div className="flex items-center gap-3">
             <div className="bg-green-500/10 p-3 rounded-xl">

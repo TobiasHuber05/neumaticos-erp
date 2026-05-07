@@ -76,7 +76,7 @@ const FacturasVentas = ({ ventas, clientes, inventario, setInventario, servicios
                 <th className="px-6 py-4 text-center font-bold text-erp-orange uppercase text-xs">Líneas</th>
                 <th className="px-6 py-4 text-right font-bold text-erp-orange uppercase text-xs">Total</th>
                 <th className="px-6 py-4 text-center font-bold text-erp-orange uppercase text-xs">Estado</th>
-                <th className="w-24"></th>
+                <th className="w-48"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -116,10 +116,10 @@ const FacturasVentas = ({ ventas, clientes, inventario, setInventario, servicios
                             e.stopPropagation();
                             handleDevolver(f);
                           }}
-                          className="text-red-600 hover:bg-red-50 p-2 rounded-lg transition-all text-sm font-bold flex items-center gap-1 mx-auto"
-                          title="Devolver (48h)"
+                          className="bg-red-50 text-red-600 hover:bg-red-100 px-3 py-2 rounded-lg transition-all text-xs font-bold flex items-center gap-2 mx-auto whitespace-nowrap border border-red-200"
                         >
-                          <RotateCcw size={16} />
+                          <RotateCcw size={14} />
+                          Nota de devolución
                         </button>
                       )}
                     </td>

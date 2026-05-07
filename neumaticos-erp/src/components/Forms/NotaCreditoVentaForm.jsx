@@ -56,7 +56,7 @@ const NotaCreditoVentaForm = ({ factura, inventario, servicios = [], setInventar
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-orange-100">
+      <div className="bg-white rounded-2xl p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-orange-100">
         <div className="flex justify-between items-center mb-8">
           <div className="flex items-center gap-3">
             <div className="bg-red-500/10 p-3 rounded-xl">
@@ -124,7 +124,7 @@ const NotaCreditoVentaForm = ({ factura, inventario, servicios = [], setInventar
                 {lineasDevueltas.map((linea, index) => (
                   <tr key={index} className="border-t hover:bg-red-50">
                     <td className="px-6 py-4 font-medium">
-                      {(inventario.find(p => p.id_producto_servicio === linea.productoId) || 
+                      {(inventario.find(p => p.id_producto_servicio === linea.productoId) ||
                         servicios.find(s => s.id_producto_servicio === linea.productoId) ||
                         inventario.find(p => p.id === linea.productoId))?.nombre || 'N/A'}
                     </td>

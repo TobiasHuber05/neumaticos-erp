@@ -3,9 +3,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import * as ventasLogic from '../utils/ventasLogic.js';
 
-const API_CLIENTES     = '/api/clientes';
+const API_CLIENTES = '/api/clientes';
 const API_PRESUPUESTOS = '/api/presupuestos';
-const API_FACTURAS     = '/api/facturas';
+const API_FACTURAS = '/api/facturas';
 const API_DEVOLUCIONES = '/api/devoluciones';
 
 function getHeaders() {
@@ -16,22 +16,22 @@ function getHeaders() {
 }
 
 export const useModuloVentas = () => {
-  const [clientes, setClientes]                     = useState([]);
-  const [presupuestos, setPresupuestos]             = useState([]);
-  const [facturasVentas, setFacturasVentas]         = useState([]);
+  const [clientes, setClientes] = useState([]);
+  const [presupuestos, setPresupuestos] = useState([]);
+  const [facturasVentas, setFacturasVentas] = useState([]);
   const [notasCreditoVentas, setNotasCreditoVentas] = useState([]);
-  const [asientosVentas, setAsientosVentas]         = useState([]);
-  const [loading, setLoading]                       = useState(false);
-  const [error, setError]                           = useState(null);
+  const [asientosVentas, setAsientosVentas] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   // ── Carga inicial ────────────────────────────────────────────────────────────
   const fetchDatos = useCallback(async () => {
     setLoading(true);
     try {
       const [resClientes, resPresupuestos, resFacturas] = await Promise.all([
-        fetch(API_CLIENTES,     { headers: getHeaders() }),
+        fetch(API_CLIENTES, { headers: getHeaders() }),
         fetch(API_PRESUPUESTOS, { headers: getHeaders() }),
-        fetch(API_FACTURAS,     { headers: getHeaders() }),
+        fetch(API_FACTURAS, { headers: getHeaders() }),
       ]);
 
       const [clientesData, presupuestosData, facturasData] = await Promise.all([
@@ -43,46 +43,46 @@ export const useModuloVentas = () => {
       // Backend: { id_cliente, nombre, apellido, ruc, fecha_nacimiento, email }
       // Frontend: { id, nombre, apellido, documento, fechaNacimiento, email }
       setClientes(clientesData.map(c => ({
-        id:              c.id_cliente,
-        nombre:          c.nombre,
-        apellido:        c.apellido,
-        documento:       c.ruc,
+        id: c.id_cliente,
+        nombre: c.nombre,
+        apellido: c.apellido,
+        documento: c.ruc,
         fechaNacimiento: c.fecha_nacimiento?.split('T')[0],
-        correo:           c.correo,
+        correo: c.correo,
       })));
 
       // Backend devuelve presupuesto con include: { cliente: true, detalle_presupuesto: true }
       setPresupuestos(presupuestosData.map(p => ({
-        id:              p.id_presupuesto,
-        clientId:        p.id_cliente,
-        fechaCreacion:   p.fecha_emision?.split('T')[0],
+        id: p.id_presupuesto,
+        clientId: p.id_cliente,
+        fechaCreacion: p.fecha_emision?.split('T')[0],
         fechaExpiracion: p.fecha_vencimiento?.split('T')[0],
-        estado:          p.estado,
-        total:           p.total,
+        estado: p.estado,
+        total: p.total,
         lineas: (p.detalle_presupuesto ?? []).map(d => ({
-          productoId:     d.id_producto_servicio,
-          cantidad:       d.cantidad_producto,
+          productoId: d.id_producto, // Cambiado de id_producto_servicio a id_producto
+          cantidad: d.cantidad_producto,
           precioUnitario: d.precio_unitario,
-          totalLinea:     d.cantidad_producto * d.precio_unitario,
+          totalLinea: d.cantidad_producto * d.precio_unitario,
         })),
       })));
 
       // Backend: { id_factura_venta, id_presupuesto, id_cliente, fecha_emision, total, detalle_factura_venta }
       setFacturasVentas(facturasData.map(f => ({
-        id:            f.id_factura_venta,
+        id: f.id_factura_venta,
         presupuestoId: f.id_presupuesto,
-        clientId:      f.id_cliente,
-        fechaFactura:  f.fecha_emision?.split('T')[0],
-        total:         f.total,
-        estado:        f.estado ?? 'Emitida',
+        clientId: f.id_cliente,
+        fechaFactura: f.fecha_emision?.split('T')[0],
+        total: f.total,
+        estado: f.estado ?? 'Emitida',
         fecha48h: new Date(
           new Date(f.fecha_emision).getTime() + 48 * 60 * 60 * 1000
         ).toISOString().split('T')[0],
         lineas: (f.detalle_factura_venta ?? []).map(d => ({
-          productoId:     d.id_producto_servicio,
-          cantidad:       d.cantidad,
+          productoId: d.id_producto_servicio,
+          cantidad: d.cantidad,
           precioUnitario: d.precio_unitario,
-          totalLinea:     d.subtotal,
+          totalLinea: d.subtotal,
         })),
       })));
 
@@ -100,17 +100,16 @@ export const useModuloVentas = () => {
 
   // ── CLIENTES ─────────────────────────────────────────────────────────────────
 
-  // POST /api/clientes → { nombre, apellido, ruc, fecha_nacimiento, email }
   const agregarCliente = useCallback(async (nuevoCliente) => {
     const res = await fetch(API_CLIENTES, {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify({
-        nombre:           nuevoCliente.nombre,
-        apellido:         nuevoCliente.apellido,
-        ruc:              nuevoCliente.documento,
+        nombre: nuevoCliente.nombre,
+        apellido: nuevoCliente.apellido,
+        ruc: nuevoCliente.documento,
         fecha_nacimiento: nuevoCliente.fechaNacimiento,
-        correo:           nuevoCliente.correo,
+        correo: nuevoCliente.correo,
       }),
     });
 
@@ -121,12 +120,12 @@ export const useModuloVentas = () => {
 
     const data = await res.json();
     const clienteCreado = {
-      id:              data.id_cliente,
-      nombre:          data.nombre,
-      apellido:        data.apellido,
-      documento:       data.ruc,
+      id: data.id_cliente,
+      nombre: data.nombre,
+      apellido: data.apellido,
+      documento: data.ruc,
       fechaNacimiento: data.fecha_nacimiento?.split('T')[0],
-      correo:           data.correo,
+      correo: data.correo,
     };
 
     setClientes(prev => [...prev, clienteCreado]);
@@ -135,7 +134,6 @@ export const useModuloVentas = () => {
 
   // ── PRESUPUESTOS ─────────────────────────────────────────────────────────────
 
-  // POST /api/presupuestos → { id_cliente, items: [{ id_producto_servicio, cantidad_producto, precio_unitario }] }
   const solicitarPresupuesto = useCallback(async (clientId, lineas) => {
     const res = await fetch(API_PRESUPUESTOS, {
       method: 'POST',
@@ -143,9 +141,9 @@ export const useModuloVentas = () => {
       body: JSON.stringify({
         id_cliente: clientId,
         items: lineas.map(l => ({
-          id_producto_servicio: l.productoId,
-          cantidad_producto:    l.cantidad,
-          precio_unitario:      l.precioUnitario,
+          id_producto: l.productoId, // Cambiado de id_producto_servicio a id_producto
+          cantidad_producto: l.cantidad,
+          precio_unitario: l.precioUnitario,
         })),
       }),
     });
@@ -157,12 +155,12 @@ export const useModuloVentas = () => {
 
     const data = await res.json();
     const presupuestoCreado = {
-      id:              data.id_presupuesto,
-      clientId:        data.id_cliente,
-      fechaCreacion:   data.fecha_emision?.split('T')[0],
+      id: data.id_presupuesto,
+      clientId: data.id_cliente,
+      fechaCreacion: data.fecha_emision?.split('T')[0],
       fechaExpiracion: data.fecha_vencimiento?.split('T')[0],
-      estado:          data.estado,
-      total:           data.total,
+      estado: data.estado,
+      total: data.total,
       lineas,
     };
 
@@ -172,7 +170,6 @@ export const useModuloVentas = () => {
 
   // ── FACTURAS ─────────────────────────────────────────────────────────────────
 
-  // POST /api/facturas/generar → { id_presupuesto, nro_factura, timbrado, contado_credito }
   const generarFactura = useCallback(async (presupuestoId, datosFactura, inventarioActual, setInventarioExterno) => {
     const presupuesto = presupuestos.find(p => p.id === presupuestoId);
     if (!ventasLogic.isBudgetVigente(presupuesto)) {
@@ -183,9 +180,9 @@ export const useModuloVentas = () => {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify({
-        id_presupuesto:  presupuestoId,
-        nro_factura:     datosFactura.nro_factura,
-        timbrado:        datosFactura.timbrado,
+        id_presupuesto: presupuestoId,
+        nro_factura: datosFactura.nro_factura,
+        timbrado: datosFactura.timbrado,
         contado_credito: datosFactura.contado_credito,
       }),
     });
@@ -197,24 +194,23 @@ export const useModuloVentas = () => {
 
     const data = await res.json();
     const facturaCreada = {
-      id:            data.id_factura_venta,
+      id: data.id_factura_venta,
       presupuestoId: data.id_presupuesto,
-      clientId:      data.id_cliente,
-      fechaFactura:  data.fecha_emision?.split('T')[0],
-      total:         data.total,
-      estado:        'Emitida',
+      clientId: data.id_cliente,
+      fechaFactura: data.fecha_emision?.split('T')[0],
+      total: data.total,
+      estado: 'Emitida',
       fecha48h: new Date(
         new Date(data.fecha_emision).getTime() + 48 * 60 * 60 * 1000
       ).toISOString().split('T')[0],
       lineas: (data.detalle_factura_venta ?? []).map(d => ({
-        productoId:     d.id_producto_servicio,
-        cantidad:       d.cantidad,
-        precioUnitario: d.precio_unitario,
-        totalLinea:     d.subtotal,
+        productoId: d.id_producto_servicio,
+        cantidad: d.cantidad,
+        precio_unitario: d.precio_unitario,
+        totalLinea: d.subtotal,
       })),
     };
 
-    // El backend ya descontó el stock — reflejamos el cambio en el inventario local
     const nuevoInventario = ventasLogic.deductStockFromFactura(
       { lineas: facturaCreada.lineas },
       inventarioActual
@@ -234,7 +230,6 @@ export const useModuloVentas = () => {
 
   // ── DEVOLUCIONES / NOTA DE CRÉDITO ───────────────────────────────────────────
 
-  // POST /api/devoluciones → { id_factura_venta, motivo, items_a_devolver: [{ id_producto_servicio, cantidad, precio_unitario }] }
   const solicitarNotaCredito = useCallback(async (
     facturaId, lineasDevueltas, motivo, inventarioActual, setInventarioExterno
   ) => {
@@ -251,8 +246,8 @@ export const useModuloVentas = () => {
         motivo,
         items_a_devolver: lineasDevueltas.map(l => ({
           id_producto_servicio: l.productoId,
-          cantidad:             l.cantidad,
-          precio_unitario:      l.precioUnitario,
+          cantidad: l.cantidad,
+          precio_unitario: l.precioUnitario,
         })),
       }),
     });
@@ -264,15 +259,14 @@ export const useModuloVentas = () => {
 
     const data = await res.json();
     const nuevaNC = {
-      id:              data.id_devolucion,
+      id: data.id_devolucion,
       facturaId,
-      fecha:           new Date().toISOString().split('T')[0],
+      fecha: new Date().toISOString().split('T')[0],
       motivo,
       lineasDevueltas,
       total: lineasDevueltas.reduce((sum, l) => sum + l.cantidad * l.precioUnitario, 0),
     };
 
-    // El backend ya repuso el stock — reflejamos el cambio en el inventario local
     const nuevoInventario = ventasLogic.restockFromNotaCredito(
       { lineasDevueltas },
       inventarioActual
@@ -293,8 +287,8 @@ export const useModuloVentas = () => {
   // ── KPIs ─────────────────────────────────────────────────────────────────────
   const kpis = {
     presupuestosVigentes: presupuestos.filter(p => ventasLogic.isBudgetVigente(p)).length,
-    facturasPendientes:   facturasVentas.filter(f => f.estado !== 'Cobrado').length,
-    totalVentasMes:       facturasVentas.reduce((sum, f) => sum + f.total, 0),
+    facturasPendientes: facturasVentas.filter(f => f.estado !== 'Cobrado').length,
+    totalVentasMes: facturasVentas.reduce((sum, f) => sum + f.total, 0),
   };
 
   return {
@@ -315,3 +309,5 @@ export const useModuloVentas = () => {
     refetch: fetchDatos,
   };
 };
+
+export default useModuloVentas;

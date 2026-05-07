@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { FileText, Plus, Eye, CalendarX, Clock, User } from 'lucide-react';
+import React, { useState } from 'react';
+import { FileText, Plus, Eye, CalendarX, Clock, User, ArrowLeft } from 'lucide-react';
 import PresupuestoForm from '../Forms/PresupuestoForm';
 import FacturaVentaForm from '../Forms/FacturaVentaForm';
 import * as ventasLogic from '../../utils/ventasLogic.js';
@@ -13,16 +13,16 @@ const Presupuestos = ({ ventas, clientes, inventario, setInventario, servicios =
   const [editandoPresupuesto, setEditandoPresupuesto] = useState(null);
 
   const vigentes = ventas.presupuestos?.filter(p => ventasLogic.isBudgetVigente(p)) || [];
-  const expirados = ventas.presupuestos?.filter(p => !ventasLogic.isBudgetVigente(p)) || [];
+  const expirados = ventas.presupuestos?.filter(p => !ventasLogic.isBudgetVigente(p) && p.estado !== 'Convertido') || [];
 
   const handleGuardarPresupuesto = async (lineas, clientId, total) => {
-  try {
-    await ventas.actions.solicitarPresupuesto(clientId, lineas);
-    setMostrarNuevo(false);
-  } catch (err) {
-    alert(err.message);
-  }
-};
+    try {
+      await ventas.actions.solicitarPresupuesto(clientId, lineas);
+      setMostrarNuevo(false);
+    } catch (err) {
+      alert(err.message);
+    }
+  };
 
   const handleFacturaClick = (presupuesto) => {
     if (ventasLogic.isBudgetVigente(presupuesto)) {
@@ -30,8 +30,31 @@ const Presupuestos = ({ ventas, clientes, inventario, setInventario, servicios =
     }
   };
 
+  if (editandoPresupuesto) {
+    return (
+      <div className="bg-gray-50 min-h-screen -m-4 p-4 lg:-m-8 lg:p-8 animate-in fade-in duration-300">
+        <button 
+          onClick={() => setEditandoPresupuesto(null)}
+          className="flex items-center gap-2 text-gray-500 hover:text-erp-orange font-bold mb-6 transition-colors"
+        >
+          <ArrowLeft size={20} />
+          Volver a Presupuestos
+        </button>
+        <FacturaVentaForm
+          presupuesto={editandoPresupuesto}
+          clientes={clientes}
+          inventario={inventario}
+          servicios={servicios}
+          setInventario={setInventario}
+          ventas={ventas}
+          onCancelar={() => setEditandoPresupuesto(null)}
+        />
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 animate-in fade-in duration-300">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-xl shadow-sm border border-orange-100">
         <div className="flex items-center gap-3">
@@ -70,19 +93,6 @@ const Presupuestos = ({ ventas, clientes, inventario, setInventario, servicios =
         />
       )}
 
-      {/* Form factura */}
-      {editandoPresupuesto && (
-        <FacturaVentaForm
-          presupuesto={editandoPresupuesto}
-          clientes={clientes}
-          inventario={inventario}
-          servicios={servicios}
-          setInventario={setInventario}
-          ventas={ventas}
-          onCancelar={() => setEditandoPresupuesto(null)}
-        />
-      )}
-
       {/* Tabla vigentes */}
       {vigentes.length > 0 && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -93,14 +103,14 @@ const Presupuestos = ({ ventas, clientes, inventario, setInventario, servicios =
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50">
+              <thead className="bg-gray-50 border-b border-gray-100">
                 <tr>
                   <th className="px-6 py-4 text-left font-bold text-gray-700 text-sm uppercase tracking-wide">Nro.</th>
                   <th className="px-6 py-4 text-left font-bold text-gray-700 text-sm uppercase tracking-wide">Cliente</th>
                   <th className="px-6 py-4 text-center font-bold text-gray-700 text-sm uppercase tracking-wide">Líneas</th>
                   <th className="px-6 py-4 text-right font-bold text-gray-700 text-sm uppercase tracking-wide">Total</th>
                   <th className="px-6 py-4 text-center font-bold text-gray-700 text-sm uppercase tracking-wide">Expira</th>
-                  <th className="w-20"></th>
+                  <th className="w-48"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -121,16 +131,23 @@ const Presupuestos = ({ ventas, clientes, inventario, setInventario, servicios =
                         Gs. {p.total.toLocaleString()}
                       </td>
                       <td className="px-6 py-4 text-center">
-                        <span className={`px-2 py-1 rounded-full text-xs font-bold ${
-                          new Date(p.fechaExpiracion) - new Date() < 2*24*60*60*1000 
-                            ? 'bg-yellow-100 text-yellow-800' 
+                        <span className={`px-2 py-1 rounded-full text-xs font-bold ${new Date(p.fechaExpiracion) - new Date() < 2 * 24 * 60 * 60 * 1000
+                            ? 'bg-yellow-100 text-yellow-800'
                             : 'bg-green-100 text-green-800'
-                        }`}>
+                          }`}>
                           {new Date(p.fechaExpiracion).toLocaleDateString()}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-center">
-                        <Eye className="text-erp-orange w-5 h-5 mx-auto" />
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleFacturaClick(p);
+                          }}
+                          className="bg-erp-orange text-white px-4 py-2 rounded-lg font-bold text-xs hover:bg-orange-600 transition-all shadow-sm whitespace-nowrap"
+                        >
+                          Generar Factura
+                        </button>
                       </td>
                     </tr>
                   );
@@ -189,4 +206,3 @@ const Presupuestos = ({ ventas, clientes, inventario, setInventario, servicios =
 };
 
 export default Presupuestos;
-
