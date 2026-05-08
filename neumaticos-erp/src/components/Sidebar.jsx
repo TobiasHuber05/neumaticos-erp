@@ -27,22 +27,28 @@ const Sidebar = ({ setModulo, moduloActual }) => {
   const [ventasAbierto, setVentasAbierto] = useState(false);
   const [contabilidadAbierto, setContabilidadAbierto] = useState(false);
 
+  // --- OBTENER ROL DEL USUARIO ---
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const rol = (user.rol || '').toUpperCase();
+
+  const tienePermiso = (rolesPermitidos) => {
+    if (rol === 'ADMIN') return true;
+    return rolesPermitidos.includes(rol);
+  };
+  // -------------------------------
+
   // --- FUNCIÓN DE CIERRE DE SESIÓN ---
   const handleLogout = () => {
-    // 1. Borramos el token y los datos del usuario del almacenamiento local
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    
-    // 2. Redirigimos a la pantalla de login (esto disparará la lógica de App.jsx)
     window.location.href = '/login';
   };
-  // ------------------------------------
 
   const moduloComprasItems = [
     { id: 'proveedores', icon: <Users size={18} />, label: 'Proveedores' },
     { id: 'compras', icon: <ShoppingCart size={18} />, label: 'Pedidos de compra' },
     { id: 'cotizaciones', icon: <Send size={18} />, label: 'Cotizaciones' },
-    { id: 'ordenes_compra', icon: <ClipboardList size={18} />, label: 'Órdenes de compra' },
+    { id: 'ordenes_comp_facturas', icon: <ClipboardList size={18} />, label: 'Órdenes de compra' },
     { id: 'pagos_proveedores', icon: <Banknote size={18} />, label: 'Pagos a proveedores' },
     { id: 'asientos_compras', icon: <BookMarked size={18} />, label: 'Asientos compras' },
   ];
@@ -66,18 +72,12 @@ const Sidebar = ({ setModulo, moduloActual }) => {
     { id: 'personal_nomina', icon: <ClipboardList size={18} />, label: 'Nómina y Pagos' },
     { id: 'personal_asientos', icon: <BookMarked size={18} />, label: 'Asientos Nómina' },
   ];
-  
+
   const moduloContabilidadItems = [
     { id: 'contabilidad_plan', icon: <ClipboardList size={18} />, label: 'Plan de Cuentas' },
     { id: 'contabilidad_asientos', icon: <BookMarked size={18} />, label: 'Asientos Contables' },
     { id: 'contabilidad_periodos', icon: <Calendar size={18} />, label: 'Periodos Contables' },
     { id: 'contabilidad_reportes', icon: <PieChart size={18} />, label: 'Informes y Balances' },
-  ];
-
-  const menuItems = [
-    { id: 'stock', icon: <Package size={20} />, label: 'Stock / Existencias' },
-    { id: 'servicios', icon: <Wrench size={20} />, label: 'Servicios' },
-    { id: 'personal', icon: <Users size={20} />, label: 'Funcionarios' },
   ];
 
   return (
@@ -90,6 +90,11 @@ const Sidebar = ({ setModulo, moduloActual }) => {
         <h2 className="font-bold text-erp-orange text-lg text-center leading-tight">
           Neumáticos ERP
         </h2>
+        {rol && (
+          <span className="bg-erp-orange text-white text-[10px] px-2 py-0.5 rounded-full mt-1 font-black uppercase tracking-widest">
+            {rol}
+          </span>
+        )}
       </div>
 
       {/* Menú */}
@@ -110,164 +115,199 @@ const Sidebar = ({ setModulo, moduloActual }) => {
         </div>
 
         {/* Modulo Compras */}
-        <div className="px-2">
-          <button
-            type="button"
-            onClick={() => setComprasAbierto((prev) => !prev)}
-            className="w-full flex items-center justify-between px-4 py-3 text-orange-900 hover:bg-orange-200 rounded-lg transition-all font-bold text-sm"
-          >
-            <span className="inline-flex items-center gap-3">
-              <ShoppingCart size={20} />
-              Modulo Compras
-            </span>
-            {comprasAbierto ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-          </button>
+        {tienePermiso(['COMPRAS', 'COMPRADOR']) && (
+          <div className="px-2">
+            <button
+              type="button"
+              onClick={() => setComprasAbierto((prev) => !prev)}
+              className="w-full flex items-center justify-between px-4 py-3 text-orange-900 hover:bg-orange-200 rounded-lg transition-all font-bold text-sm"
+            >
+              <span className="inline-flex items-center gap-3">
+                <ShoppingCart size={20} />
+                Modulo Compras
+              </span>
+              {comprasAbierto ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+            </button>
 
-          {comprasAbierto && (
-            <div className="mt-1 mb-2">
-              {moduloComprasItems.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => setModulo(item.id)}
-                  className={`w-full flex items-center gap-3 px-8 py-2 rounded-lg transition-all font-medium text-sm
+            {comprasAbierto && (
+              <div className="mt-1 mb-2">
+                {moduloComprasItems.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setModulo(item.id)}
+                    className={`w-full flex items-center gap-3 px-8 py-2 rounded-lg transition-all font-medium text-sm
                     ${moduloActual === item.id
-                      ? 'bg-erp-orange text-white shadow-inner'
-                      : 'text-orange-800 hover:bg-orange-200'}`}
-                >
-                  {item.icon}
-                  <span>{item.label}</span>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+                        ? 'bg-erp-orange text-white shadow-inner'
+                        : 'text-orange-800 hover:bg-orange-200'}`}
+                  >
+                    {item.icon}
+                    <span>{item.label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Menu Ventas */}
-        <div className="px-2">
-          <button
-            type="button"
-            onClick={() => setVentasAbierto((prev) => !prev)}
-            className="w-full flex items-center justify-between px-4 py-3 text-orange-900 hover:bg-orange-200 rounded-lg transition-all font-bold text-sm"
-          >
-            <span className="inline-flex items-center gap-3">
-              <Tag size={20} />
-              Ventas y Facturas
-            </span>
-            {ventasAbierto ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-          </button>
+        {tienePermiso(['VENTAS', 'VENDEDOR']) && (
+          <div className="px-2">
+            <button
+              type="button"
+              onClick={() => setVentasAbierto((prev) => !prev)}
+              className="w-full flex items-center justify-between px-4 py-3 text-orange-900 hover:bg-orange-200 rounded-lg transition-all font-bold text-sm"
+            >
+              <span className="inline-flex items-center gap-3">
+                <Tag size={20} />
+                Ventas y Facturas
+              </span>
+              {ventasAbierto ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+            </button>
 
-          {ventasAbierto && (
-            <div className="mt-1 mb-2">
-              {moduloVentasItems.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => setModulo(item.id)}
-                  className={`w-full flex items-center gap-3 px-8 py-2 rounded-lg transition-all font-medium text-sm
+            {ventasAbierto && (
+              <div className="mt-1 mb-2">
+                {moduloVentasItems.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setModulo(item.id)}
+                    className={`w-full flex items-center gap-3 px-8 py-2 rounded-lg transition-all font-medium text-sm
                     ${moduloActual === item.id
-                      ? 'bg-erp-orange text-white shadow-inner'
-                      : 'text-orange-800 hover:bg-orange-200'}`}
-                >
-                  {item.icon}
-                  <span>{item.label}</span>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+                        ? 'bg-erp-orange text-white shadow-inner'
+                        : 'text-orange-800 hover:bg-orange-200'}`}
+                  >
+                    {item.icon}
+                    <span>{item.label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/*Menu Tesoreria*/}
-        <div className="px-2">
-          <button
-            type="button"
-            onClick={() => setTesoreriaAbierto((prev) => !prev)}
-            className="w-full flex items-center justify-between px-4 py-3 text-orange-900 hover:bg-orange-200 rounded-lg transition-all font-bold text-sm"
-          >
-            <span className="inline-flex items-center gap-3">
-              <Banknote size={20} />
-              Modulo Tesorería
-            </span>
-            {tesoreriaAbierto ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-          </button>
+        {tienePermiso(['TESORERIA', 'CAJERO']) && (
+          <div className="px-2">
+            <button
+              type="button"
+              onClick={() => setTesoreriaAbierto((prev) => !prev)}
+              className="w-full flex items-center justify-between px-4 py-3 text-orange-900 hover:bg-orange-200 rounded-lg transition-all font-bold text-sm"
+            >
+              <span className="inline-flex items-center gap-3">
+                <Banknote size={20} />
+                Modulo Tesorería
+              </span>
+              {tesoreriaAbierto ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+            </button>
 
-          {tesoreriaAbierto && (
-            <div className="mt-1 mb-2">
-              {moduloTesoreriaItems.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => setModulo(item.id)}
-                  className={`w-full flex items-center gap-3 px-8 py-2 rounded-lg transition-all font-medium text-sm
+            {tesoreriaAbierto && (
+              <div className="mt-1 mb-2">
+                {moduloTesoreriaItems.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setModulo(item.id)}
+                    className={`w-full flex items-center gap-3 px-8 py-2 rounded-lg transition-all font-medium text-sm
                     ${moduloActual === item.id
-                      ? 'bg-erp-orange text-white shadow-inner'
-                      : 'text-orange-800 hover:bg-orange-200'}`}
-                >
-                  {item.icon}
-                  <span>{item.label}</span>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+                        ? 'bg-erp-orange text-white shadow-inner'
+                        : 'text-orange-800 hover:bg-orange-200'}`}
+                  >
+                    {item.icon}
+                    <span>{item.label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Modulo Contabilidad */}
-        <div className="px-2">
-          <button
-            type="button"
-            onClick={() => setContabilidadAbierto((prev) => !prev)}
-            className="w-full flex items-center justify-between px-4 py-3 text-orange-900 hover:bg-orange-200 rounded-lg transition-all font-bold text-sm"
-          >
-            <span className="inline-flex items-center gap-3">
-              <BookMarked size={20} />
-              Contabilidad
-            </span>
-            {contabilidadAbierto ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-          </button>
+        {tienePermiso(['CONTABILIDAD', 'TESORERIA', 'CONTADOR']) && (
+          <div className="px-2">
+            <button
+              type="button"
+              onClick={() => setContabilidadAbierto((prev) => !prev)}
+              className="w-full flex items-center justify-between px-4 py-3 text-orange-900 hover:bg-orange-200 rounded-lg transition-all font-bold text-sm"
+            >
+              <span className="inline-flex items-center gap-3">
+                <BookMarked size={20} />
+                Contabilidad
+              </span>
+              {contabilidadAbierto ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+            </button>
 
-          {contabilidadAbierto && (
-            <div className="mt-1 mb-2">
-              {moduloContabilidadItems.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => setModulo(item.id)}
-                  className={`w-full flex items-center gap-3 px-8 py-2 rounded-lg transition-all font-medium text-sm
+            {contabilidadAbierto && (
+              <div className="mt-1 mb-2">
+                {moduloContabilidadItems.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setModulo(item.id)}
+                    className={`w-full flex items-center gap-3 px-8 py-2 rounded-lg transition-all font-medium text-sm
                     ${moduloActual === item.id
-                      ? 'bg-erp-orange text-white shadow-inner'
-                      : 'text-orange-800 hover:bg-orange-200'}`}
-                >
-                  {item.icon}
-                  <span>{item.label}</span>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+                        ? 'bg-erp-orange text-white shadow-inner'
+                        : 'text-orange-800 hover:bg-orange-200'}`}
+                  >
+                    {item.icon}
+                    <span>{item.label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Quick Links */}
         <div className="px-2 mt-4 pt-4 border-t border-orange-300">
-          {menuItems.map(item => (
+          {tienePermiso(['VENTAS', 'COMPRAS', 'STOCK']) && (
             <button
-              key={item.id}
               type="button"
-              onClick={() => setModulo(item.id)}
+              onClick={() => setModulo('stock')}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all font-bold text-sm
-                  ${moduloActual === item.id || (item.id === 'personal' && (moduloActual === 'personal' || moduloActual === 'personal_asientos' || moduloActual === 'personal_nomina'))
+                ${moduloActual === 'stock'
                   ? 'bg-erp-orange text-white shadow-inner'
                   : 'text-orange-900 hover:bg-orange-200'}`}
             >
-              {item.icon}
-              <span>{item.label}</span>
+              <Package size={20} />
+              <span>Stock / Existencias</span>
             </button>
-          ))}
+          )}
+
+          {tienePermiso(['VENTAS', 'SERVICIOS']) && (
+            <button
+              type="button"
+              onClick={() => setModulo('servicios')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all font-bold text-sm
+                ${moduloActual === 'servicios'
+                  ? 'bg-erp-orange text-white shadow-inner'
+                  : 'text-orange-900 hover:bg-orange-200'}`}
+            >
+              <Wrench size={20} />
+              <span>Servicios</span>
+            </button>
+          )}
+
+          {tienePermiso(['PERSONAL', 'RECURSOS HUMANOS']) && (
+            <button
+              type="button"
+              onClick={() => setModulo('personal')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all font-bold text-sm
+                ${moduloActual === 'personal' || moduloActual === 'personal_asientos' || moduloActual === 'personal_nomina'
+                  ? 'bg-erp-orange text-white shadow-inner'
+                  : 'text-orange-900 hover:bg-orange-200'}`}
+            >
+              <Users size={20} />
+              <span>Funcionarios</span>
+            </button>
+          )}
         </div>
 
       </nav>
 
       {/* Salida */}
       <div className="p-4 border-t border-orange-300">
-        <button 
+        <button
           onClick={handleLogout}
           className="w-full flex items-center gap-4 px-6 py-3 text-orange-900 font-bold bg-orange-200 rounded-lg hover:bg-red-400 hover:text-white transition-all text-xs uppercase"
         >
@@ -278,5 +318,6 @@ const Sidebar = ({ setModulo, moduloActual }) => {
     </div>
   );
 };
+
 
 export default Sidebar;

@@ -14,27 +14,32 @@ const prisma = new PrismaClient({ adapter });
 
 // POST /api/auth/login
 export const login = async (req, res) => {
-  const { email, password } = req.body;
+  const { identifier, password } = req.body;
 
   console.log("--- INTENTO DE LOGIN ---");
-  console.log("Email ingresado:", email);
+  console.log("Identificador ingresado:", identifier);
 
-  if (!email || !password) {
-    return res.status(400).json({ error: 'Email y contraseña son requeridos' });
+  if (!identifier || !password) {
+    return res.status(400).json({ error: 'Usuario/Email y contraseña son requeridos' });
   }
 
   try {
-    // Usamos findFirst porque email ya no es Unique en el schema de Prisma
+    // Buscamos por username o por email
     const usuario = await prisma.usuarios.findFirst({
-      where: { email }
+      where: {
+        OR: [
+          { username: identifier },
+          { email: identifier }
+        ]
+      }
     });
 
     if (!usuario) {
-      console.log("❌ Resultado: El email no existe en la base de datos.");
+      console.log("❌ Resultado: El usuario/email no existe en la base de datos.");
       return res.status(401).json({ error: 'Credenciales incorrectas' });
     }
 
-    console.log("✅ Usuario encontrado en DB:", usuario.email);
+    console.log("✅ Usuario encontrado en DB:", usuario.username || usuario.email);
 
     // Ajuste a 'passwordd' (con doble d) según el cambio de tu compañero
     const hashAlmacenado = usuario.passwordd || usuario.password;

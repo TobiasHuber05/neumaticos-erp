@@ -720,6 +720,7 @@ model sueldos {
 model usuarios {
   id_usuario     Int           @id @default(autoincrement())
   id_funcionario Int?
+  username       String?       @db.VarChar(50)
   email          String?       @db.VarChar(60)
   passwordd      String?       @db.VarChar(255)
   rol_empresa    String?       @db.VarChar(80)

@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import axios from 'axios';
-import { Mail, Lock, LogIn } from 'lucide-react';
+import { User, Lock, LogIn } from 'lucide-react';
 import backgroundImage from '../assets/taller_pro.png';
 
 const Login = () => {
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -14,8 +14,8 @@ const Login = () => {
     setLoading(true);
     setError('');
     try {
-      // Usamos /api gracias al proxy que configuramos en vite.config.js
-      const response = await axios.post('/api/auth/login', { email, password });
+      // Enviamos 'identifier' que puede ser username o email
+      const response = await axios.post('/api/auth/login', { identifier, password });
 
       // Guardamos el token y datos del usuario
       localStorage.setItem('token', response.data.token);
@@ -59,18 +59,18 @@ const Login = () => {
 
               <div className="space-y-2">
                 <label className="block text-xs font-black text-gray-500 uppercase tracking-wider ml-1">
-                  Correo Electrónico
+                  Nombre de Usuario
                 </label>
                 <div className="relative group">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none transition-colors group-focus-within:text-erp-orange text-gray-400">
-                    <Mail size={18} />
+                    <User size={18} />
                   </div>
                   <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    type="text"
+                    value={identifier}
+                    onChange={(e) => setIdentifier(e.target.value)}
                     required
-                    placeholder="usuario@ejemplo.com"
+                    placeholder="Ej: admin"
                     className="block w-full pl-10 pr-3 py-3 bg-orange-50/30 border border-orange-100 rounded-xl leading-5 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-erp-orange focus:border-transparent transition-all sm:text-sm"
                   />
                 </div>

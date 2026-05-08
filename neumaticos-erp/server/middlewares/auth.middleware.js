@@ -19,9 +19,14 @@ export const verifyToken = (req, res, next) => {
 
 export const verifyRol = (...rolesPermitidos) => {
   return (req, res, next) => {
-    if (!rolesPermitidos.includes(req.usuario.rol)) {
-      return res.status(403).json({ error: 'No tenés permisos para esta acción' });
+    const rolUsuario = (req.usuario.rol || '').toUpperCase();
+    const rolesEnMayuscula = rolesPermitidos.map(r => r.toUpperCase());
+
+    // El ADMIN siempre tiene permiso, o si el rol está en la lista permitida
+    if (rolUsuario === 'ADMIN' || rolesEnMayuscula.includes(rolUsuario)) {
+      return next();
     }
-    next();
+
+    return res.status(403).json({ error: 'No tenés permisos para esta acción' });
   };
 };
