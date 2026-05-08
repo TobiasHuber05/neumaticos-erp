@@ -187,7 +187,7 @@ const Sidebar = ({ setModulo, moduloActual }) => {
         )}
 
         {/*Menu Tesoreria*/}
-        {tienePermiso(['TESORERIA', 'CAJERO']) && (
+        {tienePermiso(['TESORERIA', 'CAJERO', 'COMPRAS']) && (
           <div className="px-2">
             <button
               type="button"

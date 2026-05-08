@@ -219,6 +219,16 @@ function Dashboard() {
     return map[moduloActual] ?? moduloActual;
   };
 
+  // --- OBTENER ROL DEL USUARIO ---
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const rol = (user.rol || '').toUpperCase();
+
+  const tienePermiso = (rolesPermitidos) => {
+    if (rol === 'ADMIN') return true;
+    return rolesPermitidos.includes(rol);
+  };
+  // -------------------------------
+
   const renderContenido = () => {
     switch (moduloActual) {
       case 'inicio':
@@ -242,15 +252,38 @@ function Dashboard() {
               </p>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-                <div className="bg-white/95 backdrop-blur-md p-10 rounded-2xl shadow-2xl border-b-8 border-erp-orange hover:translate-y-[-10px] transition-all cursor-pointer group" onClick={() => setModuloActual('compras')}>
+                {/* Tarjeta Pedidos */}
+                <div 
+                  className={`bg-white/95 backdrop-blur-md p-10 rounded-2xl shadow-2xl border-b-8 border-erp-orange transition-all group
+                    ${tienePermiso(['COMPRAS', 'COMPRADOR']) 
+                      ? 'hover:translate-y-[-10px] cursor-pointer' 
+                      : 'opacity-80 cursor-not-allowed'}`}
+                  onClick={() => tienePermiso(['COMPRAS', 'COMPRADOR']) && setModuloActual('compras')}
+                >
                   <h3 className="text-erp-orange font-black text-5xl mb-2 group-hover:scale-110 transition-transform">{pedidos.length}</h3>
                   <p className="text-gray-500 font-black text-[10px] uppercase tracking-widest">Pedidos Activos</p>
                 </div>
-                <div className="bg-white/95 backdrop-blur-md p-10 rounded-2xl shadow-2xl border-b-8 border-blue-500 hover:translate-y-[-10px] transition-all cursor-pointer group" onClick={() => setModuloActual('stock')}>
+
+                {/* Tarjeta Stock */}
+                <div 
+                  className={`bg-white/95 backdrop-blur-md p-10 rounded-2xl shadow-2xl border-b-8 border-blue-500 transition-all group
+                    ${tienePermiso(['COMPRAS', 'COMPRADOR', 'STOCK', 'VENTAS']) 
+                      ? 'hover:translate-y-[-10px] cursor-pointer' 
+                      : 'opacity-80 cursor-not-allowed'}`}
+                  onClick={() => tienePermiso(['COMPRAS', 'COMPRADOR', 'STOCK', 'VENTAS']) && setModuloActual('stock')}
+                >
                   <h3 className="text-blue-500 font-black text-5xl mb-2 group-hover:scale-110 transition-transform">{inventario.length}</h3>
                   <p className="text-gray-500 font-black text-[10px] uppercase tracking-widest">Productos en Stock</p>
                 </div>
-                <div className="bg-white/95 backdrop-blur-md p-10 rounded-2xl shadow-2xl border-b-8 border-green-500 hover:translate-y-[-10px] transition-all cursor-pointer group" onClick={() => setModuloActual('tesoreria')}>
+
+                {/* Tarjeta Cuentas */}
+                <div 
+                  className={`bg-white/95 backdrop-blur-md p-10 rounded-2xl shadow-2xl border-b-8 border-green-500 transition-all group
+                    ${tienePermiso(['TESORERIA', 'CAJERO', 'COMPRAS']) 
+                      ? 'hover:translate-y-[-10px] cursor-pointer' 
+                      : 'opacity-80 cursor-not-allowed'}`}
+                  onClick={() => tienePermiso(['TESORERIA', 'CAJERO', 'COMPRAS']) && setModuloActual('tesoreria')}
+                >
                   <h3 className="text-green-500 font-black text-5xl mb-2 group-hover:scale-110 transition-transform">{cuentas.length}</h3>
                   <p className="text-gray-500 font-black text-[10px] uppercase tracking-widest">Cuentas Bancarias</p>
                 </div>
