@@ -1,12 +1,80 @@
 import { useState } from 'react';
-import { PlayCircle, CheckCircle2, FileText, DollarSign, Calendar, Calculator, AlertCircle, X, Printer } from 'lucide-react';
+import { PlayCircle, CheckCircle2, FileText, DollarSign, Calendar, Calculator, AlertCircle, X } from 'lucide-react';
 import { formatGua } from '../../utils/personalLogic';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 // ── Modal de Recibo ──────────────────────────────────────────────
 const ModalRecibo = ({ liq, proceso, onClose }) => {
   if (!liq) return null;
 
-  const handlePrint = () => window.print();
+  const handlePrint = () => {
+    const doc = new jsPDF();
+
+    ['ORIGINAL', 'DUPLICADO'].forEach((tipo, index) => {
+      if (index > 0) doc.addPage();
+
+      // Encabezado
+      doc.setFontSize(16);
+      doc.setTextColor(234, 88, 12); // naranja
+      doc.text('Neumáticos ERP', 14, 20);
+
+      doc.setFontSize(9);
+      doc.setTextColor(100);
+      doc.text(`RECIBO DE PAGO DE SALARIO — ${tipo}`, 14, 27);
+      doc.text(`Periodo: ${proceso?.periodo}`, 150, 20);
+      doc.text(`Fecha: ${proceso?.fechaPago}`, 150, 27);
+
+      // Funcionario
+      doc.setFontSize(11);
+      doc.setTextColor(0);
+      doc.text('Funcionario:', 14, 40);
+      doc.setFontSize(13);
+      doc.setFont('helvetica', 'bold');
+      doc.text(liq.funcionarioNombre, 14, 47);
+      doc.setFont('helvetica', 'normal');
+
+      // Tabla de conceptos
+      autoTable(doc, {
+        startY: 55,
+        head: [['Concepto', 'Tipo', 'Monto']],
+        body: liq.lineas?.map(l => [
+          l.nombre,
+          l.tipo,
+          `${l.tipo === 'Egreso' ? '- ' : ''}${new Intl.NumberFormat('es-PY', { style: 'currency', currency: 'PYG' }).format(l.monto)}`
+        ]) ?? [],
+        styles: { fontSize: 10 },
+        headStyles: { fillColor: [234, 88, 12] },
+      });
+
+      const finalY = doc.lastAutoTable.finalY + 10;
+
+      // Totales
+      doc.setFontSize(10);
+      doc.text('Total Ingresos:', 14, finalY);
+      doc.text(new Intl.NumberFormat('es-PY', { style: 'currency', currency: 'PYG' }).format(liq.totalIngresos), 150, finalY);
+
+      doc.text('Total Descuentos:', 14, finalY + 7);
+      doc.text(`- ${new Intl.NumberFormat('es-PY', { style: 'currency', currency: 'PYG' }).format(liq.totalEgresos)}`, 150, finalY + 7);
+
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(234, 88, 12);
+      doc.text('NETO A COBRAR:', 14, finalY + 16);
+      doc.text(new Intl.NumberFormat('es-PY', { style: 'currency', currency: 'PYG' }).format(liq.neto), 150, finalY + 16);
+
+      // Firmas
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(0);
+      doc.setFontSize(9);
+      doc.line(14, finalY + 35, 80, finalY + 35);
+      doc.text('Firma Empleador', 14, finalY + 40);
+      doc.line(120, finalY + 35, 190, finalY + 35);
+      doc.text('Firma Funcionario', 120, finalY + 40);
+    });
+
+    doc.save(`recibo-${liq.funcionarioNombre}-${proceso?.periodo}.pdf`);
+  };
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -17,7 +85,7 @@ const ModalRecibo = ({ liq, proceso, onClose }) => {
           <div className="flex gap-2">
             <button onClick={handlePrint}
               className="flex items-center gap-2 px-4 py-2 bg-erp-orange text-white rounded-xl font-bold text-xs hover:bg-orange-600 transition-colors">
-              <Printer size={16} /> Imprimir
+              <FileText size={16} /> Descargar PDF
             </button>
             <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
               <X size={20} />
