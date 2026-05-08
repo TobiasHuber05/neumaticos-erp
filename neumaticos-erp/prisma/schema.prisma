@@ -4,7 +4,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 model asiento_detalle {
@@ -503,7 +502,7 @@ model nota_credito_detalle {
   id_pedido_devolucion Int?
   id_producto          Int?
   producto_cantidad    Int?
-  pedido_devolucion    pedido_devolucion? @relation(fields: [id_pedido_d], references: [id_pedido_d], onDelete: NoAction, onUpdate: NoAction, map: "fk_notacreddet_peddev")
+  pedido_devolucion    pedido_devolucion? @relation(fields: [id_pedido_devolucion], references: [id_pedido_d], onDelete: NoAction, onUpdate: NoAction, map: "fk_notacreddet_peddev")
   producto             producto?          @relation(fields: [id_producto], references: [id_producto], onDelete: NoAction, onUpdate: NoAction, map: "fk_notacreddet_producto")
 }
 
