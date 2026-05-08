@@ -7,7 +7,7 @@ const users = [
   { realName: 'Alex Gonzalez', username: 'alex.gonzalez', rol: 'VENTAS', email: 'alex@erp.com' },
   { realName: 'Shu Takahashi', username: 'shu.takahashi', rol: 'PERSONAL', email: 'shu@erp.com' },
   { realName: 'Sebastian Setrini', username: 'sebastian.setrini', rol: 'CONTABILIDAD', email: 'sebastian@erp.com' },
-  { realName: 'Grabiel Bolla', username: 'grabiel.bolla', rol: 'SERVICIOS', email: 'grabiel@erp.com' },
+  { realName: 'Grabiel Bolla', username: 'gabriel.bolla', rol: 'SERVICIOS', email: 'gabriel@erp.com' },
 ];
 
 async function seed() {
