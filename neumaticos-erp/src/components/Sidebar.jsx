@@ -48,7 +48,7 @@ const Sidebar = ({ setModulo, moduloActual }) => {
     { id: 'proveedores', icon: <Users size={18} />, label: 'Proveedores' },
     { id: 'compras', icon: <ShoppingCart size={18} />, label: 'Pedidos de compra' },
     { id: 'cotizaciones', icon: <Send size={18} />, label: 'Cotizaciones' },
-    { id: 'ordenes_comp_facturas', icon: <ClipboardList size={18} />, label: 'Órdenes de compra' },
+    { id: 'ordenes_compra', icon: <ClipboardList size={18} />, label: 'Órdenes de compra' },
     { id: 'pagos_proveedores', icon: <Banknote size={18} />, label: 'Pagos a proveedores' },
     { id: 'asientos_compras', icon: <BookMarked size={18} />, label: 'Asientos compras' },
   ];
