@@ -5,7 +5,11 @@ const AsientosCompras = () => {
   const [asientos, setAsientos] = useState([]);
 
   useEffect(() => {
-    fetch('http://localhost:3000/api/asientos-compras')
+     // BORRA ESTA:
+    //fetch('http://localhost:3000/api/asientos-compras')
+   
+  // PEGA ESTA:
+    fetch(`${import.meta.env.VITE_API_URL || ''}/api/asientos-compras`)
       .then(res => res.json())
       .then(data => setAsientos(data))
       .catch(err => console.error("Error:", err));

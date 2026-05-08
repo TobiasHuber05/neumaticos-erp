@@ -67,6 +67,22 @@ const Proveedores = () => {
         >
           <Plus size={20} /> Nuevo proveedor
         </button>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => {/* Lógica para abrir modal de gestión de categorías */}}
+            className="flex items-center gap-2 bg-white text-gray-700 px-4 py-2 rounded-lg font-bold hover:bg-gray-50 transition-all shadow-sm border border-gray-300"
+          >
+            <Tag size={20} className="text-gray-400" /> Categorías
+          </button>
+          <button
+            type="button"
+            onClick={() => setMostrarForm(true)}
+            className="flex items-center gap-2 bg-erp-orange text-white px-4 py-2 rounded-lg font-bold hover:bg-orange-600 transition-all shadow-md"
+          >
+            <Plus size={20} /> Nuevo proveedor
+          </button>
+        </div>
       </div>
 
       <div className="bg-white rounded shadow-md md:p-6 mb-6 mx-0 md:mx-0 border border-gray-500">

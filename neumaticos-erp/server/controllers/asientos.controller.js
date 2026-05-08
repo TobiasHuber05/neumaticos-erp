@@ -39,38 +39,46 @@ export const getAsientosCompras = async (req, res) => {
 };
 
 export const ejecutarAsientoContableCompra = async (tx, factura) => {
-  const { mercaderia, iva, proveedores } = await idsPlanCuentasCompra(tx);
+  const { registrarAsientoAutomatico } = await import('../utils/asientoAutomatico.utils.js');
 
   const total = Number(factura.total);
   const montoIva = Math.round(total / 11);
   const montoNeto = total - montoIva;
 
-  return await tx.asientos.create({
-    data: {
-      fecha: new Date(),
-      descripcion: `Asiento Compra - Fac. N° ${factura.id_factura_compra}`,
-      total_debe: total,
-      total_haber: total,
-      tabla_origen: 'factura_compra',
-      id_registro_origen: factura.id_factura_compra,
-      estado: 'pendiente',
-      asiento_detalle: {
-        create: [
-          { id_cuenta: mercaderia, monto: montoNeto, debe_haber: true },
-          { id_cuenta: iva, monto: montoIva, debe_haber: true },
-          { id_cuenta: proveedores, monto: total, debe_haber: false },
-        ]
+  return await registrarAsientoAutomatico({
+    fecha: new Date(),
+    descripcion: `Compra Factura Nro: ${factura.id_factura_compra}`,
+    tabla_origen: 'factura_compra',
+    id_registro_origen: factura.id_factura_compra,
+    detalles: [
+      {
+        cuenta_codigo: 'SYS-COMPRA-MERC',
+        monto: montoNeto,
+        debe_haber: true,
+        glosa: 'Mercaderías'
+      },
+      {
+        cuenta_codigo: 'SYS-COMPRA-IVA',
+        monto: montoIva,
+        debe_haber: true,
+        glosa: 'IVA Crédito Fiscal 10%'
+      },
+      {
+        cuenta_codigo: 'SYS-COMPRA-PROV',
+        monto: total,
+        debe_haber: false,
+        glosa: 'Proveedores Locales'
       }
-    }
+    ]
   });
 };
 
 // Cuentas para nómina
 const CUENTAS_NOMINA = [
   { code: 'SYS-NOM-SUELDOS', nombre: 'Sueldos y Jornales' },
-  { code: 'SYS-NOM-BONIF',   nombre: 'Bonificación Familiar' },
-  { code: 'SYS-NOM-IPS',     nombre: 'Aportes y Retenciones a Pagar (IPS)' },
-  { code: 'SYS-NOM-CAJA',    nombre: 'Caja y Banco (Pago Nómina)' },
+  { code: 'SYS-NOM-BONIF', nombre: 'Bonificación Familiar' },
+  { code: 'SYS-NOM-IPS', nombre: 'Aportes y Retenciones a Pagar (IPS)' },
+  { code: 'SYS-NOM-CAJA', nombre: 'Caja y Banco (Pago Nómina)' },
 ];
 
 async function idsPlanCuentasNomina(tx) {
@@ -98,7 +106,7 @@ export const createAsiento = async (req, res) => {
 
   try {
     const resultado = await prisma.$transaction(async (tx) => {
-      const totalDebe  = detalles.reduce((s, d) => s + Number(d.debe  ?? 0), 0);
+      const totalDebe = detalles.reduce((s, d) => s + Number(d.debe ?? 0), 0);
       const totalHaber = detalles.reduce((s, d) => s + Number(d.haber ?? 0), 0);
 
       // Resolver o crear cada cuenta del plan
@@ -122,17 +130,17 @@ export const createAsiento = async (req, res) => {
 
       const asiento = await tx.asientos.create({
         data: {
-          fecha:              fecha ? new Date(fecha) : new Date(),
+          fecha: fecha ? new Date(fecha) : new Date(),
           descripcion,
-          total_debe:         totalDebe,
-          total_haber:        totalHaber,
-          estado:             'confirmado',
-          tabla_origen:       tabla_origen ?? 'nomina',
+          total_debe: totalDebe,
+          total_haber: totalHaber,
+          estado: 'confirmado',
+          tabla_origen: tabla_origen ?? 'nomina',
           id_registro_origen: id_registro_origen ?? null,
           asiento_detalle: {
             create: detallesConId.map(d => ({
-              id_cuenta:  d.id_cuenta,
-              monto:      d.debe > 0 ? d.debe : d.haber,
+              id_cuenta: d.id_cuenta,
+              monto: d.debe > 0 ? d.debe : d.haber,
               debe_haber: d.debe > 0,   // true = Debe, false = Haber
             }))
           }

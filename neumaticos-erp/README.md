@@ -11,3 +11,5 @@
 5)Se agrego una funcionalidad en el modulo de cotizaciones que permite ver los detalles de los pedidos desde alli mas comodamente
 
 6)Se agrego una version beta del modulo de personal (aun no completamente operativo)
+
+7)Es una noche tranquila de sabado , realmente ya es la madrugada del domingo. La lluvia cae insesantemente sobre la ciudad de encarnación, no hay movimiento ni ningun ruido , y yo me pregunto o me estaré preguntando en el futuro; que es lo que hace la gente perdiendo el tiempo leyendo mi comentario sin sentido 

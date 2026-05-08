@@ -1,10 +1,10 @@
 import { Router } from 'express';
-import { 
-    getClientes, 
-    getClienteById, 
-    createCliente, 
-    updateCliente, 
-    deleteCliente 
+import {
+    getClientes,
+    getClienteById,
+    createCliente,
+    updateCliente,
+    deleteCliente
 } from '../controllers/cliente.controller.js';
 
 const router = Router();

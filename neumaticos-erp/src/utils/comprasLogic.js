@@ -1,5 +1,8 @@
 const MIN_PROVEEDORES_COTIZACION = 3;
 
+
+
+
 /**
  * Proveedores cuya oferta incluye al menos una categoría pedida.
  */

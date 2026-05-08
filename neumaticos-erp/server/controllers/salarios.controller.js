@@ -249,6 +249,44 @@ export const cerrarProceso = async (req, res) => {
       data: { estado: 'pagado' }
     });
 
+    // --- INTEGRACIÓN CONTABLE ---
+    try {
+      const { registrarAsientoAutomatico } = await import('../utils/asientoAutomatico.utils.js');
+      const procesoFull = await prisma.cabecera_pago.findUnique({
+        where: { id_pago: Number(id) },
+        include: { sueldos: { include: { conceptos: true } } }
+      });
+
+      let totalSueldos = 0;
+      let totalBonif = 0;
+      let totalIPS = 0;
+      let totalNeto = 0;
+
+      procesoFull.sueldos.forEach(sueldo => {
+        sueldo.conceptos.forEach(c => {
+          if (c.nombre === 'Salario Base') totalSueldos += Number(c.credito ?? 0);
+          else if (c.nombre === 'Bonificación Familiar') totalBonif += Number(c.credito ?? 0);
+          else if (c.nombre === 'Descuento IPS') totalIPS += Number(c.debito ?? 0);
+        });
+      });
+      totalNeto = (totalSueldos + totalBonif) - totalIPS;
+
+      await registrarAsientoAutomatico({
+        fecha: new Date(),
+        descripcion: `Pago de Haberes - Periodo ${procesoFull.periodo}`,
+        tabla_origen: 'cabecera_pago',
+        id_registro_origen: procesoFull.id_pago,
+        detalles: [
+          { cuenta_codigo: 'SYS-NOM-SUELDOS', monto: totalSueldos, debe_haber: true, glosa: 'Sueldos y Jornales' },
+          ...(totalBonif > 0 ? [{ cuenta_codigo: 'SYS-NOM-BONIF', monto: totalBonif, debe_haber: true, glosa: 'Bonificación Familiar' }] : []),
+          { cuenta_codigo: 'SYS-NOM-IPS', monto: totalIPS, debe_haber: false, glosa: 'Aportes IPS a Pagar' },
+          { cuenta_codigo: 'SYS-NOM-CAJA', monto: totalNeto, debe_haber: false, glosa: 'Pago Neto de Salarios' }
+        ]
+      });
+    } catch (err) {
+      console.error('Error en integración contable de nómina:', err);
+    }
+
     res.json({ ok: true, estado: actualizado.estado });
   } catch (error) {
     res.status(500).json({ error: 'Error al cerrar proceso' });

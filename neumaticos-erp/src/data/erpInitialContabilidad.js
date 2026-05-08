@@ -18,6 +18,9 @@ export const planDeCuentasInicial = [
   { id: 15, codigo: '5.1.01', nombre: 'Costo de Mercaderías Vendidas', tipo: 'Asentable', nivel: 3, padreId: 14 },
 ];
 
+
+
+
 export const asientosContablesIniciales = [
   {
     id: 1,
