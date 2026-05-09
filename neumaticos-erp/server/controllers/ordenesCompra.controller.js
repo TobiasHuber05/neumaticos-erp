@@ -236,7 +236,14 @@ export const registrarFactura = async (req, res) => {
 export const getFacturas = async (req, res) => {
   try {
     const facturas = await prisma.factura_compra.findMany({
-      include: { proveedores: true, orden_compra: true, detalle_factura: true, detalle_orden_pago_facturas: { select: { id_orden_pago: true } } },
+      include: { 
+        proveedores: true, 
+        orden_compra: true, 
+        detalle_factura: {
+          include: { producto: true }
+        }, 
+        detalle_orden_pago_facturas: { select: { id_orden_pago: true } } 
+      },
       orderBy: { id_factura_compra: 'desc' }
     });
     const data = facturas.map((f) => ({
@@ -251,6 +258,7 @@ export const getFacturas = async (req, res) => {
       estadoPago: f.detalle_orden_pago_facturas.length > 0 ? 'Pagada' : 'Pendiente',
       lineas: (f.detalle_factura ?? []).map((d) => ({
         productoId: d.id_producto,
+        nombreProducto: d.producto?.descripcion ?? '—',
         cantidad: Number(d.cantidad_recibida ?? 0),
         precioUnitario: Number(d.precio_unitario ?? 0),
       })),

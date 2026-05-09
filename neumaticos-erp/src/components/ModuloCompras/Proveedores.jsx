@@ -60,13 +60,6 @@ const Proveedores = () => {
           <Users className="text-erp-orange" />
           <h2 className="text-xl font-bold text-gray-800">Maestro de proveedores</h2>
         </div>
-        <button
-          type="button"
-          onClick={() => setMostrarForm(true)}
-          className="flex items-center gap-2 bg-erp-orange text-white px-4 py-2 rounded-lg font-bold hover:bg-orange-600 transition-all shadow-md"
-        >
-          <Plus size={20} /> Nuevo proveedor
-        </button>
         <div className="flex gap-2">
           <button
             type="button"

@@ -40,6 +40,7 @@ export const useModuloVentas = () => {
         resFacturas.json(),
       ]);
 
+
       // Backend: { id_cliente, nombre, apellido, ruc, fecha_nacimiento, email }
       // Frontend: { id, nombre, apellido, documento, fechaNacimiento, email }
       setClientes(clientesData.map(c => ({
@@ -60,7 +61,7 @@ export const useModuloVentas = () => {
         estado: p.estado,
         total: p.total,
         lineas: (p.detalle_presupuesto ?? []).map(d => ({
-          productoId: d.id_producto, // Cambiado de id_producto_servicio a id_producto
+          productoId: d.id_producto_servicio,
           cantidad: d.cantidad_producto,
           precioUnitario: d.precio_unitario,
           totalLinea: d.cantidad_producto * d.precio_unitario,
@@ -141,7 +142,7 @@ export const useModuloVentas = () => {
       body: JSON.stringify({
         id_cliente: clientId,
         items: lineas.map(l => ({
-          id_producto: l.productoId, // Cambiado de id_producto_servicio a id_producto
+          id_producto_servicio: l.productoId,
           cantidad_producto: l.cantidad,
           precio_unitario: l.precioUnitario,
         })),

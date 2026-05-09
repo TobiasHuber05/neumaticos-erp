@@ -16,7 +16,6 @@ async function seed() {
 
   for (const u of users) {
     try {
-      // Intentamos buscar si ya existe por username o email
       const existe = await prisma.usuarios.findFirst({
         where: {
           OR: [

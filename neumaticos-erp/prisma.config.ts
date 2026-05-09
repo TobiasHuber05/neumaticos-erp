@@ -5,6 +5,6 @@ dotenv.config();
 
 export default defineConfig({
   datasource: {
-    url: process.env.DATABASE_URL || "postgresql://postgres:SEBAS12345@localhost:5432/casadeneumaticos?schema=public",
+    url: process.env.DATABASE_URL || "postgresql://postgres@localhost:5432/neumaticos_erp?schema=public",
   },
 });

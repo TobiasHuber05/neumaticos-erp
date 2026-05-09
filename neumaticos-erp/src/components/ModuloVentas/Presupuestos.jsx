@@ -32,10 +32,10 @@ const Presupuestos = ({ ventas, clientes, inventario, setInventario, servicios =
 
   if (editandoPresupuesto) {
     return (
-      <div className="bg-gray-50 min-h-screen -m-4 p-4 lg:-m-8 lg:p-8 animate-in fade-in duration-300">
-        <button 
+      <div className="min-h-screen -m-4 p-4 lg:-m-8 lg:p-8 animate-in fade-in duration-300">
+        <button
           onClick={() => setEditandoPresupuesto(null)}
-          className="flex items-center gap-2 text-gray-500 hover:text-erp-orange font-bold mb-6 transition-colors"
+          className="flex items-center gap-2 text-white-500 hover:text-erp-orange font-bold mb-6 transition-colors"
         >
           <ArrowLeft size={20} />
           Volver a Presupuestos
@@ -48,6 +48,27 @@ const Presupuestos = ({ ventas, clientes, inventario, setInventario, servicios =
           setInventario={setInventario}
           ventas={ventas}
           onCancelar={() => setEditandoPresupuesto(null)}
+        />
+      </div>
+    );
+  }
+
+  if (mostrarNuevo) {
+    return (
+      <div className="min-h-screen -m-4 p-4 lg:-m-8 lg:p-8 animate-in fade-in duration-300">
+        <button
+          onClick={() => setMostrarNuevo(false)}
+          className="flex items-center gap-2 text-white hover:text-erp-orange font-bold mb-6 transition-colors"
+        >
+          <ArrowLeft size={20} />
+          Volver a Presupuestos
+        </button>
+        <PresupuestoForm
+          clientes={clientes}
+          inventario={inventario}
+          servicios={servicios}
+          onCancelar={() => setMostrarNuevo(false)}
+          onGuardar={handleGuardarPresupuesto}
         />
       </div>
     );
@@ -82,16 +103,6 @@ const Presupuestos = ({ ventas, clientes, inventario, setInventario, servicios =
         </button>
       </div>
 
-      {/* Form nuevo */}
-      {mostrarNuevo && (
-        <PresupuestoForm
-          clientes={clientes}
-          inventario={inventario}
-          servicios={servicios}
-          onCancelar={() => setMostrarNuevo(false)}
-          onGuardar={handleGuardarPresupuesto}
-        />
-      )}
 
       {/* Tabla vigentes */}
       {vigentes.length > 0 && (
@@ -132,8 +143,8 @@ const Presupuestos = ({ ventas, clientes, inventario, setInventario, servicios =
                       </td>
                       <td className="px-6 py-4 text-center">
                         <span className={`px-2 py-1 rounded-full text-xs font-bold ${new Date(p.fechaExpiracion) - new Date() < 2 * 24 * 60 * 60 * 1000
-                            ? 'bg-yellow-100 text-yellow-800'
-                            : 'bg-green-100 text-green-800'
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : 'bg-green-100 text-green-800'
                           }`}>
                           {new Date(p.fechaExpiracion).toLocaleDateString()}
                         </span>

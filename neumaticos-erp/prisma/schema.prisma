@@ -4,10 +4,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-<<<<<<< HEAD
-
-=======
->>>>>>> c16e2b3a61d0feba43a4f98857d1c4a77ee3ef00
 }
 
 model asiento_detalle {

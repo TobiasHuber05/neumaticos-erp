@@ -244,7 +244,7 @@ function Dashboard() {
             <div className="absolute inset-0 bg-white/30 z-0"></div>
 
             <div className="relative z-10 max-w-4xl">
-              <h2 className="text-8xl font-black text-erp-orange uppercase tracking-tighter mb-4 drop-shadow-xl">
+              <h2 className="text-8xl font-black text-orange-200 uppercase tracking-tighter mb-4 drop-shadow-xl">
                 BIENVENIDO
               </h2>
               <p className="text-2xl text-gray-800 font-black mb-12 uppercase tracking-[0.3em] drop-shadow-sm">
@@ -253,10 +253,10 @@ function Dashboard() {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
                 {/* Tarjeta Pedidos */}
-                <div 
+                <div
                   className={`bg-white/95 backdrop-blur-md p-10 rounded-2xl shadow-2xl border-b-8 border-erp-orange transition-all group
-                    ${tienePermiso(['COMPRAS', 'COMPRADOR']) 
-                      ? 'hover:translate-y-[-10px] cursor-pointer' 
+                    ${tienePermiso(['COMPRAS', 'COMPRADOR'])
+                      ? 'hover:translate-y-[-10px] cursor-pointer'
                       : 'opacity-80 cursor-not-allowed'}`}
                   onClick={() => tienePermiso(['COMPRAS', 'COMPRADOR']) && setModuloActual('compras')}
                 >
@@ -265,10 +265,10 @@ function Dashboard() {
                 </div>
 
                 {/* Tarjeta Stock */}
-                <div 
+                <div
                   className={`bg-white/95 backdrop-blur-md p-10 rounded-2xl shadow-2xl border-b-8 border-blue-500 transition-all group
-                    ${tienePermiso(['COMPRAS', 'COMPRADOR', 'STOCK', 'VENTAS']) 
-                      ? 'hover:translate-y-[-10px] cursor-pointer' 
+                    ${tienePermiso(['COMPRAS', 'COMPRADOR', 'STOCK', 'VENTAS'])
+                      ? 'hover:translate-y-[-10px] cursor-pointer'
                       : 'opacity-80 cursor-not-allowed'}`}
                   onClick={() => tienePermiso(['COMPRAS', 'COMPRADOR', 'STOCK', 'VENTAS']) && setModuloActual('stock')}
                 >
@@ -277,10 +277,10 @@ function Dashboard() {
                 </div>
 
                 {/* Tarjeta Cuentas */}
-                <div 
+                <div
                   className={`bg-white/95 backdrop-blur-md p-10 rounded-2xl shadow-2xl border-b-8 border-green-500 transition-all group
-                    ${tienePermiso(['TESORERIA', 'CAJERO', 'COMPRAS']) 
-                      ? 'hover:translate-y-[-10px] cursor-pointer' 
+                    ${tienePermiso(['TESORERIA', 'CAJERO', 'COMPRAS'])
+                      ? 'hover:translate-y-[-10px] cursor-pointer'
                       : 'opacity-80 cursor-not-allowed'}`}
                   onClick={() => tienePermiso(['TESORERIA', 'CAJERO', 'COMPRAS']) && setModuloActual('tesoreria')}
                 >
