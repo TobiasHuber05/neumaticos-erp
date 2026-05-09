@@ -34,7 +34,7 @@ export const procesarDevolucion = async (req, res) => {
         data: {
           id_devolucion: devolucion.id_devolucion,
           fecha_emision: new Date(),
-          nro_nota: Math.floor(Math.random() * 10000), // Ejemplo de nro correlativo
+          nro_nota: String(Math.floor(Math.random() * 10000)), // Ejemplo de nro correlativo
           detalle_nota_credito: {
             create: items_a_devolver.map(i => ({
               id_producto_servicio: i.id_producto_servicio,
@@ -58,9 +58,20 @@ export const procesarDevolucion = async (req, res) => {
 
       return devolucion;
     });
-
     res.status(201).json(resultado);
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
 };
+export const getNotaCredito = async (req, res) => {
+      try{
+        // creamos la respuesta del json incluyendo el detalle de la nota credito.
+        //utilizamos siempre await para las peticiones.
+        const notas = await prisma.nota_credito_venta.findMany ({include :{detalle_nota_credito: true}});
+        res.json (notas);
+      }
+      catch (error) {
+        // en el hipotetico caso de que haya errores.
+        res.status(500).json({error: error.message});
+      }
+    }

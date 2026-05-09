@@ -1,9 +1,9 @@
 import { Router } from 'express';
-import { procesarDevolucion } from '../controllers/devolucion.controller.js';
+import { getNotaCredito, procesarDevolucion } from '../controllers/devolucion.controller.js';
 
 const router = Router();
 
-// Maneja la devolución (48hs), nota de crédito y reposición de stock
-router.post('/', procesarDevolucion);
+router.get('/', getNotaCredito); // obtener notas creditos
+router.post('/', procesarDevolucion); // procesar devoluciones
 
 export default router;

@@ -28,16 +28,18 @@ export const useModuloVentas = () => {
   const fetchDatos = useCallback(async () => {
     setLoading(true);
     try {
-      const [resClientes, resPresupuestos, resFacturas] = await Promise.all([
+      const [resClientes, resPresupuestos, resFacturas, resNotaCredito] = await Promise.all([
         fetch(API_CLIENTES, { headers: getHeaders() }),
         fetch(API_PRESUPUESTOS, { headers: getHeaders() }),
         fetch(API_FACTURAS, { headers: getHeaders() }),
+        fetch (API_DEVOLUCIONES, {headers: getHeaders()}),
       ]);
 
-      const [clientesData, presupuestosData, facturasData] = await Promise.all([
+      const [clientesData, presupuestosData, facturasData, devolucionData] = await Promise.all([
         resClientes.json(),
         resPresupuestos.json(),
         resFacturas.json(),
+        resNotaCredito.json(),
       ]);
 
 
@@ -85,6 +87,15 @@ export const useModuloVentas = () => {
           precioUnitario: d.precio_unitario,
           totalLinea: d.subtotal,
         })),
+      })));
+      setNotasCreditoVentas(devolucionData.map(n => ({
+        id:        n.id_nota_credito_venta,
+        facturaId: n.id_devolucion,
+        fecha:     n.fecha_emision?.split('T')[0],
+        nroNota:   n.nro_nota,
+        total:     n.detalle_nota_credito?.reduce(
+          (sum, d) => sum + Number(d.monto ?? 0), 0
+       ),
       })));
 
     } catch (err) {
