@@ -1,3 +1,8 @@
+Scripts de ejecucion:
+main: npm run dev (ejecuta simultaneamente el frontend y el backend en una sola consola)
+Frontend: npm run frontend 
+Backend: npm run backend o npx tsx server/index.js
+
 #Commit 22/4/2026 23:02
 - Correccion
 1)Se corrigio un error en proveedores que no dejaba ver las categorias y se elimino el campo del contacto al este no estar presente en las tablas de la db.
