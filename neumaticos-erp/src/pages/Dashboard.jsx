@@ -37,6 +37,9 @@ import PlanCuentas from '../components/ModuloContabilidad/PlanCuentas';
 import AsientosManuales from '../components/ModuloContabilidad/AsientosManuales';
 import ReportesContables from '../components/ModuloContabilidad/ReportesContables';
 
+// Imports Seguridad
+import GestionUsuarios from '../components/ModuloSeguridad/GestionUsuarios';
+
 // ── Hooks de API ──────────────────────────────────────
 import { useProveedores } from '../hooks/useProveedores';
 import { useProductos } from '../hooks/useProductos';
@@ -215,6 +218,7 @@ function Dashboard() {
       contabilidad_asientos: 'Contabilidad — Asientos',
       contabilidad_periodos: 'Contabilidad — Periodos',
       contabilidad_reportes: 'Contabilidad — Informes',
+      usuarios: 'Gestión de Usuarios',
     };
     return map[moduloActual] ?? moduloActual;
   };
@@ -483,6 +487,9 @@ function Dashboard() {
             <PedidosCompra onNuevoPedido={() => setMostrarFormulario(true)} pedidos={pedidos} />
           </>
         );
+
+      case 'usuarios':
+        return <GestionUsuarios />;
 
       default:
         return (

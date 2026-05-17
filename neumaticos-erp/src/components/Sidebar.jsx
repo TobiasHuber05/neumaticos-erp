@@ -33,6 +33,16 @@ const Sidebar = ({ setModulo, moduloActual }) => {
 
   const tienePermiso = (rolesPermitidos) => {
     if (rol === 'ADMIN') return true;
+    
+    // Si rol_empresa tiene el formato "NOMBRE|MODULO1,MODULO2"
+    if (rol.includes('|')) {
+      const permisosString = rol.split('|')[1] || '';
+      const permisosUsuario = permisosString.split(',');
+      // Revisa si alguno de los módulos/roles requeridos está en los permisos del usuario
+      return rolesPermitidos.some(r => permisosUsuario.includes(r));
+    }
+    
+    // Retrocompatibilidad con roles viejos fijos
     return rolesPermitidos.includes(rol);
   };
   // -------------------------------
@@ -91,8 +101,8 @@ const Sidebar = ({ setModulo, moduloActual }) => {
           Neumáticos ERP
         </h2>
         {rol && (
-          <span className="bg-erp-orange text-white text-[10px] px-2 py-0.5 rounded-full mt-1 font-black uppercase tracking-widest">
-            {rol}
+          <span className="bg-erp-orange text-white text-[10px] px-2 py-0.5 rounded-full mt-1 font-black uppercase tracking-widest text-center max-w-[90%] truncate">
+            {rol.includes('|') ? rol.split('|')[0] : rol}
           </span>
         )}
       </div>
@@ -299,6 +309,19 @@ const Sidebar = ({ setModulo, moduloActual }) => {
             >
               <Users size={20} />
               <span>Funcionarios</span>
+            </button>
+          )}
+          {tienePermiso(['ADMIN']) && (
+            <button
+              type="button"
+              onClick={() => setModulo('usuarios')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all font-bold text-sm
+                ${moduloActual === 'usuarios'
+                  ? 'bg-erp-orange text-white shadow-inner'
+                  : 'text-orange-900 hover:bg-orange-200'}`}
+            >
+              <UserSquare2 size={20} />
+              <span>Gestión de Usuarios</span>
             </button>
           )}
         </div>

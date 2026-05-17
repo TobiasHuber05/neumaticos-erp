@@ -13,4 +13,10 @@ router.post('/register', verifyToken, verifyRol('admin'), register);
 // GET /api/auth/perfil
 router.get('/perfil', verifyToken, perfil);
 
+// GET /api/auth/usuarios -> solo admin
+router.get('/usuarios', verifyToken, verifyRol('admin'), async (req, res) => {
+  const { listarUsuarios } = await import('../controllers/auth.controller.js');
+  listarUsuarios(req, res);
+});
+
 export default router;

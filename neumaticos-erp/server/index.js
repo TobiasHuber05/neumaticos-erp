@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import bcrypt from 'bcryptjs';
 
 import authRoutes from './routes/auth.routes.js';
 import proveedoresRoutes from './routes/proveedores.routes.js';
@@ -68,25 +69,39 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Servidor funcionando' });
 });
 
-// RUTA TEMPORAL PARA LIMPIEZA DE IDs 3 y 4 (Solicitado por el usuario)
-app.get('/api/admin/clean-temp-items', async (req, res) => {
-  try {
-    const { prisma } = await import('./lib/prisma.js');
-    const ids = [3, 4];
-    for (const id of ids) {
-      await prisma.$transaction(async (tx) => {
-        await tx.stock.deleteMany({ where: { id_producto: id } });
-        await tx.producto_servicio.deleteMany({ where: { id_producto: id } });
-        await tx.producto.delete({ where: { id_producto: id } });
-      });
-    }
-    res.send("<h1>IDs 3 y 4 eliminados correctamente</h1><p>Ya puedes cerrar esta pestaña y refrescar el ERP.</p>");
-  } catch (err) {
-    res.status(500).send("Error al eliminar: " + err.message);
-  }
-});
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+
+const initializeAdmin = async () => {
+  try {
+    const { prisma } = await import('./lib/prisma.js');
+    const adminExists = await prisma.usuarios.findFirst({
+      where: { rol_empresa: 'admin' }
+    });
+
+    if (!adminExists) {
+      console.log('⚠️ No se encontró administrador. Creando admin por defecto...');
+      const salt = await bcrypt.genSalt(10);
+      const passwordHash = await bcrypt.hash('123456', salt);
+
+      await prisma.usuarios.create({
+        data: {
+          username: 'admin',
+          email: 'admin@neumaticos.com',
+          passwordd: passwordHash,
+          rol_empresa: 'admin'
+        }
+      });
+      console.log('✅ Admin creado exitosamente: admin / 123456');
+    } else {
+      console.log('✅ Administrador ya existe en la base de datos.');
+    }
+  } catch (error) {
+    console.error('❌ Error al inicializar admin:', error);
+  }
+};
+
+app.listen(PORT, async () => {
+  await initializeAdmin();
   console.log(`Servidor corriendo en puerto ${PORT}`);
 });

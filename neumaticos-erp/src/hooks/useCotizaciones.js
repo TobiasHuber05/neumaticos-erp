@@ -79,14 +79,10 @@ export function useCotizaciones() {
         )
       ];
 
-      console.log('Categorías necesarias:', categoriasNecesarias);
-      console.log('Proveedores disponibles:', proveedores.map(p => ({ nombre: p.nombre, categorias: p.categorias })));
-
       let provsFiltrados;
 
       // Si no hay categorías definidas → enviar a todos los proveedores
-      if (categoriasNecesarias.length === 0) {
-        console.log('Sin categorías definidas → usando todos los proveedores');
+      if (!categoriasNecesarias || categoriasNecesarias.length === 0) {
         provsFiltrados = proveedores;
       } else {
         provsFiltrados = proveedores.filter((p) =>
@@ -97,8 +93,6 @@ export function useCotizaciones() {
           )
         );
       }
-
-      console.log('Proveedores filtrados:', provsFiltrados);
 
       if (provsFiltrados.length === 0) {
         return { ok: false, error: 'No hay proveedores con las categorías de los productos pedidos.' };

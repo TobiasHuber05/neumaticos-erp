@@ -5,7 +5,6 @@ const API = '/api/productos';
 // Función para obtener headers con el token actualizado
 function getHeaders() {
   const token = localStorage.getItem('token');
-  console.log("🔍 Token recuperado del storage:", token); // Si sale null, el error está en el Login
   
   return {
     'Content-Type': 'application/json',

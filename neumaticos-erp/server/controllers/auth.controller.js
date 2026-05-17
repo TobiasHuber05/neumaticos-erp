@@ -14,7 +14,8 @@ const prisma = new PrismaClient({ adapter });
 
 // POST /api/auth/login
 export const login = async (req, res) => {
-  const { identifier, password } = req.body;
+  const { password } = req.body;
+  const identifier = req.body.identifier?.trim();
 
   console.log("--- INTENTO DE LOGIN ---");
   console.log("Identificador ingresado:", identifier);
@@ -28,8 +29,8 @@ export const login = async (req, res) => {
     const usuario = await prisma.usuarios.findFirst({
       where: {
         OR: [
-          { username: identifier },
-          { email: identifier }
+          { username: { equals: identifier, mode: 'insensitive' } },
+          { email: { equals: identifier, mode: 'insensitive' } }
         ]
       }
     });
@@ -89,7 +90,9 @@ export const login = async (req, res) => {
 
 // POST /api/auth/register (solo admin)
 export const register = async (req, res) => {
-  const { username, email, password, rol } = req.body;
+  const { password, rol } = req.body;
+  const username = req.body.username?.trim();
+  const email = req.body.email?.trim();
 
   if (!username || !email || !password || !rol) {
     return res.status(400).json({ error: 'Todos los campos son requeridos' });
@@ -112,8 +115,7 @@ export const register = async (req, res) => {
         username, 
         email, 
         passwordd: passwordHash, // Guardamos en passwordd
-        rol_empresa: rol,        // Guardamos en rol_empresa
-        activo: true 
+        rol_empresa: rol         // Guardamos en rol_empresa
       }
     });
 
@@ -146,8 +148,7 @@ export const perfil = async (req, res) => {
         id_usuario: true,
         username: true,
         email: true,
-        rol_empresa: true,
-        activo: true
+        rol_empresa: true
       }
     });
 
@@ -159,6 +160,25 @@ export const perfil = async (req, res) => {
 
   } catch (error) {
     console.error('❌ Error en perfil:', error);
+    return res.status(500).json({ error: 'Error interno del servidor' });
+  }
+};
+
+// GET /api/auth/usuarios
+export const listarUsuarios = async (req, res) => {
+  try {
+    const usuarios = await prisma.usuarios.findMany({
+      select: {
+        id_usuario: true,
+        username: true,
+        email: true,
+        rol_empresa: true
+      },
+      orderBy: { id_usuario: 'asc' }
+    });
+    return res.json(usuarios);
+  } catch (error) {
+    console.error('❌ Error al listar usuarios:', error);
     return res.status(500).json({ error: 'Error interno del servidor' });
   }
 };

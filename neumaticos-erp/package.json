@@ -5,7 +5,7 @@
   "type": "module",
   
   "scripts": {
-  "server": "tsx server/index.js", 
+  "server": "tsx watch server/index.js", 
   "frontend": "vite",
   "dev": "concurrently \"npm run server\" \"npm run frontend\"",
   "build": "vite build",
