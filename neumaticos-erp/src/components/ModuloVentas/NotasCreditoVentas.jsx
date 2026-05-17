@@ -30,7 +30,7 @@ const NotasCreditoVentas = ({ ventas, clientes }) => {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {notas.map((nc) => {
+            {[...notas].reverse().map((nc) => {
               const cliente = clientes.find(c => c.id === ventas.facturasVentas?.find(f => f.id === nc.facturaId)?.clientId);
               const factura = ventas.facturasVentas?.find(f => f.id === nc.facturaId);
               return (

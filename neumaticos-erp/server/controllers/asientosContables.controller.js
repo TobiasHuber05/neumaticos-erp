@@ -82,3 +82,60 @@ export const createAsientoContable = async (req, res) => {
         res.status(500).json({ error: 'Error al crear asiento contable', details: error.message });
     }
 };
+
+// GET /api/asientos-contables/:id/detalle-origen
+export const getDetalleOrigenAsiento = async (req, res) => {
+    const { id } = req.params;
+    try {
+        const asiento = await prisma.asientos.findUnique({
+            where: { id_asiento: Number(id) }
+        });
+
+        if (!asiento || !asiento.tabla_origen || asiento.tabla_origen === 'asiento_manual') {
+            return res.json({ items: [] });
+        }
+
+        let items = [];
+
+        if (asiento.tabla_origen === 'factura_compra') {
+            const detalle = await prisma.detalle_factura.findMany({
+                where: { id_factura_compra: Number(asiento.id_registro_origen) },
+                include: { producto: true }
+            });
+            items = detalle.map(d => ({
+                producto: d.producto?.descripcion || 'Producto desconocido',
+                cantidad: Number(d.cantidad_recibida),
+                precio_unitario: Number(d.precio_unitario),
+                subtotal: Number(d.subtotal)
+            }));
+        } 
+        else if (asiento.tabla_origen === 'nota_credito') {
+            const nc = await prisma.nota_credito.findUnique({
+                where: { id_nota_credito: Number(asiento.id_registro_origen) },
+                include: {
+                    pedido_devolucion: {
+                        include: {
+                            nota_credito_detalle: {
+                                include: { producto: true }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            if (nc?.pedido_devolucion?.nota_credito_detalle) {
+                items = nc.pedido_devolucion.nota_credito_detalle.map(d => ({
+                    producto: d.producto?.descripcion || 'Producto desconocido',
+                    cantidad: Number(d.producto_cantidad),
+                    precio_unitario: Number(nc.monto_subtotal) / Number(d.producto_cantidad || 1),
+                    subtotal: Number(nc.monto_subtotal)
+                }));
+            }
+        }
+
+        res.json({ items });
+    } catch (error) {
+        console.error('Error al obtener detalle de origen:', error);
+        res.status(500).json({ error: 'Error al obtener detalle de origen' });
+    }
+};

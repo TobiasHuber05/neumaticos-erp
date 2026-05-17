@@ -1,10 +1,10 @@
 import { prisma } from '../lib/prisma.js';
-import { ejecutarAsientoContableCompra } from './asientos.controller.js'; // Asegúrate de que este archivo exista
+import { ejecutarAsientoContableCompra, ejecutarAsientoNotaCreditoCompra } from './asientos.controller.js';
 
 // GET /api/ordenes-compra
 export const getOrdenesCompra = async (req, res) => {
   try {
-    const ordenes = await prisma.orden_compra.findMany({
+    const ordenes = await prisma.orden_comp_facturas ? await prisma.orden_comp_facturas.findMany() : await prisma.orden_compra.findMany({
       include: {
         proveedores: true,
         estados: true,
@@ -91,14 +91,10 @@ export const getOrdenCompraById = async (req, res) => {
   }
 };
 
-// POST /api/ordenes-compra/:id/factura (CON ASIENTO INTEGRADO)
+// POST /api/ordenes-compra/:id/factura
 export const registrarFactura = async (req, res) => {
   const { id } = req.params;
   const { lineas, numero, fecha, timbrado } = req.body;
-
-  if (!lineas || !Array.isArray(lineas) || lineas.length === 0) {
-    return res.status(400).json({ error: 'Líneas de factura requeridas' });
-  }
 
   try {
     const oc = await prisma.orden_compra.findUnique({
@@ -116,28 +112,15 @@ export const registrarFactura = async (req, res) => {
     if (!oc) return res.status(404).json({ error: 'Orden de compra no encontrada' });
 
     const total = lineas.reduce((acc, l) => acc + Number(l.cantidad || 0) * Number(l.precioUnitario || 0), 0);
-    const MAX_MONTO = 999_999_999_999_999.99;
-    if (!Number.isFinite(total) || total <= 0) {
-      return res.status(400).json({ error: 'El total de la factura debe ser un monto positivo' });
-    }
-    if (total > MAX_MONTO) {
-      return res.status(400).json({ error: 'El total de la factura excede el máximo permitido' });
-    }
-
-    const ordenLineas = (oc.cotizacion?.detalle_cotizacion ?? []).map((d) => {
-      const detallePedido = oc.cotizacion?.pedidos_productos?.detalles_pedidos?.find((dp) => dp.id_producto === d.id_producto);
-      return { productoId: d.id_producto, cantidadPedida: Number(detallePedido?.cantidad ?? 1) };
-    });
 
     const resultado = await prisma.$transaction(async (tx) => {
       // 1. Detalle de orden de compra
       for (const linea of lineas) {
-        const cantidadPedida = ordenLineas.find((ol) => ol.productoId === Number(linea.productoId))?.cantidadPedida ?? 1;
         await tx.detalle_orden_compra.create({
           data: {
             id_orden_compra: Number(id),
             id_producto: Number(linea.productoId),
-            cantidad_pedida: cantidadPedida,
+            cantidad_pedida: Number(linea.cantidadPedida || 1),
             cantidad_entregada: Number(linea.cantidad || 0),
             precio_unitario: Number(linea.precioUnitario || 0),
             subtotal: Number(linea.cantidad || 0) * Number(linea.precioUnitario || 0),
@@ -185,26 +168,8 @@ export const registrarFactura = async (req, res) => {
         }
       }
 
-      // --- AQUÍ EL ASIENTO CONTABLE SIN ROMPER LO DEMÁS ---
+      // 5. Asiento Contable
       await ejecutarAsientoContableCompra(tx, factura);
-
-      // 5. Estado de la OC
-      const entregadoPorProducto = {};
-      for (const linea of lineas) {
-        const pid = Number(linea.productoId);
-        entregadoPorProducto[pid] = (entregadoPorProducto[pid] ?? 0) + Number(linea.cantidad || 0);
-      }
-      const pendienteTotal = ordenLineas.some((ol) => (entregadoPorProducto[ol.productoId] ?? 0) < ol.cantidadPedida);
-
-      if (pendienteTotal) {
-        let estadoPendiente = await tx.estados.findFirst({ where: { nombre: { contains: 'Pendiente' } } });
-        if (!estadoPendiente) estadoPendiente = await tx.estados.create({ data: { nombre: 'Pendiente entrega' } });
-        await tx.orden_compra.update({ where: { id_orden_compra: Number(id) }, data: { id_estado: estadoPendiente.id_estado } });
-      } else {
-        let estadoCerrada = await tx.estados.findFirst({ where: { nombre: { contains: 'Cerrada' } } });
-        if (!estadoCerrada) estadoCerrada = await tx.estados.create({ data: { nombre: 'Cerrada' } });
-        await tx.orden_compra.update({ where: { id_orden_compra: Number(id) }, data: { id_estado: estadoCerrada.id_estado } });
-      }
 
       return factura;
     });
@@ -220,14 +185,6 @@ export const registrarFactura = async (req, res) => {
     });
   } catch (error) {
     console.error('Error al registrar factura:', error);
-    const msg = error?.message ?? '';
-    const code = error?.code;
-    if (code === 'P2003' || /Foreign key constraint/i.test(msg)) {
-      return res.status(500).json({ error: 'Error de integridad al registrar la factura o el asiento contable' });
-    }
-    if (/numeric field overflow|22003|value out of range/i.test(msg)) {
-      return res.status(400).json({ error: 'Monto demasiado grande para guardar en la base de datos' });
-    }
     return res.status(500).json({ error: 'Error al registrar factura' });
   }
 };
@@ -267,5 +224,181 @@ export const getFacturas = async (req, res) => {
   } catch (error) {
     console.error('Error al obtener facturas:', error);
     return res.status(500).json({ error: 'Error al obtener facturas' });
+  }
+};
+
+// POST /api/ordenes-compra/devolucion
+export const registrarDevolucionCompra = async (req, res) => {
+  const { facturaId, motivo, lineas } = req.body;
+  console.log('📦 Registrando devolución para factura:', facturaId);
+
+  try {
+    const resultado = await prisma.$transaction(async (tx) => {
+      // 1. Crear Pedido de Devolución (Ajustado al esquema actual)
+      const devolucion = await tx.pedido_devolucion.create({
+        data: {
+          id_factura_compra: Number(facturaId),
+          fecha_emision: new Date(),
+          // Nota: El campo 'motivo' no existe en el esquema actual de pedido_devolucion
+        }
+      });
+
+      // 2. Detalles y Stock
+      for (const item of lineas) {
+        await tx.nota_credito_detalle.create({
+          data: {
+            id_pedido_devolucion: devolucion.id_pedido_d,
+            id_producto: Number(item.productoId),
+            producto_cantidad: Number(item.cantidad)
+          }
+        });
+
+        const stock = await tx.stock.findFirst({ where: { id_producto: Number(item.productoId) } });
+        if (stock) {
+          await tx.stock.update({
+            where: { id_stock: stock.id_stock },
+            data: {
+              cantidad: Math.max(0, (stock.cantidad ?? 0) - Number(item.cantidad)),
+              fecha_modificacion: new Date()
+            }
+          });
+        }
+      }
+      return devolucion;
+    });
+
+    res.status(201).json({ ok: true, id: resultado.id_pedido_d, numero: `ND-P-${resultado.id_pedido_d}` });
+  } catch (error) {
+    console.error('❌ Error en devolución:', error);
+    res.status(500).json({ error: 'Error al registrar devolución' });
+  }
+};
+
+// POST /api/ordenes-compra/nota-credito
+export const registrarNotaCreditoCompra = async (req, res) => {
+  const { notaDevolucionId, numero, monto } = req.body;
+  
+  try {
+    const resultado = await prisma.$transaction(async (tx) => {
+      // 1. Crear NC (Ajustado al esquema actual)
+      const nc = await tx.nota_credito.create({
+        data: {
+          id_pedido_d: Number(notaDevolucionId),
+          numero_nota: numero ? Number(numero.replace(/[^0-9]/g, '')) : null,
+          descripcion: `Nota de Crédito Compra ${numero || ''}`,
+          monto_subtotal: Number(monto),
+          fecha_vencimiento: new Date(), // Usamos vencimiento ya que no hay fecha_emision en NC
+        }
+      });
+
+      // 2. Asiento Automático
+      await ejecutarAsientoNotaCreditoCompra(tx, nc);
+
+      return nc;
+    });
+
+    res.status(201).json({ ok: true, id: resultado.id_nota_credito, numero: numero || `NC-P-${resultado.id_nota_credito}` });
+  } catch (error) {
+    console.error('❌ Error en NC:', error);
+    res.status(500).json({ error: 'Error al registrar nota de crédito' });
+  }
+};
+
+// GET /api/ordenes-compra/devoluciones
+export const getDevoluciones = async (req, res) => {
+  try {
+    const devoluciones = await prisma.pedido_devolucion.findMany({
+      include: {
+        factura_compra: { 
+          include: { 
+            proveedores: true,
+            detalle_factura: { include: { producto: true } }
+          } 
+        },
+        nota_credito_detalle: { include: { producto: true } }
+      },
+      orderBy: { id_pedido_d: 'desc' }
+    });
+
+    const data = devoluciones.map(d => {
+      const lineas = d.nota_credito_detalle.map(it => {
+        const detFac = d.factura_compra?.detalle_factura.find(df => df.id_producto === it.id_producto);
+        const precio = Number(detFac?.precio_unitario ?? 0);
+        return {
+          productoId: it.id_producto,
+          nombreProducto: it.producto?.descripcion ?? '—',
+          cantidad: it.producto_cantidad,
+          precioUnitario: precio,
+          subtotal: it.producto_cantidad * precio
+        };
+      });
+
+      const total = lineas.reduce((acc, l) => acc + l.subtotal, 0);
+
+      return {
+        id: d.id_pedido_d,
+        numero: `ND-P-${String(d.id_pedido_d).padStart(4, '0')}`,
+        facturaId: d.id_factura_compra,
+        proveedorId: d.factura_compra?.id_proveedor,
+        nombreProveedor: d.factura_compra?.proveedores?.nombre,
+        fecha: d.fecha_emision?.toISOString().split('T')[0] ?? '—',
+        lineas,
+        total
+      };
+    });
+
+    res.json(data);
+  } catch (error) {
+    console.error('Error al obtener devoluciones:', error);
+    res.status(500).json({ error: 'Error al obtener devoluciones' });
+  }
+};
+
+// GET /api/ordenes-compra/notas-credito
+export const getNotasCredito = async (req, res) => {
+  try {
+    const notas = await prisma.nota_credito.findMany({
+      include: {
+        pedido_devolucion: {
+          include: {
+            factura_compra: { 
+              include: { 
+                proveedores: true,
+                detalle_factura: true
+              } 
+            },
+            nota_credito_detalle: { include: { producto: true } }
+          }
+        }
+      },
+      orderBy: { id_nota_credito: 'desc' }
+    });
+
+    const data = notas.map(nc => {
+      const lineas = nc.pedido_devolucion?.nota_credito_detalle.map(it => {
+        const detFac = nc.pedido_devolucion?.factura_compra?.detalle_factura.find(df => df.id_producto === it.id_producto);
+        return {
+          productoId: it.id_producto,
+          nombreProducto: it.producto?.descripcion ?? '—',
+          cantidad: it.producto_cantidad,
+          precioUnitario: Number(detFac?.precio_unitario ?? 0)
+        };
+      });
+
+      return {
+        id: nc.id_nota_credito,
+        numero: nc.numero_nota ? String(nc.numero_nota) : `NC-P-${String(nc.id_nota_credito).padStart(4, '0')}`,
+        notaDevolucionId: nc.id_pedido_d,
+        nombreProveedor: nc.pedido_devolucion?.factura_compra?.proveedores?.nombre ?? '—',
+        fecha: nc.fecha_vencimiento?.toISOString().split('T')[0] ?? '—',
+        monto: Number(nc.monto_subtotal ?? 0),
+        lineas
+      };
+    });
+
+    res.json(data);
+  } catch (error) {
+    console.error('Error al obtener notas de crédito:', error);
+    res.status(500).json({ error: 'Error al obtener notas de crédito' });
   }
 };

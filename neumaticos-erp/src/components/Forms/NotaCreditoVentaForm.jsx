@@ -10,7 +10,7 @@ import * as ventasLogic from '../../utils/ventasLogic.js';
 const NotaCreditoVentaForm = ({ factura, inventario, servicios = [], setInventario, ventas, onCancelar }) => {
   const [motivo, setMotivo] = useState('Defecto de fabricación');
   const [lineasDevueltas, setLineasDevueltas] = useState(
-    factura.lineas.map(l => ({ ...l, cantidadDevolver: 0 }))
+    factura.lineas.map(l => ({ ...l, cantidadDevolver: 0, disponible: l.cantidad - (l.cantidadDevuelta || 0) }))
   );
   const [procesando, setProcesando] = useState(false);
   const [error, setError] = useState('');
@@ -28,7 +28,7 @@ const NotaCreditoVentaForm = ({ factura, inventario, servicios = [], setInventar
 
   const handleCantidadChange = (index, qty) => {
     const newLineas = [...lineasDevueltas];
-    newLineas[index].cantidadDevolver = Math.min(Math.max(0, qty), newLineas[index].cantidad);
+    newLineas[index].cantidadDevolver = Math.min(Math.max(0, qty), newLineas[index].disponible);
     setLineasDevueltas(newLineas);
   };
 
@@ -128,16 +128,21 @@ const NotaCreditoVentaForm = ({ factura, inventario, servicios = [], setInventar
                         servicios.find(s => s.id_producto_servicio === linea.productoId) ||
                         inventario.find(p => p.id === linea.productoId))?.nombre || 'N/A'}
                     </td>
-                    <td className="px-6 py-4 text-center font-mono font-bold text-gray-900">{linea.cantidad}</td>
+                    <td className="px-6 py-4 text-center font-mono font-bold text-gray-900">
+                      {linea.cantidad}
+                      {linea.cantidadDevuelta > 0 && (
+                        <span className="block text-xs text-red-500 font-medium">Devuelto: {linea.cantidadDevuelta}</span>
+                      )}
+                    </td>
                     <td className="px-6 py-4 text-center">
                       <input
                         type="number"
                         min="0"
-                        max={linea.cantidad}
+                        max={linea.disponible}
                         value={linea.cantidadDevolver}
                         onChange={(e) => handleCantidadChange(index, parseInt(e.target.value))}
                         className="w-20 p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-400 text-center font-mono"
-                        disabled={!dentro48h}
+                        disabled={!dentro48h || linea.disponible === 0}
                       />
                     </td>
                     <td className="px-6 py-4 text-right font-mono">Gs. {linea.precioUnitario.toLocaleString()}</td>

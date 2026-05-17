@@ -59,13 +59,20 @@ export const validarDevolucion = (factura) => {
 };
 
 export const restockFromNotaCredito = (notaCredito, inventarioActual) => {
+  const motivosQueDevuelvenStock = ['Producto equivocado', 'Cliente cambió opinión'];
+  const debeDevolverStock = motivosQueDevuelvenStock.includes(notaCredito.motivo);
+
   const nuevoInventario = [...inventarioActual];
-  notaCredito.lineasDevueltas.forEach(linea => {
-    const prodIdx = nuevoInventario.findIndex(p => (p.id_producto_servicio === linea.productoId) || (p.id === linea.productoId));
-    if (prodIdx !== -1) {
-      nuevoInventario[prodIdx].stock += linea.cantidad;
-    }
-  });
+
+  if (debeDevolverStock) {
+    notaCredito.lineasDevueltas.forEach(linea => {
+      const prodIdx = nuevoInventario.findIndex(p => (p.id_producto_servicio === linea.productoId) || (p.id === linea.productoId));
+      if (prodIdx !== -1) {
+        nuevoInventario[prodIdx] = { ...nuevoInventario[prodIdx], stock: nuevoInventario[prodIdx].stock + (linea.cantidadDevolver || linea.cantidad) };
+      }
+    });
+  }
+
   return nuevoInventario;
 };
 

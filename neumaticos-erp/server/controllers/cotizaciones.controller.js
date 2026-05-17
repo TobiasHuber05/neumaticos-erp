@@ -7,6 +7,42 @@ const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
+// Helper para normalizar el formato de respuesta de una cotización
+const mapCotizacion = (c) => {
+  return {
+    id: c.id_cotizacion,
+    idPedidoProducto: c.id_pedido_producto,
+    fecha: c.fecha,
+    proveedor: {
+      id: c.proveedores?.id_proveedor || c.id_proveedor,
+      nombre: c.proveedores?.nombre || 'Proveedor desconocido',
+    },
+    // Para compatibilidad con otros formatos
+    proveedorId: c.id_proveedor,
+    nombreProveedor: c.proveedores?.nombre,
+    estado: c.orden_compra?.length > 0 ? 'Adjudicado' : 'Pendiente',
+    lineas: c.detalle_cotizacion.map((d) => {
+      // Búsqueda exhaustiva de la cantidad en el pedido original
+      const detPedido = c.pedidos_productos?.detalles_pedidos?.find(
+        dp => Number(dp.id_producto) === Number(d.id_producto)
+      );
+      
+      if (!detPedido) {
+        console.warn(`⚠️ No se encontró detalle de pedido para Producto ${d.id_producto} en Pedido ${c.id_pedido_producto}`);
+      }
+
+      return {
+        id: d.id_detalle_cotizacion,
+        productoId: d.id_producto,
+        nombreProducto: d.producto?.descripcion || '—',
+        cantidadSolicitada: detPedido ? Number(detPedido.cantidad) : 1, 
+        precio: d.precio,
+        seleccionado: d.seleccionado ?? false,
+      };
+    }),
+  };
+};
+
 // ─── GET /api/cotizaciones ────────────────────────────────────
 export const getCotizaciones = async (req, res) => {
   try {
@@ -14,7 +50,7 @@ export const getCotizaciones = async (req, res) => {
       include: {
         proveedores: true,
         pedidos_productos: {
-          include: { detalles_pedidos: { include: { producto: true } } }
+          include: { detalles_pedidos: true }
         },
         detalle_cotizacion: { include: { producto: true } },
         orden_compra: true,
@@ -22,24 +58,7 @@ export const getCotizaciones = async (req, res) => {
       orderBy: { id_cotizacion: 'desc' }
     });
 
-    const data = cotizaciones.map((c) => ({
-      id: c.id_cotizacion,
-      idPedidoProducto: c.id_pedido_producto,
-      fecha: c.fecha,
-      proveedor: {
-        id: c.proveedores?.id_proveedor,
-        nombre: c.proveedores?.nombre,
-      },
-      estado: c.orden_compra.length > 0 ? 'Adjudicado' : 'Pendiente',
-      lineas: c.detalle_cotizacion.map((d) => ({
-        id: d.id_detalle_cotizacion,
-        productoId: d.id_producto,
-        nombreProducto: d.producto?.descripcion,
-        precio: d.precio,
-        seleccionado: d.seleccionado ?? false,
-      })),
-    }));
-
+    const data = cotizaciones.map(mapCotizacion);
     return res.json(data);
   } catch (error) {
     console.error('Error al obtener cotizaciones:', error);
@@ -55,27 +74,15 @@ export const getCotizacionesPorPedido = async (req, res) => {
       where: { id_pedido_producto: Number(idPedido) },
       include: {
         proveedores: true,
+        pedidos_productos: {
+          include: { detalles_pedidos: true }
+        },
         detalle_cotizacion: { include: { producto: true } },
         orden_compra: true,
       }
     });
 
-    const data = cotizaciones.map((c) => ({
-      id: c.id_cotizacion,
-      idPedidoProducto: c.id_pedido_producto,
-      fecha: c.fecha,
-      proveedorId: c.id_proveedor,
-      nombreProveedor: c.proveedores?.nombre,
-      estado: c.orden_compra.length > 0 ? 'Adjudicado' : 'Pendiente',
-      lineas: c.detalle_cotizacion.map((d) => ({
-        id: d.id_detalle_cotizacion,
-        productoId: d.id_producto,
-        nombreProducto: d.producto?.descripcion,
-        precio: d.precio,
-        seleccionado: d.seleccionado ?? false,
-      })),
-    }));
-
+    const data = cotizaciones.map(mapCotizacion);
     return res.json(data);
   } catch (error) {
     console.error('Error al obtener cotizaciones por pedido:', error);
@@ -86,6 +93,7 @@ export const getCotizacionesPorPedido = async (req, res) => {
 // ─── POST /api/cotizaciones/generar ──────────────────────────
 export const generarCotizaciones = async (req, res) => {
   const { idPedidoProducto, proveedorIds } = req.body;
+  console.log('🚀 Generando cotizaciones para Pedido:', idPedidoProducto, 'Provs:', proveedorIds);
 
   if (!idPedidoProducto || !proveedorIds?.length) {
     return res.status(400).json({ error: 'Se requiere idPedidoProducto y al menos un proveedor' });
@@ -98,8 +106,7 @@ export const generarCotizaciones = async (req, res) => {
     });
 
     if (!pedido) return res.status(404).json({ error: 'Pedido no encontrado' });
-    if (!pedido.detalles_pedidos.length) return res.status(400).json({ error: 'El pedido no tiene productos' });
-
+    
     const existentes = await prisma.cotizacion.findMany({
       where: { id_pedido_producto: Number(idPedidoProducto) }
     });
@@ -108,7 +115,6 @@ export const generarCotizaciones = async (req, res) => {
     }
 
     const hoy = new Date();
-
     const cotizaciones = await prisma.$transaction(
       proveedorIds.map((provId) =>
         prisma.cotizacion.create({
@@ -126,28 +132,17 @@ export const generarCotizaciones = async (req, res) => {
           },
           include: {
             proveedores: true,
+            pedidos_productos: {
+              include: { detalles_pedidos: true }
+            },
             detalle_cotizacion: { include: { producto: true } },
+            orden_compra: true
           }
         })
       )
     );
 
-    const data = cotizaciones.map((c) => ({
-      id: c.id_cotizacion,
-      idPedidoProducto: c.id_pedido_producto,
-      fecha: c.fecha,
-      proveedorId: c.id_proveedor,
-      nombreProveedor: c.proveedores?.nombre,
-      estado: 'Pendiente',
-      lineas: c.detalle_cotizacion.map((d) => ({
-        id: d.id_detalle_cotizacion,
-        productoId: d.id_producto,
-        nombreProducto: d.producto?.descripcion,
-        precio: d.precio,
-        seleccionado: false,
-      })),
-    }));
-
+    const data = cotizaciones.map(mapCotizacion);
     return res.status(201).json({ ok: true, cotizaciones: data });
   } catch (error) {
     console.error('Error al generar cotizaciones:', error);
@@ -159,10 +154,6 @@ export const generarCotizaciones = async (req, res) => {
 export const actualizarPrecios = async (req, res) => {
   const { id } = req.params;
   const { lineas, fechaRespuesta } = req.body;
-
-  if (!lineas?.length) {
-    return res.status(400).json({ error: 'Se requieren las líneas con precios' });
-  }
 
   try {
     await prisma.$transaction(
@@ -178,25 +169,17 @@ export const actualizarPrecios = async (req, res) => {
       where: { id_cotizacion: Number(id) },
       include: {
         proveedores: true,
+        pedidos_productos: {
+          include: { detalles_pedidos: true }
+        },
         detalle_cotizacion: { include: { producto: true } },
+        orden_compra: true
       }
     });
 
     return res.json({
       ok: true,
-      cotizacion: {
-        id: cotizacion.id_cotizacion,
-        proveedorId: cotizacion.id_proveedor,
-        nombreProveedor: cotizacion.proveedores?.nombre,
-        fechaRespuesta: fechaRespuesta ?? null,
-        lineas: cotizacion.detalle_cotizacion.map((d) => ({
-          id: d.id_detalle_cotizacion,
-          productoId: d.id_producto,
-          nombreProducto: d.producto?.descripcion,
-          precio: d.precio,
-          seleccionado: d.seleccionado,
-        })),
-      }
+      cotizacion: mapCotizacion(cotizacion)
     });
   } catch (error) {
     console.error('Error al actualizar precios:', error);
@@ -205,20 +188,19 @@ export const actualizarPrecios = async (req, res) => {
 };
 
 // ─── POST /api/cotizaciones/adjudicar ────────────────────────
-// Selecciona menor precio por producto Y crea las órdenes de compra
 export const adjudicar = async (req, res) => {
   const { idPedidoProducto } = req.body;
-
-  if (!idPedidoProducto) {
-    return res.status(400).json({ error: 'Se requiere idPedidoProducto' });
-  }
 
   try {
     const cotizaciones = await prisma.cotizacion.findMany({
       where: { id_pedido_producto: Number(idPedidoProducto) },
       include: {
+        pedidos_productos: {
+          include: { detalles_pedidos: true }
+        },
         detalle_cotizacion: { include: { producto: true } },
-        proveedores: true
+        proveedores: true,
+        orden_compra: true
       }
     });
 
@@ -226,23 +208,16 @@ export const adjudicar = async (req, res) => {
       return res.status(404).json({ error: 'No hay cotizaciones para este pedido' });
     }
 
-    // Verificar si ya fue adjudicado
-    const yaAdjudicado = await prisma.orden_compra.findFirst({
-      where: { id_cotizacion: { in: cotizaciones.map(c => c.id_cotizacion) } }
-    });
-    if (yaAdjudicado) {
-      return res.status(409).json({ error: 'Este pedido ya fue adjudicado' });
-    }
+    const cotizacionesMapeadas = cotizaciones.map(mapCotizacion);
 
-    // Agrupar todos los detalles por producto
-    const todosDetalles = cotizaciones.flatMap((c) =>
-      c.detalle_cotizacion
-        .filter((d) => d.precio != null && d.precio > 0)
-        .map((d) => ({
-          ...d,
-          proveedorId: c.id_proveedor,
-          cotizacionId: c.id_cotizacion,
-          nombreProveedor: c.proveedores?.nombre,
+    const todosDetalles = cotizacionesMapeadas.flatMap((c) =>
+      c.lineas
+        .filter((l) => l.precio != null && l.precio > 0)
+        .map((l) => ({
+          ...l,
+          proveedorId: c.proveedorId,
+          cotizacionId: c.id,
+          nombreProveedor: c.nombreProveedor,
         }))
     );
 
@@ -250,28 +225,24 @@ export const adjudicar = async (req, res) => {
       return res.status(400).json({ error: 'No hay precios cargados en ninguna cotización' });
     }
 
-    // Por cada producto, encontrar el menor precio
-    const productoIds = [...new Set(todosDetalles.map((d) => d.id_producto))];
+    const productoIds = [...new Set(todosDetalles.map((d) => d.productoId))];
     const ganadores = productoIds.map((prodId) => {
-      const candidatos = todosDetalles.filter((d) => d.id_producto === prodId);
+      const candidatos = todosDetalles.filter((d) => d.productoId === prodId);
       return candidatos.reduce((min, d) => (Number(d.precio) < Number(min.precio) ? d : min));
     });
 
-    const ganadorIds = new Set(ganadores.map((g) => g.id_detalle_cotizacion));
+    const ganadorIds = new Set(ganadores.map((g) => g.id));
 
-    // Obtener estado "Pendiente entrega"
     let estadoPendiente = await prisma.estados.findFirst({
       where: { nombre: { contains: 'Pendiente' } }
     });
 
-    // Si no existe el estado, crearlo
     if (!estadoPendiente) {
       estadoPendiente = await prisma.estados.create({
         data: { nombre: 'Pendiente entrega' }
       });
     }
 
-    // Agrupar ganadores por proveedor para crear una OC por proveedor
     const porProveedor = {};
     for (const g of ganadores) {
       if (!porProveedor[g.cotizacionId]) {
@@ -285,20 +256,17 @@ export const adjudicar = async (req, res) => {
       porProveedor[g.cotizacionId].productos.push(g);
     }
 
-    // Ejecutar todo en una transacción
     const resultado = await prisma.$transaction(async (tx) => {
-      // Marcar seleccionado en detalles
       await Promise.all(
         todosDetalles.map((d) =>
           tx.detalle_cotizacion.update({
-            where: { id_detalle_cotizacion: d.id_detalle_cotizacion },
-            data: { seleccionado: ganadorIds.has(d.id_detalle_cotizacion) }
+            where: { id_detalle_cotizacion: d.id },
+            data: { seleccionado: ganadorIds.has(d.id) }
           })
         )
       );
 
-      // Crear una orden de compra por proveedor ganador
-      const ordenes = [];
+      const ordenesCreated = [];
       for (const grupo of Object.values(porProveedor)) {
         const oc = await tx.orden_compra.create({
           data: {
@@ -308,26 +276,19 @@ export const adjudicar = async (req, res) => {
             id_estado: estadoPendiente.id_estado,
           }
         });
-        ordenes.push({
+        ordenesCreated.push({
           id: oc.id_orden_compra,
           proveedorId: grupo.proveedorId,
           nombreProveedor: grupo.nombreProveedor,
         });
       }
 
-      return ordenes;
+      return ordenesCreated;
     });
 
     return res.json({
       ok: true,
-      adjudicaciones: ganadores.map((g) => ({
-        productoId: g.id_producto,
-        nombreProducto: g.producto?.descripcion,
-        precio: g.precio,
-        proveedorId: g.proveedorId,
-        nombreProveedor: g.nombreProveedor,
-        cotizacionId: g.cotizacionId,
-      })),
+      adjudicaciones: ganadores,
       ordenes: resultado,
     });
   } catch (error) {

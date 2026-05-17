@@ -54,11 +54,23 @@ export function useAsientosContables(idPeriodo) {
         }
     };
 
+    const getDetalleOrigen = async (idAsiento) => {
+        try {
+            const res = await fetch(`${API}/${idAsiento}/detalle-origen`, { headers: getHeaders() });
+            if (!res.ok) throw new Error('Error al cargar detalle de origen');
+            return await res.json();
+        } catch (err) {
+            console.error(err);
+            return { items: [] };
+        }
+    };
+
     return {
         asientos,
         loading,
         error,
         crearAsiento,
+        getDetalleOrigen,
         refresh: fetchAsientos
     };
 }

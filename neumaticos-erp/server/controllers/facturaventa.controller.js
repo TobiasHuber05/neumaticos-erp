@@ -121,7 +121,14 @@ export const generarFactura = async (req, res) => {
 export const getFactura = async (req, res) => {
   try {
     const facturas = await prisma.factura_venta.findMany({
-      include: { detalle_factura_venta: true }
+      include: { 
+        detalle_factura_venta: true,
+        devolucion_cliente: {
+          include: {
+            detalle_devolucion: true
+          }
+        }
+      }
     });
     res.json(facturas);
   } catch (error) {

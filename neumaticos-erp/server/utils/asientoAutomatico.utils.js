@@ -60,7 +60,7 @@ export const registrarAsientoAutomatico = async ({
         const totalDebe = detallesConId
             .filter(d => d.debe_haber === true)
             .reduce((sum, d) => sum + Number(d.monto), 0);
-        
+
         const totalHaber = detallesConId
             .filter(d => d.debe_haber === false)
             .reduce((sum, d) => sum + Number(d.monto), 0);

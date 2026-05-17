@@ -38,6 +38,31 @@ export const getAsientosCompras = async (req, res) => {
   }
 };
 
+export const getAsientosVentas = async (req, res) => {
+  try {
+    const asientos = await prisma.asientos.findMany({
+      where: {
+        OR: [
+          { tabla_origen: 'factura_venta' },
+          { tabla_origen: 'nota_credito_venta' }
+        ]
+      },
+      include: {
+        asiento_detalle: {
+          include: {
+            plan_cuentas: true
+          }
+        }
+      },
+      orderBy: { id_asiento: 'desc' }
+    });
+    res.json(asientos);
+  } catch (error) {
+    console.error("Error al obtener asientos ventas:", error);
+    res.status(500).json({ error: 'Error al obtener asientos ventas' });
+  }
+};
+
 export const ejecutarAsientoContableCompra = async (tx, factura) => {
   const { registrarAsientoAutomatico } = await import('../utils/asientoAutomatico.utils.js');
 
@@ -68,6 +93,41 @@ export const ejecutarAsientoContableCompra = async (tx, factura) => {
         monto: total,
         debe_haber: false,
         glosa: 'Proveedores Locales'
+      }
+    ]
+  });
+};
+
+export const ejecutarAsientoNotaCreditoCompra = async (tx, nc) => {
+  const { registrarAsientoAutomatico } = await import('../utils/asientoAutomatico.utils.js');
+
+  const total = Number(nc.monto_subtotal);
+  const montoIva = Math.round(total / 11);
+  const montoNeto = total - montoIva;
+
+  return await registrarAsientoAutomatico({
+    fecha: new Date(),
+    descripcion: nc.descripcion || `Nota de Crédito Compra Nro: ${nc.numero_nota || nc.id_nota_credito}`,
+    tabla_origen: 'nota_credito',
+    id_registro_origen: nc.id_nota_credito,
+    detalles: [
+      {
+        cuenta_codigo: 'SYS-COMPRA-PROV',
+        monto: total,
+        debe_haber: true, // DEBE (Disminuye deuda)
+        glosa: 'Cancelación Deuda Proveedor'
+      },
+      {
+        cuenta_codigo: 'SYS-COMPRA-MERC',
+        monto: montoNeto,
+        debe_haber: false, // HABER (Disminuye mercadería)
+        glosa: 'Devolución de Mercaderías'
+      },
+      {
+        cuenta_codigo: 'SYS-COMPRA-IVA',
+        monto: montoIva,
+        debe_haber: false, // HABER (Reverso IVA)
+        glosa: 'Reverso IVA Crédito Fiscal 10%'
       }
     ]
   });

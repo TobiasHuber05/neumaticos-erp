@@ -51,7 +51,7 @@ export function useCotizaciones() {
         lineas: c.lineas.map((l) => ({
           productoId: l.productoId,
           nombreProducto: l.nombreProducto,
-          cantidadSolicitada: 1,
+          cantidadSolicitada: l.cantidadSolicitada, // Usar cantidad real del backend
           precioUnitario: l.precio != null ? String(l.precio) : '',
           idDetalle: l.id,
         })),

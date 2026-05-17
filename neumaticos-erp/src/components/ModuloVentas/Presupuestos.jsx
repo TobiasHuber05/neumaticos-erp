@@ -125,7 +125,7 @@ const Presupuestos = ({ ventas, clientes, inventario, setInventario, servicios =
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {vigentes.map((p) => {
+                {[...vigentes].reverse().map((p) => {
                   const cliente = clientes.find(c => c.id === p.clientId);
                   return (
                     <tr key={p.id} className="hover:bg-orange-50/50 cursor-pointer transition-colors" onClick={() => handleFacturaClick(p)}>
@@ -186,7 +186,7 @@ const Presupuestos = ({ ventas, clientes, inventario, setInventario, servicios =
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {expirados.map((p) => {
+                {[...expirados].reverse().map((p) => {
                   const cliente = clientes.find(c => c.id === p.clientId);
                   return (
                     <tr key={p.id} className="opacity-75">

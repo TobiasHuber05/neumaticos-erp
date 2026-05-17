@@ -7,6 +7,7 @@ const API_CLIENTES = '/api/clientes';
 const API_PRESUPUESTOS = '/api/presupuestos';
 const API_FACTURAS = '/api/facturas';
 const API_DEVOLUCIONES = '/api/devoluciones';
+const API_ASIENTOS_VENTAS = '/api/asientos-ventas';
 
 function getHeaders() {
   return {
@@ -28,18 +29,20 @@ export const useModuloVentas = () => {
   const fetchDatos = useCallback(async () => {
     setLoading(true);
     try {
-      const [resClientes, resPresupuestos, resFacturas, resNotaCredito] = await Promise.all([
+      const [resClientes, resPresupuestos, resFacturas, resNotaCredito, resAsientos] = await Promise.all([
         fetch(API_CLIENTES, { headers: getHeaders() }),
         fetch(API_PRESUPUESTOS, { headers: getHeaders() }),
         fetch(API_FACTURAS, { headers: getHeaders() }),
-        fetch (API_DEVOLUCIONES, {headers: getHeaders()}),
+        fetch(API_DEVOLUCIONES, { headers: getHeaders() }),
+        fetch(API_ASIENTOS_VENTAS, { headers: getHeaders() }),
       ]);
 
-      const [clientesData, presupuestosData, facturasData, devolucionData] = await Promise.all([
+      const [clientesData, presupuestosData, facturasData, devolucionData, asientosData] = await Promise.all([
         resClientes.json(),
         resPresupuestos.json(),
         resFacturas.json(),
         resNotaCredito.json(),
+        resAsientos.ok ? resAsientos.json() : Promise.resolve([]),
       ]);
 
 
@@ -63,7 +66,7 @@ export const useModuloVentas = () => {
         estado: p.estado,
         total: p.total,
         lineas: (p.detalle_presupuesto ?? []).map(d => ({
-          productoId: d.id_producto_servicio,
+          productoId: d.id_producto, // Presupuestos usan id_producto en backend
           cantidad: d.cantidad_producto,
           precioUnitario: d.precio_unitario,
           totalLinea: d.cantidad_producto * d.precio_unitario,
@@ -71,32 +74,84 @@ export const useModuloVentas = () => {
       })));
 
       // Backend: { id_factura_venta, id_presupuesto, id_cliente, fecha_emision, total, detalle_factura_venta }
-      setFacturasVentas(facturasData.map(f => ({
-        id: f.id_factura_venta,
-        presupuestoId: f.id_presupuesto,
-        clientId: f.id_cliente,
-        fechaFactura: f.fecha_emision?.split('T')[0],
-        total: f.total,
-        estado: f.estado ?? 'Emitida',
-        fecha48h: new Date(
-          new Date(f.fecha_emision).getTime() + 48 * 60 * 60 * 1000
-        ).toISOString().split('T')[0],
-        lineas: (f.detalle_factura_venta ?? []).map(d => ({
-          productoId: d.id_producto_servicio,
-          cantidad: d.cantidad,
-          precioUnitario: d.precio_unitario,
-          totalLinea: d.subtotal,
-        })),
-      })));
+      setFacturasVentas(facturasData.map(f => {
+        // Calcular historial de devoluciones para esta factura
+        const devoluciones = f.devolucion_cliente || [];
+        const devueltosPorProd = {};
+        
+        devoluciones.forEach(dev => {
+          (dev.detalle_devolucion || []).forEach(dDev => {
+            devueltosPorProd[dDev.id_producto_servicio] = (devueltosPorProd[dDev.id_producto_servicio] || 0) + Number(dDev.cantidad || 0);
+          });
+        });
+
+        const lineasMap = (f.detalle_factura_venta ?? []).map(d => {
+          const qty = Number(d.cantidad ?? 0);
+          const devuelto = devueltosPorProd[d.id_producto_servicio] || 0;
+          return {
+            productoId: d.id_producto_servicio,
+            cantidad: qty,
+            cantidadDevuelta: devuelto, // Nuevo campo para trackear límite
+            precioUnitario: Number(d.precio_unitario ?? 0),
+            totalLinea: Number(d.subtotal ?? 0),
+          };
+        });
+
+        const totalQtyFacturada = lineasMap.reduce((acc, l) => acc + l.cantidad, 0);
+        const totalQtyDevuelta = lineasMap.reduce((acc, l) => acc + l.cantidadDevuelta, 0);
+
+        let estadoFinal = f.estado ?? 'Emitida';
+        if (totalQtyDevuelta > 0) {
+          estadoFinal = totalQtyDevuelta >= totalQtyFacturada ? 'Con NC' : 'Con NC Parcial';
+        }
+
+        return {
+          id: f.id_factura_venta,
+          numero: f.nro_factura || f.id_factura_venta.toString(),
+          presupuestoId: f.id_presupuesto,
+          clientId: f.id_cliente,
+          fechaFactura: f.fecha_emision?.split('T')[0],
+          total: f.total,
+          estado: estadoFinal,
+          fecha48h: new Date(
+            new Date(f.fecha_emision).getTime() + 48 * 60 * 60 * 1000
+          ).toISOString().split('T')[0],
+          lineas: lineasMap,
+        };
+      }));
       setNotasCreditoVentas(devolucionData.map(n => ({
-        id:        n.id_nota_credito_venta,
-        facturaId: n.id_devolucion,
-        fecha:     n.fecha_emision?.split('T')[0],
-        nroNota:   n.nro_nota,
-        total:     n.detalle_nota_credito?.reduce(
+        id: n.id_nota_credito_venta,
+        facturaId: n.devolucion_cliente?.id_factura,
+        fecha: n.fecha_emision?.split('T')[0],
+        numero: n.nro_nota,
+        motivo: n.devolucion_cliente?.motivo_devolucion,
+        total: n.detalle_nota_credito?.reduce(
           (sum, d) => sum + Number(d.monto ?? 0), 0
-       ),
+        ),
       })));
+
+      setAsientosVentas(Array.isArray(asientosData) ? asientosData.map(a => {
+        // Obtenemos los nombres de las cuentas principales para mostrar en el resumen
+        const cuentasNombres = (a.asiento_detalle || [])
+          .map(det => det.plan_cuentas?.nombre)
+          .filter(Boolean);
+        
+        const cuentaResumen = cuentasNombres.length > 2 
+          ? 'Varias cuentas' 
+          : cuentasNombres.join(' / ') || 'Varias cuentas';
+
+        return {
+          id: a.id_asiento,
+          fecha: a.fecha?.split('T')[0],
+          nro_asiento: a.numero_asiento,
+          descripcion: a.descripcion,
+          debe: Number(a.total_debe || 0),
+          haber: Number(a.total_haber || 0),
+          tipo: a.tabla_origen === 'factura_venta' ? 'Factura Emitida' : 'Nota Crédito',
+          cuenta: cuentaResumen,
+          estado: a.estado
+        };
+      }) : []);
 
     } catch (err) {
       setError('Error al cargar datos de ventas');
@@ -153,7 +208,7 @@ export const useModuloVentas = () => {
       body: JSON.stringify({
         id_cliente: clientId,
         items: lineas.map(l => ({
-          id_producto_servicio: l.productoId,
+          id_producto: l.productoId, // Backend requiere id_producto para presupuestos
           cantidad_producto: l.cantidad,
           precio_unitario: l.precioUnitario,
         })),
@@ -258,7 +313,7 @@ export const useModuloVentas = () => {
         motivo,
         items_a_devolver: lineasDevueltas.map(l => ({
           id_producto_servicio: l.productoId,
-          cantidad: l.cantidad,
+          cantidad: l.cantidadDevolver,
           precio_unitario: l.precioUnitario,
         })),
       }),
@@ -271,23 +326,42 @@ export const useModuloVentas = () => {
 
     const data = await res.json();
     const nuevaNC = {
-      id: data.id_devolucion,
+      id: data.notaCredito?.id_nota_credito_venta || data.id_devolucion,
       facturaId,
       fecha: new Date().toISOString().split('T')[0],
+      numero: data.notaCredito?.nro_nota || 'Pendiente',
       motivo,
       lineasDevueltas,
-      total: lineasDevueltas.reduce((sum, l) => sum + l.cantidad * l.precioUnitario, 0),
+      total: lineasDevueltas.reduce((sum, l) => sum + l.cantidadDevolver * l.precioUnitario, 0),
     };
 
     const nuevoInventario = ventasLogic.restockFromNotaCredito(
-      { lineasDevueltas },
+      { lineasDevueltas, motivo },
       inventarioActual
     );
     setInventarioExterno(nuevoInventario);
 
     setNotasCreditoVentas(prev => [...prev, nuevaNC]);
     setFacturasVentas(prev =>
-      prev.map(f => f.id === facturaId ? { ...f, estado: 'Con NC' } : f)
+      prev.map(f => {
+        if (f.id === facturaId) {
+          // Actualizar las lineas locales restando lo que se acaba de devolver
+          const lineasActualizadas = f.lineas.map(l => {
+            const devuelta = lineasDevueltas.find(ld => ld.productoId === l.productoId)?.cantidadDevolver || 0;
+            return { ...l, cantidadDevuelta: (l.cantidadDevuelta || 0) + devuelta };
+          });
+
+          const totalFacturada = lineasActualizadas.reduce((acc, l) => acc + l.cantidad, 0);
+          const totalDevuelta = lineasActualizadas.reduce((acc, l) => acc + l.cantidadDevuelta, 0);
+
+          return {
+            ...f,
+            lineas: lineasActualizadas,
+            estado: totalDevuelta >= totalFacturada ? 'Con NC' : 'Con NC Parcial'
+          };
+        }
+        return f;
+      })
     );
 
     const asiento = ventasLogic.generateAsientoNotaCredito(nuevaNC);

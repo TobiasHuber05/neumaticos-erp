@@ -21,15 +21,14 @@ const fmtNd = (n) => `ND-P-${String(n).padStart(4, '0')}`;
 const fmtNc = (n) => `NC-P-${String(n).padStart(4, '0')}`;
 const fmtOp = (n) => `OP-${String(n).padStart(4, '0')}`;
 
-// Función para normalizar los datos que vienen de la DB al formato que usa el componente
 function normalizarInventarioItem(row) {
   const precioRaw = row.precio;
   const precioNum = Number(precioRaw) || 0;
   
   return {
     ...row,
-    id: row.id, // id_producto de la DB
-    nombreProducto: row.nombre, // descripcion de la DB
+    id: row.id, 
+    nombreProducto: row.nombre, 
     stock: Number(row.stock) || 0,
     min: Number(row.min) || 10,
     precioNum,
@@ -38,13 +37,11 @@ function normalizarInventarioItem(row) {
 }
 
 export function useModuloCompras() {
-  // --- ESTADOS DE DATOS (AHORA INICIAN VACÍOS) ---
   const [proveedores, setProveedores] = useState([]);
   const [inventario, setInventario] = useState([]);
   const [pedidos, setPedidos] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // --- ESTADOS DE PROCESO (LOCALES POR AHORA) ---
   const [pedidosCotizacion, setPedidosCotizacion] = useState([]);
   const [cotizacionesProveedor, setCotizacionesProveedor] = useState([]);
   const [ordenesCompra, setOrdenesCompra] = useState([]);
@@ -54,33 +51,26 @@ export function useModuloCompras() {
   const [ordenesPagoProveedores, setOrdenesPagoProveedores] = useState([]);
   const [asientosCompras, setAsientosCompras] = useState([]);
 
-  // --- REFS ---
-  const cotSeqRef = useRef(1);
-  const ocSeqRef = useRef(1);
-  const facSeqRef = useRef(1);
-  const ndSeqRef = useRef(1);
-  const ncSeqRef = useRef(1);
-  const opSeqRef = useRef(1);
-  const asSeqRef = useRef(1);
-
   const proveedoresRef = useRef(proveedores);
   useEffect(() => { proveedoresRef.current = proveedores; }, [proveedores]);
   
   const facturasRef = useRef(facturasProveedor);
   useEffect(() => { facturasRef.current = facturasProveedor; }, [facturasProveedor]);
 
-  // --- FUNCIONES DE CARGA (FETCH) ---
-
   const fetchTodo = useCallback(async () => {
     setLoading(true);
     try {
       const headers = { Authorization: `Bearer ${localStorage.getItem('token')}` };
       
-      // Cargamos Productos, Pedidos y Proveedores en paralelo
-      const [resProd, resPed, resProv] = await Promise.all([
+      const [resProd, resPed, resProv, resCot, resOc, resFac, resDev, resNc] = await Promise.all([
         fetch('/api/productos', { headers }),
         fetch('/api/compras/pedidos', { headers }),
-        fetch('/api/proveedores', { headers }) // Asumiendo que tienes esta ruta
+        fetch('/api/proveedores', { headers }),
+        fetch('/api/cotizaciones', { headers }),
+        fetch('/api/ordenes-compra', { headers }),
+        fetch('/api/ordenes-compra/facturas', { headers }),
+        fetch('/api/ordenes-compra/devoluciones', { headers }),
+        fetch('/api/ordenes-compra/notas-credito', { headers })
       ]);
 
       if (resProd.ok) {
@@ -90,22 +80,67 @@ export function useModuloCompras() {
 
       if (resPed.ok) {
         const dataPed = await resPed.json();
-        const dataMapeada = dataPed.map(p => ({
+        setPedidos(dataPed.map(p => ({
           ...p,
-          items: p.items.map(it => ({
-            ...it,
-            nombreProducto: it.nombre
-          }))
-        }));
-        setPedidos(dataMapeada);
+          items: p.items.map(it => ({ ...it, nombreProducto: it.nombreProducto || it.nombre }))
+        })));
       }
 
       if (resProv.ok) {
-        const dataProv = await resProv.json();
-        setProveedores(dataProv);
+        setProveedores(await resProv.json());
       }
+
+      if (resCot.ok) {
+        const dataCot = await resCot.json();
+        // Agrupar cotizaciones por pedido para pedidosCotizacion
+        const groups = {};
+        const allCots = [];
+        dataCot.forEach(c => {
+          if (!groups[c.idPedidoProducto]) {
+            groups[c.idPedidoProducto] = {
+              id: c.idPedidoProducto,
+              pedidoCompraId: c.idPedidoProducto,
+              fechaEnvio: c.fecha?.split('T')[0],
+              estado: c.estado === 'Adjudicado' ? 'Adjudicado' : 'Enviado',
+            };
+          }
+          allCots.push({
+            id: c.id,
+            pedidoCotizacionId: c.idPedidoProducto,
+            proveedorId: c.proveedor.id,
+            fechaRespuesta: c.fecha?.split('T')[0],
+            estado: c.estado === 'Adjudicado' ? 'Respondido' : 'Pendiente',
+            lineas: c.lineas.map(l => ({
+              id: l.id,
+              productoId: l.productoId,
+              nombreProducto: l.nombreProducto,
+              cantidadSolicitada: l.cantidadSolicitada,
+              precioUnitario: l.precio || ''
+            }))
+          });
+        });
+        setPedidosCotizacion(Object.values(groups));
+        setCotizacionesProveedor(allCots);
+      }
+
+      if (resOc.ok) {
+        setOrdenesCompra(await resOc.json());
+      }
+
+      if (resFac.ok) {
+        setFacturasProveedor(await resFac.json());
+      }
+
+      if (resDev && resDev.ok) {
+        setNotasDevolucion(await resDev.json());
+      }
+
+      if (resNc && resNc.ok) {
+        setNotasCreditoProveedor(await resNc.json());
+      }
+
     } catch (err) {
-      console.error("Error cargando datos del módulo:", err);
+      console.error("Error cargando datos:", err);
     } finally {
       setLoading(false);
     }
@@ -115,7 +150,6 @@ export function useModuloCompras() {
     fetchTodo();
   }, [fetchTodo]);
 
-  // --- GUARDAR PEDIDO (CREATE) ---
   const guardarPedidoCompra = useCallback(async (items) => {
     try {
       const res = await fetch('/api/compras/pedidos', {
@@ -126,223 +160,150 @@ export function useModuloCompras() {
         },
         body: JSON.stringify({ items })
       });
-
       if (res.ok) {
-        await fetchTodo(); // Refrescar todo para ver cambios
+        await fetchTodo();
         return { ok: true };
-      } else {
-        const errData = await res.json();
-        return { ok: false, error: errData.error };
       }
+      const errData = await res.json();
+      return { ok: false, error: errData.error };
     } catch (error) {
-      console.error("Error al guardar pedido:", error);
       return { ok: false, error: "Error de conexión" };
     }
   }, [fetchTodo]);
 
-  // --- LÓGICA DE NEGOCIO (IGUAL A TU ORIGINAL) ---
-
-  const agregarAsiento = useCallback((tipo, descripcion, monto, ref) => {
-    const n = asSeqRef.current++;
-    const row = {
-      id: nid(),
-      numero: `AS-${String(n).padStart(4, '0')}`,
-      fecha: new Date().toISOString().slice(0, 10),
-      tipo,
-      descripcion,
-      debe: monto,
-      haber: monto,
-      ref,
-    };
-    setAsientosCompras((prev) => [row, ...prev]);
-  }, []);
-
-  const generarPedidoCotizacion = useCallback((pedidoCompra) => {
+  const generarPedidoCotizacion = useCallback(async (pedidoCompra) => {
     const items = pedidoCompra.items ?? [];
     if (items.length === 0) return { ok: false, error: 'El pedido no tiene ítems.' };
     const provs = proveedoresRef.current;
     const { proveedorIds, advertencia } = elegirProveedoresCotizacion(items, provs);
     if (proveedorIds.length < 1) return { ok: false, error: 'No hay proveedores registrados.' };
 
-    const pcId = nid();
-    const numero = fmtCot(cotSeqRef.current++);
-    const pedidoCot = {
-      id: pcId,
-      numero,
-      pedidoCompraId: pedidoCompra.id,
-      fechaEnvio: new Date().toISOString().slice(0, 10),
-      proveedorIds,
-      estado: 'Enviado',
-      advertencia,
-    };
-
-    const nuevasCotizaciones = proveedorIds.map((proveedorId) => ({
-      id: nid(),
-      pedidoCotizacionId: pcId,
-      proveedorId,
-      fechaRespuesta: null,
-      lineas: items.map((it) => ({
-        productoId: it.productoId,
-        nombreProducto: it.nombreProducto,
-        cantidadSolicitada: it.cantidad,
-        precioUnitario: '',
-      })),
-      estado: 'Pendiente',
-    }));
-
-    setPedidosCotizacion((prev) => [pedidoCot, ...prev]);
-    setCotizacionesProveedor((prev) => [...nuevasCotizaciones, ...prev]);
-    setPedidos((prev) =>
-      prev.map((p) =>
-        p.id === pedidoCompra.id ? { ...p, estado: ESTADOS_PEDIDO_COMPRA.EN_COTIZACION } : p
-      )
-    );
-    return { ok: true, pedidoCot, advertencia };
-  }, []);
-
-  const actualizarCotizacionProveedor = useCallback((cotizacionId, lineas, fechaRespuesta) => {
-    setCotizacionesProveedor((prev) =>
-      prev.map((c) =>
-        c.id === cotizacionId
-          ? { ...c, lineas, fechaRespuesta: fechaRespuesta || new Date().toISOString().slice(0, 10), estado: 'Recibida' }
-          : c
-      )
-    );
-  }, []);
-
-  const adjudicarYGenerarOrdenes = useCallback((pedidoCotizacion) => {
-    const pedidoCompra = pedidos.find((p) => p.id === pedidoCotizacion.pedidoCompraId);
-    if (!pedidoCompra) return { ok: false, error: 'Pedido no encontrado.' };
-
-    const items = pedidoCompra.items ?? [];
-    const cotizaciones = cotizacionesProveedor.filter((c) => c.pedidoCotizacionId === pedidoCotizacion.id);
-    const cotParaLogica = cotizaciones.map((c) => ({
-      proveedorId: c.proveedorId,
-      lineas: (c.lineas ?? []).map((l) => ({
-        productoId: l.productoId,
-        precioUnitario: l.precioUnitario === '' ? null : Number(l.precioUnitario),
-      })),
-    }));
-
-    const porProducto = adjudicarPorMenorPrecio(items, cotParaLogica);
-    const grupos = agruparLineasPorProveedor(items, porProducto);
-    const provKeys = Object.keys(grupos);
-    if (provKeys.length === 0) return { ok: false, error: 'Faltan precios en las cotizaciones.' };
-
-    const nuevasOc = [];
-    for (const proveedorIdStr of provKeys) {
-      const proveedorId = Number(proveedorIdStr);
-      const lineas = grupos[proveedorIdStr].map((row) => ({
-        productoId: row.productoId,
-        nombreProducto: row.nombreProducto,
-        cantidadPedida: row.cantidad,
-        precioUnitario: row.precioUnitario,
-      }));
-      nuevasOc.push({
-        id: nid(),
-        numero: fmtOc(ocSeqRef.current++),
-        proveedorId,
-        pedidoCotizacionId: pedidoCotizacion.id,
-        pedidoCompraId: pedidoCompra.id,
-        fecha: new Date().toISOString().slice(0, 10),
-        lineas,
-        estado: 'Pendiente entrega',
+    try {
+      const res = await fetch('/api/cotizaciones/generar', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ idPedidoProducto: pedidoCompra.id, proveedorIds })
       });
+      if (res.ok) {
+        await fetchTodo();
+        return { ok: true, advertencia };
+      }
+      const errData = await res.json();
+      return { ok: false, error: errData.error };
+    } catch (error) {
+      return { ok: false, error: "Error de conexión" };
     }
+  }, [fetchTodo]);
 
-    setOrdenesCompra((prev) => [...nuevasOc, ...prev]);
-    setPedidosCotizacion((prev) =>
-      prev.map((p) => (p.id === pedidoCotizacion.id ? { ...p, estado: 'Adjudicado' } : p))
-    );
-    setPedidos((prev) =>
-      prev.map((p) =>
-        p.id === pedidoCompra.id ? { ...p, estado: ESTADOS_PEDIDO_COMPRA.ADJUDICADO } : p
-      )
-    );
-    return { ok: true, ordenes: nuevasOc };
-  }, [pedidos, cotizacionesProveedor]);
+  const actualizarCotizacionProveedor = useCallback(async (cotizacionId, lineas, fechaRespuesta) => {
+    try {
+      const res = await fetch(`/api/cotizaciones/${cotizacionId}/precios`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ lineas: lineas.map(l => ({ id: l.id, precio: l.precioUnitario })), fechaRespuesta })
+      });
+      if (res.ok) {
+        await fetchTodo();
+        return { ok: true };
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }, [fetchTodo]);
 
-  const registrarFacturaYStock = useCallback((ordenCompra, payload) => {
+  const adjudicarYGenerarOrdenes = useCallback(async (pedidoCotizacion) => {
+    try {
+      const res = await fetch('/api/cotizaciones/adjudicar', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ idPedidoProducto: pedidoCotizacion.id })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        await fetchTodo();
+        return { ok: true, ordenes: data.ordenes };
+      }
+      const errData = await res.json();
+      return { ok: false, error: errData.error };
+    } catch (error) {
+      return { ok: false, error: "Error de conexión" };
+    }
+  }, [fetchTodo]);
+
+  const registrarFacturaYStock = useCallback(async (ordenCompra, payload) => {
     const { numero, timbrado, fecha, lineas } = payload;
-    const facturaId = nid();
-    const numeroFac = numero?.trim() || fmtFac(facSeqRef.current++);
-    const v = validarFacturaContraOrden(ordenCompra, lineas, facturasRef.current, null);
-    if (!v.ok) return { ok: false, errores: v.errores };
+    try {
+      const res = await fetch(`/api/ordenes-compra/${ordenCompra.id}/factura`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ numero, timbrado, fecha, lineas })
+      });
+      if (res.ok) {
+        await fetchTodo();
+        return { ok: true };
+      }
+      const errData = await res.json();
+      return { ok: false, error: errData.error };
+    } catch (error) {
+      return { ok: false, error: "Error de conexión" };
+    }
+  }, [fetchTodo]);
 
-    const total = totalFactura(lineas);
-    const factura = {
-      id: facturaId,
-      numero: numeroFac,
-      timbrado: timbrado?.trim() ?? '',
-      ordenCompraId: ordenCompra.id,
-      proveedorId: ordenCompra.proveedorId,
-      fecha: fecha || new Date().toISOString().slice(0, 10),
-      lineas,
-      estado: 'Aceptada',
-      estadoPago: 'Pendiente',
-      total,
-    };
-
-    setFacturasProveedor(prev => [factura, ...prev]);
-    setInventario((inv) =>
-      inv.map((prod) => {
-        const ent = lineas.find((l) => l.productoId === prod.id);
-        if (!ent) return prod;
-        return { ...prod, stock: (Number(prod.stock) || 0) + (Number(ent.cantidad) || 0) };
-      })
-    );
-
-    const prov = proveedoresRef.current.find((p) => p.id === ordenCompra.proveedorId);
-    agregarAsiento(LABELS.asientoCompra, `Compra ${factura.numero} — ${prov?.nombre}`, total, { facturaId });
-
-    setOrdenesCompra((prev) =>
-      prev.map((oc) => {
-        if (oc.id !== ordenCompra.id) return oc;
-        const tienePendiente = ordenTienePendienteEntrega(oc, [factura, ...facturasRef.current]);
-        return { ...oc, estado: tienePendiente ? 'Entrega parcial' : 'Cerrada' };
-      })
-    );
-    return { ok: true, factura };
-  }, [agregarAsiento]);
-
-  const registrarNotaDevolucion = useCallback((factura, payload) => {
+  const registrarNotaDevolucion = useCallback(async (factura, payload) => {
     const { motivo, lineas } = payload;
-    const nd = {
-      id: nid(),
-      numero: fmtNd(ndSeqRef.current++),
-      facturaId: factura.id,
-      proveedorId: factura.proveedorId,
-      fecha: new Date().toISOString().slice(0, 10),
-      motivo,
-      lineas,
-      total: totalFactura(lineas),
-    };
-    setNotasDevolucion((prev) => [nd, ...prev]);
-    setInventario((inv) =>
-      inv.map((prod) => {
-        const dev = lineas.find((l) => l.productoId === prod.id);
-        return dev ? { ...prod, stock: Math.max(0, Number(prod.stock) - Number(dev.cantidad)) } : prod;
-      })
-    );
-    return { ok: true, nota: nd };
-  }, []);
+    try {
+      const res = await fetch('/api/ordenes-compra/devolucion', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ facturaId: factura.id, motivo, lineas })
+      });
+      if (res.ok) {
+        await fetchTodo();
+        return { ok: true };
+      }
+      const errData = await res.json();
+      return { ok: false, error: errData.error };
+    } catch (error) {
+      return { ok: false, error: "Error de conexión" };
+    }
+  }, [fetchTodo]);
 
-  const registrarNotaCreditoProveedor = useCallback((notaDevolucion, payload) => {
+  const registrarNotaCreditoProveedor = useCallback(async (notaDevolucion, payload) => {
     const { numero, monto } = payload;
-    const ncId = nid();
-    const m = Number(monto) || notaDevolucion.total;
-    const nc = {
-      id: ncId,
-      numero: numero?.trim() || fmtNc(ncSeqRef.current++),
-      notaDevolucionId: notaDevolucion.id,
-      proveedorId: notaDevolucion.proveedorId,
-      fecha: new Date().toISOString().slice(0, 10),
-      monto: m,
-    };
-    setNotasCreditoProveedor((prev) => [nc, ...prev]);
-    agregarAsiento(LABELS.asientoNC, `NC ${nc.numero}`, m, { notaCreditoId: ncId });
-    return { ok: true, notaCredito: nc };
-  }, [agregarAsiento]);
+    try {
+      const res = await fetch('/api/ordenes-compra/nota-credito', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ notaDevolucionId: notaDevolucion.id, numero, monto })
+      });
+      if (res.ok) {
+        await fetchTodo();
+        return { ok: true };
+      }
+      const errData = await res.json();
+      return { ok: false, error: errData.error };
+    } catch (error) {
+      return { ok: false, error: "Error de conexión" };
+    }
+  }, [fetchTodo]);
 
   const registrarOrdenPago = useCallback((payload) => {
     const { proveedorId, facturaIds, medios } = payload;
@@ -358,9 +319,6 @@ export function useModuloCompras() {
       estado: 'Registrada',
     };
     setOrdenesPagoProveedores((prev) => [op, ...prev]);
-    setFacturasProveedor((prev) =>
-      prev.map((f) => (facturaIds.includes(f.id) ? { ...f, estadoPago: 'Pagada' } : f))
-    );
     return { ok: true, ordenPago: op };
   }, []);
 

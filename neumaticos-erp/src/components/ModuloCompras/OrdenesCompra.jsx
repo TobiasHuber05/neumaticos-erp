@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ClipboardCheck, Package, AlertCircle } from 'lucide-react';
+import { ClipboardCheck, Package, AlertCircle, Eye, X } from 'lucide-react';
 import FacturaRecepcionForm from '../Forms/FacturaRecepcionForm';
 import NotaDevolucionForm from '../Forms/NotaDevolucionForm';
 import NotaCreditoProveedorForm from '../Forms/NotaCreditoProveedorForm';
@@ -19,6 +19,7 @@ const OrdenesCompra = ({
   const [erroresFactura, setErroresFactura] = useState(null);
   const [facturaDevolver, setFacturaDevolver] = useState(null);
   const [ndParaNc, setNdParaNc] = useState(null);
+  const [detalleDoc, setDetalleDoc] = useState(null); // Para el ojo
 
   const nombreProv = (id) => proveedores.find((p) => p.id === id)?.nombre ?? `ID ${id}`;
 
@@ -200,15 +201,23 @@ const OrdenesCompra = ({
             <ul className="text-sm space-y-2">
               {notasDevolucion.map((nd) => (
                 <li key={nd.id} className="flex justify-between gap-2 border-b border-gray-100 pb-2">
-                  <span className="font-mono font-bold">{nd.numero}</span>
-                  <span className="text-gray-600 truncate">{nd.motivo}</span>
-                  <button
-                    type="button"
-                    onClick={() => setNdParaNc(nd)}
-                    className="text-erp-orange font-bold text-xs shrink-0"
-                  >
-                    + NC proveedor
-                  </button>
+                  <span className="text-gray-600 truncate">{nd.motivo || nd.nombreProveedor}</span>
+                  <div className="flex gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setDetalleDoc({ ...nd, tipo: 'Nota de Devolución' })}
+                      className="text-gray-400 hover:text-erp-orange"
+                    >
+                      <Eye size={16} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setNdParaNc(nd)}
+                      className="text-erp-orange font-bold text-xs"
+                    >
+                      + NC
+                    </button>
+                  </div>
                 </li>
               ))}
             </ul>
@@ -221,8 +230,17 @@ const OrdenesCompra = ({
           ) : (
             <ul className="text-sm space-y-2">
               {notasCreditoProveedor.map((nc) => (
-                <li key={nc.id} className="flex justify-between border-b border-gray-100 pb-2">
-                  <span className="font-mono font-bold">{nc.numero}</span>
+                <li key={nc.id} className="flex justify-between items-center border-b border-gray-100 pb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-bold">{nc.numero}</span>
+                    <button
+                      type="button"
+                      onClick={() => setDetalleDoc({ ...nc, tipo: 'Nota de Crédito' })}
+                      className="text-gray-400 hover:text-erp-orange"
+                    >
+                      <Eye size={16} />
+                    </button>
+                  </div>
                   <span>Gs. {Number(nc.monto).toLocaleString('de-DE')}</span>
                 </li>
               ))}
@@ -251,9 +269,10 @@ const OrdenesCompra = ({
           <NotaDevolucionForm
             factura={facturaDevolver}
             onCancelar={() => setFacturaDevolver(null)}
-            onGuardar={(payload) => {
-              registrarNotaDevolucion(facturaDevolver, payload);
-              setFacturaDevolver(null);
+            onGuardar={async (payload) => {
+              const res = await registrarNotaDevolucion(facturaDevolver, payload);
+              if (res.ok) setFacturaDevolver(null);
+              else alert(res.error || "Error al registrar devolución");
             }}
           />
         </div>
@@ -264,11 +283,74 @@ const OrdenesCompra = ({
           <NotaCreditoProveedorForm
             notaDevolucion={ndParaNc}
             onCancelar={() => setNdParaNc(null)}
-            onGuardar={(payload) => {
-              registrarNotaCreditoProveedor(ndParaNc, payload);
-              setNdParaNc(null);
+            onGuardar={async (payload) => {
+              const res = await registrarNotaCreditoProveedor(ndParaNc, payload);
+              if (res.ok) setNdParaNc(null);
+              else alert(res.error || "Error al registrar nota de crédito");
             }}
           />
+        </div>
+      )}
+
+      {detalleDoc && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-orange-100">
+            <div className="p-4 bg-orange-50 border-b border-orange-100 flex justify-between items-center">
+              <div>
+                <h3 className="font-black text-erp-orange uppercase text-xs tracking-widest">{detalleDoc.tipo}</h3>
+                <p className="text-xl font-bold text-gray-800">{detalleDoc.numero}</p>
+              </div>
+              <button onClick={() => setDetalleDoc(null)} className="p-2 hover:bg-orange-100 rounded-full transition-colors">
+                <X size={20} className="text-erp-orange" />
+              </button>
+            </div>
+            <div className="p-6">
+              <div className="mb-4 flex justify-between text-sm">
+                <div>
+                  <p className="text-gray-400 uppercase text-[10px] font-bold">Proveedor</p>
+                  <p className="font-bold text-gray-700">{detalleDoc.nombreProveedor || '—'}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-gray-400 uppercase text-[10px] font-bold">Fecha</p>
+                  <p className="font-bold text-gray-700">{detalleDoc.fecha}</p>
+                </div>
+              </div>
+
+              <div className="border rounded-xl overflow-hidden">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-gray-50 text-gray-500 uppercase font-bold">
+                    <tr>
+                      <th className="px-3 py-2">Producto</th>
+                      <th className="px-3 py-2 text-center">Cant.</th>
+                      {detalleDoc.lineas?.[0]?.precioUnitario !== undefined && (
+                        <th className="px-3 py-2 text-right">Precio</th>
+                      )}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {detalleDoc.lineas?.map((l, idx) => (
+                      <tr key={idx}>
+                        <td className="px-3 py-2 font-bold text-gray-700">{l.nombreProducto}</td>
+                        <td className="px-3 py-2 text-center">{l.cantidad}</td>
+                        {l.precioUnitario !== undefined && (
+                          <td className="px-3 py-2 text-right">Gs. {Number(l.precioUnitario).toLocaleString('de-DE')}</td>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {detalleDoc.total > 0 && (
+                <div className="mt-4 pt-4 border-t flex justify-between items-center">
+                  <span className="text-gray-500 font-bold uppercase text-xs">Total</span>
+                  <span className="text-xl font-black text-erp-orange">
+                    Gs. {Number(detalleDoc.total || detalleDoc.monto).toLocaleString('de-DE')}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>
