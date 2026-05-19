@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { UserPlus, Search, Briefcase, Trash2, Edit2, Users2 } from 'lucide-react';
+import { UserPlus, Search, Briefcase, Trash2, Edit2, Users2, Plus, X } from 'lucide-react';
 import { formatGua } from '../../utils/personalLogic';
 import axios from 'axios';
 
@@ -12,6 +12,11 @@ const Funcionarios = ({ personal }) => {
   const [guardando, setGuardando] = useState(false);
   const [errorForm, setErrorForm] = useState('');
   const [cargos, setCargos]       = useState([]);
+
+  const [modalFamiliar, setModalFamiliar] = useState(null); // guarda el funcionario seleccionado
+  const [modalListaFam, setModalListaFam] = useState(null)
+  const [nuevoFam, setNuevoFam] = useState({ parentesco: '', fecha_nacimiento: '', nombre: '', cedula:'' });
+  const [guardandoFam, setGuardandoFam] = useState(false);
 
   const [form, setForm] = useState({
     nombre: '', apellido: '', ci: '', ruc: '',
@@ -71,6 +76,31 @@ const Funcionarios = ({ personal }) => {
       setErrorForm('Error al guardar. Revisá los datos.');
     } finally {
       setGuardando(false);
+    }
+  };
+
+  const handleGuardarFamiliar = async () => {
+    // Validamos que por lo menos carguen nombre y parentesco
+    if (!nuevoFam.parentesco || !nuevoFam.nombre) {
+      alert("El nombre y parentesco son obligatorios");
+      return;
+    }
+    
+    setGuardandoFam(true);
+    try {
+      await axios.post(`${API}/funcionarios/${modalFamiliar.id}/familiares`, {
+        parentesco:       nuevoFam.parentesco,
+        fecha_nacimiento: nuevoFam.fecha_nacimiento || null,
+        nombre:           nuevoFam.nombre,
+        cedula:           nuevoFam.cedula || null 
+      });
+      await actions.recargar();
+      setNuevoFam({ parentesco: '', fecha_nacimiento: '', nombre: '', cedula: '' });
+      setModalFamiliar(null);
+    } catch {
+      alert('Error al agregar familiar.');
+    } finally {
+      setGuardandoFam(false);
     }
   };
 
@@ -151,16 +181,25 @@ const Funcionarios = ({ personal }) => {
                   </div>
                 </td>
                 <td className="px-6 py-4">
-                  <div className="flex flex-wrap gap-2">
-                    {f.nucleoFamiliar.map((m, idx) => (
-                      <span key={idx} className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-600 rounded-md text-[10px] font-bold">
-                        <Users2 size={10} />
-                        {m.parentesco}
-                      </span>
-                    ))}
-                    {f.nucleoFamiliar.length === 0 && (
-                      <span className="text-xs text-gray-400 italic">Sin datos</span>
-                    )}
+                  <div className="flex items-center gap-2">
+  
+                    <button
+                      onClick={() => setModalListaFam(f)}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold hover:bg-blue-100 transition-colors"
+                      title="Ver familiares"
+                    >
+                      <Users2 size={14} />
+                      Familiares ({f.nucleoFamiliar?.length || 0})
+                    </button>
+
+          
+                    <button
+                      onClick={() => setModalFamiliar(f)}
+                      className="p-1.5 bg-orange-50 text-erp-orange rounded-lg font-bold hover:bg-orange-100 transition-colors"
+                      title="Agregar familiar"
+                    >
+                      <Plus size={16} />
+                    </button>
                   </div>
                 </td>
                 <td className="px-6 py-4 text-center">
@@ -186,14 +225,14 @@ const Funcionarios = ({ personal }) => {
       {/* Modal */}
       {showForm && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden border border-orange-100">
+          <div className="bg-white rounded-3xl w-full max-w-4xl shadow-2xl overflow-hidden border border-orange-100">
 
             <div className="p-8 border-b border-orange-50 bg-gradient-to-r from-orange-50 to-white">
               <h2 className="text-2xl font-black text-erp-orange uppercase tracking-tighter">Registrar Funcionario</h2>
               <p className="text-sm text-gray-500 font-medium">Complete los datos del nuevo personal</p>
             </div>
 
-            <div className="p-8 grid grid-cols-2 gap-5 max-h-[60vh] overflow-y-auto">
+            <div className="p-8 grid grid-cols-3 gap-5 max-h-[65vh] overflow-y-auto">
 
               {/* Nombre */}
               <div className="space-y-1">
@@ -327,8 +366,167 @@ const Funcionarios = ({ personal }) => {
           </div>
         </div>
       )}
+      {/* ---------------- MODAL AGREGAR FAMILIAR ---------------- */}
+      {modalFamiliar && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden border border-orange-100">
+
+            <div className="p-6 border-b border-orange-50 bg-gradient-to-r from-orange-50 to-white">
+              <h2 className="text-xl font-black text-erp-orange uppercase tracking-tighter">
+                Agregar Familiar
+              </h2>
+              <p className="text-sm text-gray-500 font-medium">
+                Funcionario: {modalFamiliar.nombre}
+              </p>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {/* NUEVO: Nombre */}
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-gray-400 uppercase ml-1">
+                  Nombre Completo <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ej. María López"
+                  value={nuevoFam.nombre}
+                  onChange={e => setNuevoFam(prev => ({ ...prev, nombre: e.target.value }))}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-100 focus:ring-2 focus:ring-erp-orange outline-none bg-gray-50/50"
+                />
+              </div>
+
+              {/* NUEVO: Cédula */}
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-gray-400 uppercase ml-1">
+                  Cédula de Identidad
+                </label>
+                <input
+                  type="text"
+                  placeholder="Opcional"
+                  value={nuevoFam.cedula}
+                  onChange={e => setNuevoFam(prev => ({ ...prev, cedula: e.target.value }))}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-100 focus:ring-2 focus:ring-erp-orange outline-none bg-gray-50/50"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-gray-400 uppercase ml-1">
+                    Parentesco <span className="text-red-400">*</span>
+                  </label>
+                  <select
+                    value={nuevoFam.parentesco}
+                    onChange={e => setNuevoFam(prev => ({ ...prev, parentesco: e.target.value }))}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-100 focus:ring-2 focus:ring-erp-orange outline-none bg-gray-50/50"
+                  >
+                    <option value="">Seleccionar...</option>
+                    <option value="Cónyuge">Cónyuge</option>
+                    <option value="Hijo">Hijo</option>
+                    <option value="Hija">Hija</option>
+                    <option value="Padre">Padre</option>
+                    <option value="Madre">Madre</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-gray-400 uppercase ml-1">
+                    Nacimiento (Para Bonificación)
+                  </label>
+                  <input
+                    type="date"
+                    value={nuevoFam.fecha_nacimiento}
+                    onChange={e => setNuevoFam(prev => ({ ...prev, fecha_nacimiento: e.target.value }))}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-100 focus:ring-2 focus:ring-erp-orange outline-none bg-gray-50/50"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 bg-gray-50 border-t border-orange-50 flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setModalFamiliar(null);
+                  setNuevoFam({ parentesco: '', fecha_nacimiento: '', nombre: '', cedula: '' });
+                }}
+                className="px-6 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-100 transition-colors"
+                disabled={guardandoFam}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleGuardarFamiliar}
+                disabled={guardandoFam || !nuevoFam.parentesco || !nuevoFam.nombre}
+                className="px-6 py-3 bg-erp-orange text-white rounded-xl font-black uppercase tracking-widest text-xs hover:bg-orange-600 transition-colors shadow-lg shadow-orange-200 disabled:opacity-60"
+              >
+                {guardandoFam ? 'Guardando...' : 'Guardar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ---------------- MODAL LISTAR FAMILIARES ---------------- */}
+      {modalListaFam && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden border border-gray-100">
+            
+            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+              <div>
+                <h2 className="text-xl font-black text-gray-800 uppercase tracking-tighter">
+                  Núcleo Familiar
+                </h2>
+                <p className="text-sm text-gray-500 font-medium">
+                  {modalListaFam.nombre}
+                </p>
+              </div>
+              <button 
+                onClick={() => setModalListaFam(null)}
+                className="p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 rounded-full transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-6 max-h-[60vh] overflow-y-auto">
+              {modalListaFam.nucleoFamiliar?.length === 0 ? (
+                <div className="text-center py-8 text-gray-400 font-medium">
+                  No hay familiares registrados.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {modalListaFam.nucleoFamiliar.map((fam, idx) => (
+                    <div key={idx} className="flex items-center justify-between p-4 bg-white border border-gray-100 rounded-2xl shadow-sm hover:border-blue-100 transition-colors">
+                      <div>
+                        <div className="font-bold text-gray-800 text-sm">
+                          {fam.nombre || "Sin Nombre"}
+                        </div>
+                        <div className="text-xs text-gray-500 mt-0.5">
+                          {fam.cedula ? `CI: ${fam.cedula}` : "Sin CI"}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <span className="inline-block px-2.5 py-1 bg-blue-50 text-blue-600 rounded-lg text-[10px] font-black uppercase">
+                          {fam.parentesco}
+                        </span>
+                        {fam.fechaNacimiento && (
+                          <div className="text-[10px] font-medium text-gray-400 mt-1">
+                            Nac: {fam.fechaNacimiento}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+
+
 
 export default Funcionarios;

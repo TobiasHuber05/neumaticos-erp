@@ -125,7 +125,9 @@ export const createFuncionario = async (req, res) => {
                 data: familiares.map(fam => ({
                     id_funcionario: funcionario.id_funcionario,
                     parentesco: fam.parentesco,
-                    fecha_nacimiento: fam.fecha_nacimiento ? new Date(fam.fecha_nacimiento) : null
+                    fecha_nacimiento: fam.fecha_nacimiento ? new Date(fam.fecha_nacimiento) : null,
+                    nombre: fam.nombre,
+                    cedula: fam.cedula || null
                 }))
                 });
             }
@@ -237,19 +239,24 @@ export const getFamiliares = async (req, res) => {
 };
 
 // POST /api/funcionarios/:id/familiares
+// POST /api/funcionarios/:id/familiares
 export const addFamiliar = async (req, res) => {
     const { id } = req.params;
-    const { parentesco, fecha_nacimiento } = req.body;
+    const { parentesco, fecha_nacimiento, nombre, cedula } = req.body; 
+    
     try {
         const familiar = await prisma.familiares.create({
             data: {
                 id_funcionario: Number(id),
                 parentesco,
-                fecha_nacimiento: fecha_nacimiento ? new Date(fecha_nacimiento) : null
+                fecha_nacimiento: fecha_nacimiento ? new Date(fecha_nacimiento) : null,
+                nombre: nombre,                
+                cedula: cedula || null         
             }
         });
         res.status(201).json(familiar);
     } catch (error) {
+        console.error('Error al agregar familiar:', error);
         res.status(500).json({ error: 'Error al agregar familiar' });
     }
 };

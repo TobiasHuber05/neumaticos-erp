@@ -381,9 +381,10 @@ model familiares {
   id_funcionario   Int?
   parentesco       String?       @db.VarChar(100)
   fecha_nacimiento DateTime?     @db.Date
+  nombre           String?       @db.VarChar(150)  // nuevo
+  cedula           String?       @db.VarChar(50)   // nuevo
   funcionarios     funcionarios? @relation(fields: [id_funcionario], references: [id_funcionario], onDelete: NoAction, onUpdate: NoAction, map: "fk_familiares_funcionario")
 }
-
 model forma_pago {
   id_forma_pago         Int                     @id @default(autoincrement())
   metodo_pago           String?                 @db.VarChar(50)
