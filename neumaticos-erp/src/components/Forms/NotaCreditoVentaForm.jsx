@@ -10,7 +10,14 @@ import * as ventasLogic from '../../utils/ventasLogic.js';
 const NotaCreditoVentaForm = ({ factura, inventario, servicios = [], setInventario, ventas, onCancelar }) => {
   const [motivo, setMotivo] = useState('Defecto de fabricación');
   const [lineasDevueltas, setLineasDevueltas] = useState(
-    factura.lineas.map(l => ({ ...l, cantidadDevolver: 0, disponible: l.cantidad - (l.cantidadDevuelta || 0) }))
+    (factura.lineas ?? []).map(l => ({
+      ...l,
+      cantidad:        Number(l.cantidad)        || 0,
+      cantidadDevuelta: Number(l.cantidadDevuelta) || 0,
+      precioUnitario:  Number(l.precioUnitario)  || 0,
+      cantidadDevolver: 0,
+      disponible: (Number(l.cantidad) || 0) - (Number(l.cantidadDevuelta) || 0),
+    }))
   );
   const [procesando, setProcesando] = useState(false);
   const [error, setError] = useState('');
@@ -145,7 +152,9 @@ const NotaCreditoVentaForm = ({ factura, inventario, servicios = [], setInventar
                         disabled={!dentro48h || linea.disponible === 0}
                       />
                     </td>
-                    <td className="px-6 py-4 text-right font-mono">Gs. {linea.precioUnitario.toLocaleString()}</td>
+                    <td className="px-6 py-4 text-right font-mono">
+                      Gs. {linea.precioUnitario.toLocaleString()}
+                    </td>
                     <td className="px-6 py-4 text-right font-bold text-red-600">
                       Gs. {(linea.cantidadDevolver * linea.precioUnitario).toLocaleString()}
                     </td>
@@ -205,4 +214,3 @@ const NotaCreditoVentaForm = ({ factura, inventario, servicios = [], setInventar
 };
 
 export default NotaCreditoVentaForm;
-
