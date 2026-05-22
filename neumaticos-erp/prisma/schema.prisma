@@ -295,9 +295,9 @@ model detalle_pago {
 model detalle_presupuesto {
   id_detalle_presupuesto Int          @id @default(autoincrement())
   id_presupuesto         Int?
-  id_producto            Int?
   cantidad_producto      Int?
   precio_unitario        Decimal?     @db.Decimal(10, 2)
+  id_producto            Int?
   presupuesto            presupuesto? @relation(fields: [id_presupuesto], references: [id_presupuesto], onDelete: NoAction, onUpdate: NoAction, map: "fk_detpres_presupuesto")
   producto               producto?    @relation(fields: [id_producto], references: [id_producto], onDelete: NoAction, onUpdate: NoAction, map: "fk_detpres_producto")
 }
@@ -381,10 +381,11 @@ model familiares {
   id_funcionario   Int?
   parentesco       String?       @db.VarChar(100)
   fecha_nacimiento DateTime?     @db.Date
-  nombre           String?       @db.VarChar(150)  // nuevo
-  cedula           String?       @db.VarChar(50)   // nuevo
+  id_persona       Int?
+  personas         personas?     @relation(fields: [id_persona], references: [id_persona], onDelete: NoAction, onUpdate: NoAction, map: "fk_familiar_persona")
   funcionarios     funcionarios? @relation(fields: [id_funcionario], references: [id_funcionario], onDelete: NoAction, onUpdate: NoAction, map: "fk_familiares_funcionario")
 }
+
 model forma_pago {
   id_forma_pago         Int                     @id @default(autoincrement())
   metodo_pago           String?                 @db.VarChar(50)
@@ -595,6 +596,7 @@ model personas {
   fecha_nacimiento DateTime?      @db.Date
   razon_social     String?        @db.VarChar(100)
   sexo             String?        @db.VarChar(30)
+  familiares       familiares[]
   funcionarios     funcionarios[]
 }
 
@@ -720,10 +722,10 @@ model sueldos {
 model usuarios {
   id_usuario     Int           @id @default(autoincrement())
   id_funcionario Int?
-  username       String?       @db.VarChar(50)
   email          String?       @db.VarChar(60)
   passwordd      String?       @db.VarChar(255)
   rol_empresa    String?       @db.VarChar(80)
+  username       String?       @db.VarChar(50)
   funcionarios   funcionarios? @relation(fields: [id_funcionario], references: [id_funcionario], onDelete: NoAction, onUpdate: NoAction, map: "fk_usuariopermiso")
 }
 
