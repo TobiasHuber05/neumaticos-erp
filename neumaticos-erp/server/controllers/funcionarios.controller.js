@@ -8,7 +8,7 @@ export const getFuncionarios = async (req, res) => {
             include: {
                 personas: true,
                 cargos: true,
-                familiares: true,
+                familiares: { include: { personas: true} },
                 contrato: { include: { sueldos: true } },
                 historial: { include: { cargos: true }, orderBy: { fecha_ingreso: 'desc' } }
             },
@@ -50,7 +50,7 @@ export const getFuncionarioById = async (req, res) => {
             include: {
                 personas: true,
                 cargos: true,
-                familiares: true,
+                familiares: { include: { personas: true} },
                 contrato: { include: { sueldos: { include: { conceptos: true } } } },
                 historial: { include: { cargos: true }, orderBy: { fecha_ingreso: 'desc' } }
             }
@@ -120,24 +120,33 @@ export const createFuncionario = async (req, res) => {
             }
 
             // 5. Crear familiares
-            if (familiares.length > 0) {
-                await tx.familiares.createMany({
-                data: familiares.map(fam => ({
-                    id_funcionario: funcionario.id_funcionario,
-                    parentesco: fam.parentesco,
+            for (const fam of familiares) {
+                // Crear persona del familiar
+                const personaFam = await tx.personas.create({
+                    data: {
+                    nombre:           fam.nombre || null,
+                    ci:               fam.cedula || null,
                     fecha_nacimiento: fam.fecha_nacimiento ? new Date(fam.fecha_nacimiento) : null,
-                    nombre: fam.nombre,
-                    cedula: fam.cedula || null
-                }))
+                    tipo_persona:     'FAMILIAR'
+                    }
                 });
-            }
+                // Crear familiar vinculado
+                await tx.familiares.create({
+                    data: {
+                    id_funcionario:   funcionario.id_funcionario,
+                    id_persona:       personaFam.id_persona,
+                    parentesco:       fam.parentesco,
+                    fecha_nacimiento: fam.fecha_nacimiento ? new Date(fam.fecha_nacimiento) : null,
+                    }
+                });
+}
 
             return funcionario;
         });
 
         res.status(201).json({ ok: true, id: resultado.id_funcionario });
     } catch (error) {
-        console.error('❌ Error al crear funcionario:', error);
+        console.error(' Error al crear funcionario:', error);
         res.status(500).json({ error: error.message });
     }
 };
@@ -203,7 +212,7 @@ export const updateFuncionario = async (req, res) => {
 
         res.json({ ok: true, message: 'Funcionario actualizado' });
     } catch (error) {
-        console.error('❌ Error al actualizar funcionario:', error);
+        console.error(' Error al actualizar funcionario:', error);
         res.status(500).json({ error: error.message });
     }
 };
@@ -239,25 +248,43 @@ export const getFamiliares = async (req, res) => {
 };
 
 // POST /api/funcionarios/:id/familiares
-// POST /api/funcionarios/:id/familiares
 export const addFamiliar = async (req, res) => {
     const { id } = req.params;
-    const { parentesco, fecha_nacimiento, nombre, cedula } = req.body; 
-    
+    const { parentesco, fecha_nacimiento, nombre, cedula } = req.body;
+
+    if (!parentesco || !nombre) {
+        return res.status(400).json({ error: 'nombre y parentesco son requeridos' });
+    }
+
     try {
-        const familiar = await prisma.familiares.create({
+        const resultado = await prisma.$transaction(async (tx) => {
+        // 1. Crear persona del familiar
+        const persona = await tx.personas.create({
             data: {
-                id_funcionario: Number(id),
-                parentesco,
-                fecha_nacimiento: fecha_nacimiento ? new Date(fecha_nacimiento) : null,
-                nombre: nombre,                
-                cedula: cedula || null         
+            nombre:           nombre,
+            ci:               cedula || null,
+            fecha_nacimiento: fecha_nacimiento ? new Date(fecha_nacimiento) : null,
+            tipo_persona:     'FAMILIAR'
             }
         });
-        res.status(201).json(familiar);
+
+        // 2. Crear el familiar vinculado a la persona y al funcionario
+        const familiar = await tx.familiares.create({
+            data: {
+            id_funcionario: Number(id),
+            id_persona:     persona.id_persona,
+            parentesco,
+            fecha_nacimiento: fecha_nacimiento ? new Date(fecha_nacimiento) : null,
+            }
+        });
+
+        return familiar;
+        });
+
+        res.status(201).json(resultado);
     } catch (error) {
         console.error('Error al agregar familiar:', error);
-        res.status(500).json({ error: 'Error al agregar familiar' });
+        res.status(500).json({ error: error.message });
     }
 };
 

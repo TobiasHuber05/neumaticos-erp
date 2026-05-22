@@ -18,8 +18,10 @@ const mapearFuncionario = (f) => {
     salarioBase:  Number(contrato?.salario_base ?? f.cargo?.sueldo_base ?? 0),
     cargoActual:  f.cargo?.nombre_cargo ?? 'Sin cargo',
     nucleoFamiliar: (f.familiares ?? []).map(fam => ({
-      nombre:          fam.parentesco ?? '',   // el backend no guarda nombre del familiar
-      parentesco:      fam.parentesco ?? '',
+      id:              fam.id_familiar,
+      nombre:          fam.personas?.nombre ?? 'Sin nombre',
+      cedula:          fam.personas?.ci     ?? null,
+      parentesco:      fam.parentesco       ?? '',
       fechaNacimiento: fam.fecha_nacimiento?.split('T')[0] ?? null,
     })),
     historialCargos: (f.historial ?? []).map(h => ({
