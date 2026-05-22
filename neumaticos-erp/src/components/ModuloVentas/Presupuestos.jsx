@@ -12,7 +12,7 @@ const Presupuestos = ({ ventas, clientes, inventario, setInventario, servicios =
   const [mostrarNuevo, setMostrarNuevo] = useState(false);
   const [editandoPresupuesto, setEditandoPresupuesto] = useState(null);
 
-  const vigentes = ventas.presupuestos?.filter(p => ventasLogic.isBudgetVigente(p)) || [];
+  const vigentes = ventas.presupuestos?.filter(p => ventasLogic.isBudgetVigente(p) && p.estado !== 'Convertido') || [];
   const expirados = ventas.presupuestos?.filter(p => !ventasLogic.isBudgetVigente(p) && p.estado !== 'Convertido') || [];
 
   const handleGuardarPresupuesto = async (lineas, clientId, total) => {

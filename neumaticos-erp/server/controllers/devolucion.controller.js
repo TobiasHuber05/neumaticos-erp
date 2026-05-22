@@ -124,7 +124,15 @@ export const getNotaCredito = async (req, res) => {
         //utilizamos siempre await para las peticiones.
         const notas = await prisma.nota_credito_venta.findMany({
           include: {
-            detalle_nota_credito: true,
+            detalle_nota_credito: {
+              include: {
+                producto_servicio: {
+                  include: {
+                    producto: true
+                  }
+                }
+              }
+            },
             devolucion_cliente: {
               include: {
                 factura_venta: true

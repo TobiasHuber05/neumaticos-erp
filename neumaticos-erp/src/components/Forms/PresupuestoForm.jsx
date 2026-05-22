@@ -27,6 +27,29 @@ const PresupuestoForm = ({ clientes = [], inventario = [], servicios = [], onCan
       return;
     }
 
+    // Validación de stock solo para productos físicos
+    if (tipoItem === 'producto') {
+      const stockDisponible = Number(item.stock) || 0;
+      // Sumar la cantidad que ya está en el presupuesto para este mismo producto
+      const yaEnPresupuesto = lineas
+        .filter(l => l.productoId === item.id)
+        .reduce((sum, l) => sum + l.cantidad, 0);
+      const totalSolicitado = yaEnPresupuesto + qty;
+
+      if (totalSolicitado > stockDisponible) {
+        const restante = stockDisponible - yaEnPresupuesto;
+        setError(
+          `Stock insuficiente para "${item.nombre}". Disponible: ${stockDisponible}${yaEnPresupuesto > 0 ? ` (ya tiene ${yaEnPresupuesto} en este presupuesto, puede agregar hasta ${restante} más)` : ''}.`
+        );
+        return;
+      }
+
+      if (stockDisponible === 0) {
+        setError(`El producto "${item.nombre}" no tiene stock disponible.`);
+        return;
+      }
+    }
+
     // Limpiar precio (quitar puntos si es string)
     const precioLimpio = typeof item.precio === 'string'
       ? parseInt(item.precio.replace(/\./g, ''))

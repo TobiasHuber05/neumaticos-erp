@@ -42,7 +42,7 @@ const Ventas = ({ ventas, inventario, setInventario, servicios = [], defaultTab 
       case 'facturas':
         return <FacturasVentas ventas={ventas} clientes={ventas.clientes} inventario={inventario} setInventario={setInventario} servicios={servicios} />;
       case 'notascredito':
-        return <NotasCreditoVentas ventas={ventas} clientes={ventas.clientes} />;
+        return <NotasCreditoVentas ventas={ventas} clientes={ventas.clientes} inventario={inventario} servicios={servicios} />;
       case 'asientos':
         return <AsientosVentas ventas={ventas} />;
       case 'clientes':

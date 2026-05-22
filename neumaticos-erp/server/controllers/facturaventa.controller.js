@@ -23,6 +23,11 @@ export const generarFactura = async (req, res) => {
         throw new Error("Presupuesto inexistente o vencido (máx 10 días hábiles) ");
       }
 
+      // Bloquear si ya fue convertido en factura
+      if (presupuesto.estado === 'Convertido') {
+        throw new Error('Este presupuesto ya fue convertido en factura. No se puede facturar dos veces.');
+      }
+
       // Validar que todos los productos tengan su entrada en producto_servicio
       for (const d of presupuesto.detalle_presupuesto) {
         if (!d.producto?.producto_servicio || d.producto.producto_servicio.length === 0) {
@@ -74,6 +79,11 @@ export const generarFactura = async (req, res) => {
         }
       }
 
+      // Marcar el presupuesto como Convertido para que no se pueda volver a facturar
+      await tx.presupuesto.update({
+        where: { id_presupuesto },
+        data: { estado: 'Convertido' }
+      });
       // 4. GENERAR ASIENTO CONTABLE AUTOMÁTICO
       // Importamos dinámicamente para evitar problemas de dependencias circulares si los hubiera
       const { registrarAsientoAutomatico } = await import('../utils/asientoAutomatico.utils.js');

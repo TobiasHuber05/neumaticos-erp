@@ -128,6 +128,13 @@ export const useModuloVentas = () => {
         total: n.detalle_nota_credito?.reduce(
           (sum, d) => sum + Number(d.monto ?? 0), 0
         ),
+        lineas: (n.detalle_nota_credito || []).map(d => ({
+          productoId: d.id_producto_servicio,
+          nombre: d.producto_servicio?.producto?.descripcion || `Producto #${d.id_producto_servicio}`,
+          cantidad: Number(d.cantidad ?? 0),
+          monto: Number(d.monto ?? 0),
+          precioUnitario: d.cantidad ? Number(d.monto ?? 0) / Number(d.cantidad) : 0,
+        })),
       })));
 
       setAsientosVentas(Array.isArray(asientosData) ? asientosData.map(a => {
@@ -332,6 +339,19 @@ export const useModuloVentas = () => {
       numero: data.notaCredito?.nro_nota || 'Pendiente',
       motivo,
       lineasDevueltas,
+      lineas: lineasDevueltas.map(l => {
+        // Buscar nombre del producto en el inventario actual
+        const prod = (inventarioActual || []).find(
+          p => p.id_producto_servicio === l.productoId || p.id === l.productoId
+        );
+        return {
+          productoId: l.productoId,
+          nombre: prod?.nombre || prod?.nombreProducto || l.nombre || `Producto #${l.productoId}`,
+          cantidad: l.cantidadDevolver,
+          monto: l.cantidadDevolver * l.precioUnitario,
+          precioUnitario: l.precioUnitario,
+        };
+      }),
       total: lineasDevueltas.reduce((sum, l) => sum + l.cantidadDevolver * l.precioUnitario, 0),
     };
 
