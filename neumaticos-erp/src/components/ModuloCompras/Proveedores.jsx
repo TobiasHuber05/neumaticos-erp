@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Plus, Phone, MapPin, Users, Tag, Search, Trash2, AlertTriangle, X } from 'lucide-react';
 import ProveedorForm from '../Forms/ProveedorForm';
 import { useProveedores } from '../../hooks/useProveedores';
+import { puedeEditar } from '../../utils/permisos';
 
 const Proveedores = () => {
   const { proveedores, crearProveedor, actualizarProveedor, eliminarProveedor, categorias: categoriasDB } = useProveedores();
@@ -61,20 +62,24 @@ const Proveedores = () => {
           <h2 className="text-xl font-bold text-gray-800">Maestro de proveedores</h2>
         </div>
         <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => {/* Lógica para abrir modal de gestión de categorías */}}
-            className="flex items-center gap-2 bg-white text-gray-700 px-4 py-2 rounded-lg font-bold hover:bg-gray-50 transition-all shadow-sm border border-gray-300"
-          >
-            <Tag size={20} className="text-gray-400" /> Categorías
-          </button>
-          <button
-            type="button"
-            onClick={() => setMostrarForm(true)}
-            className="flex items-center gap-2 bg-erp-orange text-white px-4 py-2 rounded-lg font-bold hover:bg-orange-600 transition-all shadow-md"
-          >
-            <Plus size={20} /> Nuevo proveedor
-          </button>
+          {puedeEditar('compras') && (
+            <>
+              <button
+                type="button"
+                onClick={() => {/* Lógica para abrir modal de gestión de categorías */}}
+                className="flex items-center gap-2 bg-white text-gray-700 px-4 py-2 rounded-lg font-bold hover:bg-gray-50 transition-all shadow-sm border border-gray-300"
+              >
+                <Tag size={20} className="text-gray-400" /> Categorías
+              </button>
+              <button
+                type="button"
+                onClick={() => setMostrarForm(true)}
+                className="flex items-center gap-2 bg-erp-orange text-white px-4 py-2 rounded-lg font-bold hover:bg-orange-600 transition-all shadow-md"
+              >
+                <Plus size={20} /> Nuevo proveedor
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -122,21 +127,25 @@ const Proveedores = () => {
                   <div className="text-xs text-gray-400 font-mono">{proveedor.ruc}</div>
                 </div>
                 <div className="flex gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setEditar(proveedor)}
-                    className="text-erp-orange font-bold text-xs uppercase hover:underline"
-                  >
-                    Editar
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setConfirmarEliminarId(proveedor.id)}
-                    className="text-red-500 hover:text-red-700 transition-colors"
-                    title="Eliminar proveedor"
-                  >
-                    <Trash2 size={16} />
-                  </button>
+                  {puedeEditar('compras') && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setEditar(proveedor)}
+                        className="text-erp-orange font-bold text-xs uppercase hover:underline"
+                      >
+                        Editar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmarEliminarId(proveedor.id)}
+                        className="text-red-500 hover:text-red-700 transition-colors"
+                        title="Eliminar proveedor"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
               <div className="flex flex-wrap gap-1 mb-3">

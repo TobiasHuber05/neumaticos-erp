@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Landmark, Wallet, ArrowUpCircle, ArrowDownCircle, Plus } from 'lucide-react';
 import { calcularSaldosDeCuenta } from '../../utils/tesoreriasLogis';
+import { puedeEditar } from '../../utils/permisos';
 
 const GestionCuentas = ({ bancos, cuentas, movimientos, onNuevaCuenta }) => {
   const [cuentaSeleccionada, setCuentaSeleccionada] = useState(null);
@@ -15,12 +16,14 @@ const GestionCuentas = ({ bancos, cuentas, movimientos, onNuevaCuenta }) => {
           <h2 className="text-2xl font-bold text-gray-800">Cuentas Bancarias</h2>
           <p className="text-gray-500 text-sm">Administra tus saldos y cuentas en el sistema financiero</p>
         </div>
-        <button
-          onClick={onNuevaCuenta}
-          className="flex items-center gap-2 bg-erp-orange text-white px-4 py-2 rounded-lg font-bold hover:bg-orange-600 transition-colors shadow-sm"
-        >
-          <Plus size={20} /> Nueva Cuenta
-        </button>
+        {puedeEditar('tesoreria') && (
+          <button
+            onClick={onNuevaCuenta}
+            className="flex items-center gap-2 bg-erp-orange text-white px-4 py-2 rounded-lg font-bold hover:bg-orange-600 transition-colors shadow-sm"
+          >
+            <Plus size={20} /> Nueva Cuenta
+          </button>
+        )}
       </div>
 
       {/* Grid de Tarjetas de Cuentas */}

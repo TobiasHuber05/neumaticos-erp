@@ -5,6 +5,7 @@ import GestionCuentas from './ModuloTesoreria/GestionCuentas';
 import ConciliacionBancaria from './ModuloTesoreria/ConciliacionBancaria';
 import MovimientoManualForm from './Forms/MovimientoManualForm';
 import CuentaBancariaForm from './Forms/CuentaBancariaForm';
+import { puedeEditar } from '../utils/permisos';
 
 const Tesoreria = () => {
   const {
@@ -39,27 +40,31 @@ const Tesoreria = () => {
       </div>
 
       <div className="flex flex-wrap gap-3">
-        <button
-          type="button"
-          onClick={() => setModo(modo === 'cuenta' ? null : 'cuenta')}
-          className="inline-flex items-center gap-2 px-5 py-3 rounded-lg bg-erp-orange text-white font-bold hover:bg-orange-600 transition"
-        >
-          <Plus size={18} /> Nueva cuenta
-        </button>
-        <button
-          type="button"
-          onClick={() => setModo(modo === 'movimiento' ? null : 'movimiento')}
-          className="inline-flex items-center gap-2 px-5 py-3 rounded-lg bg-green-600 text-white font-bold hover:bg-green-700 transition"
-        >
-          <ArrowUpCircle size={18} /> Movimiento manual
-        </button>
-        <button
-          type="button"
-          onClick={() => setModo(modo === 'conciliacion' ? null : 'conciliacion')}
-          className="inline-flex items-center gap-2 px-5 py-3 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 transition"
-        >
-          <ArrowDownCircle size={18} /> Conciliación
-        </button>
+        {puedeEditar('tesoreria') && (
+          <>
+            <button
+              type="button"
+              onClick={() => setModo(modo === 'cuenta' ? null : 'cuenta')}
+              className="inline-flex items-center gap-2 px-5 py-3 rounded-lg bg-erp-orange text-white font-bold hover:bg-orange-600 transition"
+            >
+              <Plus size={18} /> Nueva cuenta
+            </button>
+            <button
+              type="button"
+              onClick={() => setModo(modo === 'movimiento' ? null : 'movimiento')}
+              className="inline-flex items-center gap-2 px-5 py-3 rounded-lg bg-green-600 text-white font-bold hover:bg-green-700 transition"
+            >
+              <ArrowUpCircle size={18} /> Movimiento manual
+            </button>
+            <button
+              type="button"
+              onClick={() => setModo(modo === 'conciliacion' ? null : 'conciliacion')}
+              className="inline-flex items-center gap-2 px-5 py-3 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 transition"
+            >
+              <ArrowDownCircle size={18} /> Conciliación
+            </button>
+          </>
+        )}
         {modo && (
           <button
             type="button"

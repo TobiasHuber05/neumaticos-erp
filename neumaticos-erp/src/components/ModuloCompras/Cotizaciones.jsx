@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Send, Users, Gavel, AlertTriangle, Pencil, Eye, X, ChevronDown, ChevronUp } from 'lucide-react';
 import CotizacionProveedorForm from '../Forms/CotizacionProveedorForm';
 import { ESTADOS_PEDIDO_COMPRA } from '../Forms/comprasFormDefaults';
+import { puedeEditar } from '../../utils/permisos';
 
 const Cotizaciones = ({
   pedidos = [],
@@ -128,14 +129,16 @@ const Cotizaciones = ({
                     </button>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <button
-                      type="button"
-                      onClick={() => onGenerar(p)}
-                      disabled={loadingGenerar === p.id}
-                      className="text-xs font-bold bg-erp-orange text-white px-3 py-1.5 rounded-lg disabled:opacity-50"
-                    >
-                      {loadingGenerar === p.id ? 'Generando...' : 'Generar pedido de cotización'}
-                    </button>
+                    {puedeEditar('compras') && (
+                      <button
+                        type="button"
+                        onClick={() => onGenerar(p)}
+                        disabled={loadingGenerar === p.id}
+                        className="text-xs font-bold bg-erp-orange text-white px-3 py-1.5 rounded-lg disabled:opacity-50"
+                      >
+                        {loadingGenerar === p.id ? 'Generando...' : 'Generar pedido de cotización'}
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -190,20 +193,22 @@ const Cotizaciones = ({
 
                   <div className="flex items-center gap-3">
                     {pc.estado !== 'Adjudicado' ? (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onAdjudicar(pc);
-                        }}
-                        disabled={loadingAdjudicar === pc.id}
-                        className="flex items-center gap-1.5 text-[10px] font-black uppercase bg-gray-900 text-white px-3 py-2 rounded-lg disabled:opacity-50 hover:bg-black transition-colors"
-                      >
-                        <Gavel size={14} />
-                        {loadingAdjudicar === pc.id
-                          ? 'Adjudicando...'
-                          : 'Adjudicar menor precio'}
-                      </button>
+                      puedeEditar('compras') && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onAdjudicar(pc);
+                          }}
+                          disabled={loadingAdjudicar === pc.id}
+                          className="flex items-center gap-1.5 text-[10px] font-black uppercase bg-gray-900 text-white px-3 py-2 rounded-lg disabled:opacity-50 hover:bg-black transition-colors"
+                        >
+                          <Gavel size={14} />
+                          {loadingAdjudicar === pc.id
+                            ? 'Adjudicando...'
+                            : 'Adjudicar menor precio'}
+                        </button>
+                      )
                     ) : (
                       <span className="text-[10px] font-black uppercase text-green-700 bg-green-100 px-2 py-1 rounded border border-green-200">
                         Adjudicado
@@ -250,13 +255,15 @@ const Cotizaciones = ({
                               )}
                             </div>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => setCotEdit(c)}
-                            className="mt-4 text-xs font-bold bg-orange-50 text-erp-orange hover:bg-erp-orange hover:text-white px-3 py-2 rounded-lg transition-all flex items-center justify-center gap-2"
-                          >
-                            <Pencil size={14} /> Cargar / editar precios
-                          </button>
+                          {puedeEditar('compras') && (
+                            <button
+                              type="button"
+                              onClick={() => setCotEdit(c)}
+                              className="mt-4 text-xs font-bold bg-orange-50 text-erp-orange hover:bg-erp-orange hover:text-white px-3 py-2 rounded-lg transition-all flex items-center justify-center gap-2"
+                            >
+                              <Pencil size={14} /> Cargar / editar precios
+                            </button>
+                          )}
                         </li>
                       ))}
                     </ul>

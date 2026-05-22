@@ -20,6 +20,7 @@ import {
   Home,
 } from 'lucide-react';
 import { useState } from 'react';
+import { puedeVer, puedeAdministrarUsuarios } from '../utils/permisos';
 
 const Sidebar = ({ setModulo, moduloActual }) => {
   const [comprasAbierto, setComprasAbierto] = useState(false);
@@ -27,25 +28,8 @@ const Sidebar = ({ setModulo, moduloActual }) => {
   const [ventasAbierto, setVentasAbierto] = useState(false);
   const [contabilidadAbierto, setContabilidadAbierto] = useState(false);
 
-  // --- OBTENER ROL DEL USUARIO ---
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   const rol = (user.rol || '').toUpperCase();
-
-  const tienePermiso = (rolesPermitidos) => {
-    if (rol === 'ADMIN') return true;
-    
-    // Si rol_empresa tiene el formato "NOMBRE|MODULO1,MODULO2"
-    if (rol.includes('|')) {
-      const permisosString = rol.split('|')[1] || '';
-      const permisosUsuario = permisosString.split(',');
-      // Revisa si alguno de los módulos/roles requeridos está en los permisos del usuario
-      return rolesPermitidos.some(r => permisosUsuario.includes(r));
-    }
-    
-    // Retrocompatibilidad con roles viejos fijos
-    return rolesPermitidos.includes(rol);
-  };
-  // -------------------------------
 
   // --- FUNCIÓN DE CIERRE DE SESIÓN ---
   const handleLogout = () => {
@@ -125,7 +109,7 @@ const Sidebar = ({ setModulo, moduloActual }) => {
         </div>
 
         {/* Modulo Compras */}
-        {tienePermiso(['COMPRAS', 'COMPRADOR']) && (
+        {puedeVer('compras') && (
           <div className="px-2">
             <button
               type="button"
@@ -161,7 +145,7 @@ const Sidebar = ({ setModulo, moduloActual }) => {
         )}
 
         {/* Menu Ventas */}
-        {tienePermiso(['VENTAS', 'VENDEDOR']) && (
+        {puedeVer('ventas') && (
           <div className="px-2">
             <button
               type="button"
@@ -197,7 +181,7 @@ const Sidebar = ({ setModulo, moduloActual }) => {
         )}
 
         {/*Menu Tesoreria*/}
-        {tienePermiso(['TESORERIA', 'CAJERO', 'COMPRAS']) && (
+        {puedeVer('tesoreria') && (
           <div className="px-2">
             <button
               type="button"
@@ -233,7 +217,7 @@ const Sidebar = ({ setModulo, moduloActual }) => {
         )}
 
         {/* Modulo Contabilidad */}
-        {tienePermiso(['CONTABILIDAD', 'TESORERIA', 'CONTADOR']) && (
+        {puedeVer('contabilidad') && (
           <div className="px-2">
             <button
               type="button"
@@ -270,7 +254,7 @@ const Sidebar = ({ setModulo, moduloActual }) => {
 
         {/* Quick Links */}
         <div className="px-2 mt-4 pt-4 border-t border-orange-300">
-          {tienePermiso(['VENTAS', 'COMPRAS', 'STOCK']) && (
+          {puedeVer('stock') && (
             <button
               type="button"
               onClick={() => setModulo('stock')}
@@ -284,7 +268,7 @@ const Sidebar = ({ setModulo, moduloActual }) => {
             </button>
           )}
 
-          {tienePermiso(['VENTAS', 'SERVICIOS']) && (
+          {puedeVer('ventas') && (
             <button
               type="button"
               onClick={() => setModulo('servicios')}
@@ -298,7 +282,7 @@ const Sidebar = ({ setModulo, moduloActual }) => {
             </button>
           )}
 
-          {tienePermiso(['PERSONAL', 'RECURSOS HUMANOS']) && (
+          {puedeVer('personal') && (
             <button
               type="button"
               onClick={() => setModulo('personal')}
@@ -311,7 +295,7 @@ const Sidebar = ({ setModulo, moduloActual }) => {
               <span>Funcionarios</span>
             </button>
           )}
-          {tienePermiso(['ADMIN']) && (
+          {puedeAdministrarUsuarios() && (
             <button
               type="button"
               onClick={() => setModulo('usuarios')}

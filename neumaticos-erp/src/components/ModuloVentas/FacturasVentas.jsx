@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ShoppingBag, Clock, CheckCircle, RotateCcw, User, Eye, X, FileText } from 'lucide-react';
 import NotaCreditoVentaForm from '../Forms/NotaCreditoVentaForm';
 import * as ventasLogic from '../../utils/ventasLogic.js';
+import { puedeEditar } from '../../utils/permisos';
 
 /**
  * Lista facturas ventas, NC si <48h.
@@ -200,7 +201,8 @@ const FacturasVentas = ({ ventas, clientes, inventario, setInventario, servicios
                         <Eye size={14} />
                         Ver detalle
                       </button>
-                      {(dentro48h && (f.estado === 'Emitida' || f.estado === 'Con NC Parcial')) && (
+                      {puedeEditar('ventas') &&
+                        (dentro48h && (f.estado === 'Emitida' || f.estado === 'Con NC Parcial')) && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();

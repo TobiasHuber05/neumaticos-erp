@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import Sidebar from '../components/Sidebar';
 import backgroundImage from '../assets/taller_pro.png';
+import { puedeVer } from '../utils/permisos';
 
 // Imports compras
 import PedidosCompra from '../components/ModuloCompras/PedidosCompra';
@@ -38,7 +39,7 @@ import AsientosManuales from '../components/ModuloContabilidad/AsientosManuales'
 import ReportesContables from '../components/ModuloContabilidad/ReportesContables';
 
 // Imports Seguridad
-import GestionUsuarios from '../components/ModuloSeguridad/GestionUsuarios';
+import UsuariosModulo from '../components/Usuarios/UsuariosModulo';
 
 // ── Hooks de API ──────────────────────────────────────
 import { useProveedores } from '../hooks/useProveedores';
@@ -223,15 +224,6 @@ function Dashboard() {
     return map[moduloActual] ?? moduloActual;
   };
 
-  // --- OBTENER ROL DEL USUARIO ---
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
-  const rol = (user.rol || '').toUpperCase();
-
-  const tienePermiso = (rolesPermitidos) => {
-    if (rol === 'ADMIN') return true;
-    return rolesPermitidos.includes(rol);
-  };
-  // -------------------------------
 
   const renderContenido = () => {
     switch (moduloActual) {
@@ -259,10 +251,10 @@ function Dashboard() {
                 {/* Tarjeta Pedidos */}
                 <div
                   className={`bg-white/95 backdrop-blur-md p-10 rounded-2xl shadow-2xl border-b-8 border-erp-orange transition-all group
-                    ${tienePermiso(['COMPRAS', 'COMPRADOR'])
+                    ${puedeVer('compras')
                       ? 'hover:translate-y-[-10px] cursor-pointer'
                       : 'opacity-80 cursor-not-allowed'}`}
-                  onClick={() => tienePermiso(['COMPRAS', 'COMPRADOR']) && setModuloActual('compras')}
+                  onClick={() => puedeVer('compras') && setModuloActual('compras')}
                 >
                   <h3 className="text-erp-orange font-black text-5xl mb-2 group-hover:scale-110 transition-transform">{pedidos.length}</h3>
                   <p className="text-gray-500 font-black text-[10px] uppercase tracking-widest">Pedidos Activos</p>
@@ -271,10 +263,10 @@ function Dashboard() {
                 {/* Tarjeta Stock */}
                 <div
                   className={`bg-white/95 backdrop-blur-md p-10 rounded-2xl shadow-2xl border-b-8 border-blue-500 transition-all group
-                    ${tienePermiso(['COMPRAS', 'COMPRADOR', 'STOCK', 'VENTAS'])
+                    ${puedeVer('stock')
                       ? 'hover:translate-y-[-10px] cursor-pointer'
                       : 'opacity-80 cursor-not-allowed'}`}
-                  onClick={() => tienePermiso(['COMPRAS', 'COMPRADOR', 'STOCK', 'VENTAS']) && setModuloActual('stock')}
+                  onClick={() => puedeVer('stock') && setModuloActual('stock')}
                 >
                   <h3 className="text-blue-500 font-black text-5xl mb-2 group-hover:scale-110 transition-transform">{inventario.length}</h3>
                   <p className="text-gray-500 font-black text-[10px] uppercase tracking-widest">Productos en Stock</p>
@@ -283,10 +275,10 @@ function Dashboard() {
                 {/* Tarjeta Cuentas */}
                 <div
                   className={`bg-white/95 backdrop-blur-md p-10 rounded-2xl shadow-2xl border-b-8 border-green-500 transition-all group
-                    ${tienePermiso(['TESORERIA', 'CAJERO', 'COMPRAS'])
+                    ${puedeVer('tesoreria')
                       ? 'hover:translate-y-[-10px] cursor-pointer'
                       : 'opacity-80 cursor-not-allowed'}`}
-                  onClick={() => tienePermiso(['TESORERIA', 'CAJERO', 'COMPRAS']) && setModuloActual('tesoreria')}
+                  onClick={() => puedeVer('tesoreria') && setModuloActual('tesoreria')}
                 >
                   <h3 className="text-green-500 font-black text-5xl mb-2 group-hover:scale-110 transition-transform">{cuentas.length}</h3>
                   <p className="text-gray-500 font-black text-[10px] uppercase tracking-widest">Cuentas Bancarias</p>
@@ -489,7 +481,7 @@ function Dashboard() {
         );
 
       case 'usuarios':
-        return <GestionUsuarios />;
+        return <UsuariosModulo />;
 
       default:
         return (

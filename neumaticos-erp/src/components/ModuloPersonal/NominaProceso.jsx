@@ -3,6 +3,7 @@ import { PlayCircle, CheckCircle2, FileText, DollarSign, Calendar, Calculator, A
 import { formatGua } from '../../utils/personalLogic';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { puedeEditar } from '../../utils/permisos';
 
 // ── Modal de Recibo ──────────────────────────────────────────────
 const ModalRecibo = ({ liq, proceso, onClose }) => {
@@ -249,13 +250,13 @@ const NominaProceso = ({ personal }) => {
             </p>
           </div>
           <div className="flex gap-3">
-            {!procesoMesActual && (
+            {!procesoMesActual && puedeEditar('personal') && (
               <button onClick={handleIniciar}
                 className="bg-erp-orange text-white px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-orange-600 transition-all shadow-lg shadow-orange-200">
                 Iniciar Nómina Mes
               </button>
             )}
-            {procesoMesActual?.estado === 'Abierto' && (
+            {procesoMesActual?.estado === 'Abierto' && puedeEditar('personal') && (
               <button onClick={() => setShowConfirm(true)}
                 className="bg-green-600 text-white px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-green-700 transition-all shadow-lg shadow-green-200 flex items-center gap-2">
                 <CheckCircle2 size={16} />

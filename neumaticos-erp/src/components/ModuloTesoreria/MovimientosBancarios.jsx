@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Search, Filter, Plus, X, ArrowUpCircle, ArrowDownCircle, Clock, CheckCircle2 } from 'lucide-react';
 import MovimientoManualForm from '../Forms/MovimientoManualForm';
 import { debeConfirmarInmediatamente } from '../../utils/tesoreriasLogis';
+import { puedeEditar } from '../../utils/permisos';
 
 const MovimientosBancarios = ({ movimientos = [], cuentas = [], bancos = [], onGuardar }) => {
   const [search, setSearch] = useState('');
@@ -57,13 +58,15 @@ const MovimientosBancarios = ({ movimientos = [], cuentas = [], bancos = [], onG
           <h1 className="text-2xl font-black text-gray-800">Movimientos Bancarios</h1>
           <p className="text-gray-500">Gestiona todos los ingresos y egresos de tus cuentas</p>
         </div>
-        <button
-          onClick={() => setShowForm(true)}
-          className="inline-flex items-center gap-2 px-6 py-3 bg-erp-orange text-white font-bold rounded-xl hover:bg-orange-600 shadow-lg transition-all"
-        >
-          <Plus size={20} />
-          Nuevo Movimiento
-        </button>
+        {puedeEditar('tesoreria') && (
+          <button
+            onClick={() => setShowForm(true)}
+            className="inline-flex items-center gap-2 px-6 py-3 bg-erp-orange text-white font-bold rounded-xl hover:bg-orange-600 shadow-lg transition-all"
+          >
+            <Plus size={20} />
+            Nuevo Movimiento
+          </button>
+        )}
       </div>
 
       {/* Filters & Search */}

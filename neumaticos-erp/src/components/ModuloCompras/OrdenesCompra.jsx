@@ -4,6 +4,7 @@ import FacturaRecepcionForm from '../Forms/FacturaRecepcionForm';
 import NotaDevolucionForm from '../Forms/NotaDevolucionForm';
 import NotaCreditoProveedorForm from '../Forms/NotaCreditoProveedorForm';
 import { cantidadPendientePorLinea, ordenTienePendienteEntrega } from '../../utils/comprasLogic';
+import { puedeEditar } from '../../utils/permisos';
 
 const OrdenesCompra = ({
   proveedores = [],
@@ -100,17 +101,19 @@ const OrdenesCompra = ({
                       )}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <button
-                        type="button"
-                        disabled={estaCerrada || !pendiente}
-                        onClick={() => {
-                          setErroresFactura(null);
-                          setOcFactura(oc);
-                        }}
-                        className="text-xs font-bold bg-erp-orange text-white px-3 py-1.5 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed"
-                      >
-                        Registrar factura
-                      </button>
+                      {puedeEditar('compras') && (
+                        <button
+                          type="button"
+                          disabled={estaCerrada || !pendiente}
+                          onClick={() => {
+                            setErroresFactura(null);
+                            setOcFactura(oc);
+                          }}
+                          className="text-xs font-bold bg-erp-orange text-white px-3 py-1.5 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          Registrar factura
+                        </button>
+                      )}
                     </td>
                   </tr>
                 );
@@ -169,13 +172,15 @@ const OrdenesCompra = ({
                         </span>
                       </td>
                       <td className="px-4 py-3 text-right space-x-2">
-                        <button
-                          type="button"
-                          onClick={() => setFacturaDevolver(f)}
-                          className="text-xs font-bold text-red-600 hover:underline"
-                        >
-                          Nota devolución
-                        </button>
+                        {puedeEditar('compras') && (
+                          <button
+                            type="button"
+                            onClick={() => setFacturaDevolver(f)}
+                            className="text-xs font-bold text-red-600 hover:underline"
+                          >
+                            Nota devolución
+                          </button>
+                        )}
                       </td>
                     </tr>
                   );
@@ -210,13 +215,15 @@ const OrdenesCompra = ({
                     >
                       <Eye size={16} />
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => setNdParaNc(nd)}
-                      className="text-erp-orange font-bold text-xs"
-                    >
-                      + NC
-                    </button>
+                    {puedeEditar('compras') && (
+                      <button
+                        type="button"
+                        onClick={() => setNdParaNc(nd)}
+                        className="text-erp-orange font-bold text-xs"
+                      >
+                        + NC
+                      </button>
+                    )}
                   </div>
                 </li>
               ))}

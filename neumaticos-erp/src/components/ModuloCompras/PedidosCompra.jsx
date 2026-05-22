@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Plus, Eye, ClipboardList, X } from 'lucide-react';
 import { ESTADOS_PEDIDO_COMPRA } from '../Forms/comprasFormDefaults';
+import { puedeEditar } from '../../utils/permisos';
 
 const PedidosCompra = ({ onNuevoPedido, pedidos }) => {
   const [pedidoDetalle, setPedidoDetalle] = useState(null);
@@ -12,13 +13,15 @@ const PedidosCompra = ({ onNuevoPedido, pedidos }) => {
           <ClipboardList className="text-erp-orange" />
           <h2 className="text-xl font-bold text-gray-800">Pedidos de compra de productos</h2>
         </div>
-        <button
-          type="button"
-          onClick={onNuevoPedido}
-          className="flex items-center gap-2 bg-erp-orange text-white px-4 py-2 rounded-lg font-bold hover:bg-orange-600 transition-all shadow-md"
-        >
-          <Plus size={20} /> Nuevo pedido
-        </button>
+        {puedeEditar('compras') && (
+          <button
+            type="button"
+            onClick={onNuevoPedido}
+            className="flex items-center gap-2 bg-erp-orange text-white px-4 py-2 rounded-lg font-bold hover:bg-orange-600 transition-all shadow-md"
+          >
+            <Plus size={20} /> Nuevo pedido
+          </button>
+        )}
       </div>
 
       <div className="overflow-x-auto">

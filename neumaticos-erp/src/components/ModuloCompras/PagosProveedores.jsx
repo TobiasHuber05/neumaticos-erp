@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Banknote } from 'lucide-react';
 import OrdenPagoProveedoresForm from '../Forms/OrdenPagoProveedoresForm';
+import { puedeEditar } from '../../utils/permisos';
 
 const PagosProveedores = ({
   proveedores = [],
@@ -58,14 +59,16 @@ const PagosProveedores = ({
             ))}
           </select>
         </div>
-        <button
-          type="button"
-          onClick={() => setModal(true)}
-          disabled={!facturasPendientes.length}
-          className="flex items-center gap-2 bg-erp-orange text-white font-bold px-4 py-2 rounded-lg disabled:opacity-40"
-        >
-          <Banknote size={18} /> Nueva orden de pago
-        </button>
+        {puedeEditar('compras') && (
+          <button
+            type="button"
+            onClick={() => setModal(true)}
+            disabled={!facturasPendientes.length}
+            className="flex items-center gap-2 bg-erp-orange text-white font-bold px-4 py-2 rounded-lg disabled:opacity-40"
+          >
+            <Banknote size={18} /> Nueva orden de pago
+          </button>
+        )}
         <p className="text-sm text-gray-600">
           Facturas pendientes de pago: <span className="font-black">{facturasPendientes.length}</span>
         </p>

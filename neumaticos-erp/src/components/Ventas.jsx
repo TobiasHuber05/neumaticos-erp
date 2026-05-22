@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ShoppingBag, Search, FileText, Users, RotateCcw, TrendingUp, Plus, UserPlus } from 'lucide-react';
 import { useModuloVentas } from '../hooks/useModuloVentas';
 import ClienteForm from './Forms/ClienteForm';
+import { puedeEditar } from '../utils/permisos';
 import Presupuestos from './ModuloVentas/Presupuestos';
 import FacturasVentas from './ModuloVentas/FacturasVentas';
 import NotasCreditoVentas from './ModuloVentas/NotasCreditoVentas';
@@ -54,13 +55,15 @@ const Ventas = ({ ventas, inventario, setInventario, servicios = [], defaultTab 
                 <Users className="w-6 h-6 text-erp-orange" />
                 Clientes ({clientesCount})
               </h3>
-              <button
-                onClick={() => setMostrarClienteForm(true)}
-                className="flex items-center gap-2 bg-erp-orange text-white px-5 py-2.5 rounded-xl font-bold hover:bg-orange-600 transition-all shadow-md"
-              >
-                <Plus size={18} />
-                Nuevo Cliente
-              </button>
+              {puedeEditar('ventas') && (
+                <button
+                  onClick={() => setMostrarClienteForm(true)}
+                  className="flex items-center gap-2 bg-erp-orange text-white px-5 py-2.5 rounded-xl font-bold hover:bg-orange-600 transition-all shadow-md"
+                >
+                  <Plus size={18} />
+                  Nuevo Cliente
+                </button>
+              )}
             </div>
 
             {/* Tabla clientes */}

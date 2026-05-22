@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import bcrypt from 'bcryptjs';
 
 import authRoutes from './routes/auth.routes.js';
+import usuariosRoutes from './routes/usuarios.routes.js';
 import proveedoresRoutes from './routes/proveedores.routes.js';
 import productosRoutes from './routes/productos.routes.js';
 import comprasRoutes from './routes/pedidos.routes.js';
@@ -37,6 +38,7 @@ app.use(cors());
 app.use(express.json());
 
 app.use('/api/auth', authRoutes);
+app.use('/api', usuariosRoutes);
 app.use('/api/proveedores', proveedoresRoutes);
 app.use('/api/productos', productosRoutes);
 app.use('/api/compras', comprasRoutes);

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Settings, Plus, CheckCircle2, XCircle, Info, X } from 'lucide-react';
 import axios from 'axios';
+import { puedeEditar } from '../../utils/permisos';
 
 const API = 'http://localhost:3000/api';
 
@@ -63,11 +64,13 @@ const ConceptosSalariales = ({ personal }) => {
               Defina qué ingresos y egresos afectan al IPS
             </p>
           </div>
-          <button onClick={() => setShowForm(true)}
-            className="bg-erp-orange text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-orange-600 transition-colors shadow-lg shadow-orange-200">
-            <Plus size={18} />
-            Nuevo Concepto
-          </button>
+          {puedeEditar('personal') && (
+            <button onClick={() => setShowForm(true)}
+              className="bg-erp-orange text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-orange-600 transition-colors shadow-lg shadow-orange-200">
+              <Plus size={18} />
+              Nuevo Concepto
+            </button>
+          )}
         </div>
 
         <div className="overflow-x-auto">

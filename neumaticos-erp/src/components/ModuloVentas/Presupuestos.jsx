@@ -3,6 +3,7 @@ import { FileText, Plus, Eye, CalendarX, Clock, User, ArrowLeft } from 'lucide-r
 import PresupuestoForm from '../Forms/PresupuestoForm';
 import FacturaVentaForm from '../Forms/FacturaVentaForm';
 import * as ventasLogic from '../../utils/ventasLogic.js';
+import { puedeEditar } from '../../utils/permisos';
 
 /**
  * Lista presupuestos: vigentes/expirados, +new, →factura.
@@ -25,6 +26,7 @@ const Presupuestos = ({ ventas, clientes, inventario, setInventario, servicios =
   };
 
   const handleFacturaClick = (presupuesto) => {
+    if (!puedeEditar('ventas')) return;
     if (ventasLogic.isBudgetVigente(presupuesto)) {
       setEditandoPresupuesto(presupuesto);
     }
@@ -94,13 +96,15 @@ const Presupuestos = ({ ventas, clientes, inventario, setInventario, servicios =
             </div>
           </div>
         </div>
-        <button
-          onClick={() => setMostrarNuevo(true)}
-          className="flex items-center gap-2 bg-erp-orange text-white px-6 py-3 rounded-xl font-bold hover:bg-orange-600 transition-all shadow-md whitespace-nowrap"
-        >
-          <Plus size={20} />
-          Nuevo Presupuesto
-        </button>
+        {puedeEditar('ventas') && (
+          <button
+            onClick={() => setMostrarNuevo(true)}
+            className="flex items-center gap-2 bg-erp-orange text-white px-6 py-3 rounded-xl font-bold hover:bg-orange-600 transition-all shadow-md whitespace-nowrap"
+          >
+            <Plus size={20} />
+            Nuevo Presupuesto
+          </button>
+        )}
       </div>
 
 
@@ -128,7 +132,11 @@ const Presupuestos = ({ ventas, clientes, inventario, setInventario, servicios =
                 {[...vigentes].reverse().map((p) => {
                   const cliente = clientes.find(c => c.id === p.clientId);
                   return (
-                    <tr key={p.id} className="hover:bg-orange-50/50 cursor-pointer transition-colors" onClick={() => handleFacturaClick(p)}>
+                    <tr
+                      key={p.id}
+                      className={`hover:bg-orange-50/50 transition-colors ${puedeEditar('ventas') ? 'cursor-pointer' : ''}`}
+                      onClick={() => handleFacturaClick(p)}
+                    >
                       <td className="px-6 py-4 font-mono font-bold text-sm text-erp-orange">{p.numero}</td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
@@ -150,15 +158,17 @@ const Presupuestos = ({ ventas, clientes, inventario, setInventario, servicios =
                         </span>
                       </td>
                       <td className="px-6 py-4 text-center">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleFacturaClick(p);
-                          }}
-                          className="bg-erp-orange text-white px-4 py-2 rounded-lg font-bold text-xs hover:bg-orange-600 transition-all shadow-sm whitespace-nowrap"
-                        >
-                          Generar Factura
-                        </button>
+                        {puedeEditar('ventas') && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleFacturaClick(p);
+                            }}
+                            className="bg-erp-orange text-white px-4 py-2 rounded-lg font-bold text-xs hover:bg-orange-600 transition-all shadow-sm whitespace-nowrap"
+                          >
+                            Generar Factura
+                          </button>
+                        )}
                       </td>
                     </tr>
                   );

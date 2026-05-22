@@ -1,6 +1,7 @@
 import { Package, Search, Clock3, Plus } from 'lucide-react';
 import ServicesForm from './Forms/ServicesForm';
 import { useState } from 'react';
+import { puedeEditar } from '../utils/permisos';
 
 const Services = ({ servicios = [], actions }) => {
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
@@ -39,14 +40,16 @@ const Services = ({ servicios = [], actions }) => {
           <Package className="text-erp-orange" />
           <h2 className="text-xl font-bold text-gray-800">Control de Servicios</h2>
         </div>
-        <button
-          type="button"
-          onClick={() => setMostrarFormulario(true)}
-          className="flex items-center gap-2 bg-erp-orange text-white px-4 py-2 rounded-lg font-bold hover:bg-orange-600 transition-all shadow-md"
-        >
-          <Plus size={20} />
-          Nuevo servicio
-        </button>
+        {puedeEditar('ventas') && (
+          <button
+            type="button"
+            onClick={() => setMostrarFormulario(true)}
+            className="flex items-center gap-2 bg-erp-orange text-white px-4 py-2 rounded-lg font-bold hover:bg-orange-600 transition-all shadow-md"
+          >
+            <Plus size={20} />
+            Nuevo servicio
+          </button>
+        )}
       </div>
       <div className="bg-white rounded shadow-md md:p-6 mb-6 mx-0 md:mx-0 border border-gray-500">
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-0">

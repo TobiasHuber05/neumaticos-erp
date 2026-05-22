@@ -77,6 +77,7 @@ model cargos {
   contrato          contrato[]
   funcionarios      funcionarios[]
   historial         historial[]
+  usuarios          usuarios[]
 }
 
 model categoria {
@@ -720,11 +721,16 @@ model sueldos {
 model usuarios {
   id_usuario     Int           @id @default(autoincrement())
   id_funcionario Int?
+  id_cargo       Int?
   username       String?       @db.VarChar(50)
   email          String?       @db.VarChar(60)
   passwordd      String?       @db.VarChar(255)
   rol_empresa    String?       @db.VarChar(80)
+  telefono       String?       @db.VarChar(20)
+  direccion      String?       @db.VarChar(150)
+  permisos       Json?
   funcionarios   funcionarios? @relation(fields: [id_funcionario], references: [id_funcionario], onDelete: NoAction, onUpdate: NoAction, map: "fk_usuariopermiso")
+  cargos         cargos?       @relation(fields: [id_cargo], references: [id_cargo], onDelete: NoAction, onUpdate: NoAction, map: "fk_usuario_cargo")
 }
 
 model cheques_emitidos {

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { UserPlus, Search, Briefcase, Trash2, Edit2, Users2, Plus, X } from 'lucide-react';
 import { formatGua } from '../../utils/personalLogic';
 import axios from 'axios';
+import { puedeEditar } from '../../utils/permisos';
 
 const API = 'http://localhost:3000/api';
 
@@ -130,13 +131,15 @@ const Funcionarios = ({ personal }) => {
             onChange={(e) => setFiltro(e.target.value)}
           />
         </div>
-        <button
-          onClick={() => setShowForm(true)}
-          className="bg-erp-orange text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-orange-600 transition-colors shadow-lg shadow-orange-200"
-        >
-          <UserPlus size={20} />
-          Nuevo Funcionario
-        </button>
+        {puedeEditar('personal') && (
+          <button
+            onClick={() => setShowForm(true)}
+            className="bg-erp-orange text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-orange-600 transition-colors shadow-lg shadow-orange-200"
+          >
+            <UserPlus size={20} />
+            Nuevo Funcionario
+          </button>
+        )}
       </div>
 
       {/* Tabla */}
@@ -182,7 +185,7 @@ const Funcionarios = ({ personal }) => {
                 </td>
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-2">
-  
+
                     <button
                       onClick={() => setModalListaFam(f)}
                       className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold hover:bg-blue-100 transition-colors"
@@ -193,27 +196,33 @@ const Funcionarios = ({ personal }) => {
                     </button>
 
           
-                    <button
-                      onClick={() => setModalFamiliar(f)}
-                      className="p-1.5 bg-orange-50 text-erp-orange rounded-lg font-bold hover:bg-orange-100 transition-colors"
-                      title="Agregar familiar"
-                    >
-                      <Plus size={16} />
-                    </button>
+                    {puedeEditar('personal') && (
+                      <button
+                        onClick={() => setModalFamiliar(f)}
+                        className="p-1.5 bg-orange-50 text-erp-orange rounded-lg font-bold hover:bg-orange-100 transition-colors"
+                        title="Agregar familiar"
+                      >
+                        <Plus size={16} />
+                      </button>
+                    )}
                   </div>
                 </td>
                 <td className="px-6 py-4 text-center">
                   <div className="flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors" title="Editar">
-                      <Edit2 size={16} />
-                    </button>
-                    <button
-                      onClick={() => handleEliminar(f.id)}
-                      className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                      title="Dar de baja"
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                    {puedeEditar('personal') && (
+                      <>
+                        <button className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors" title="Editar">
+                          <Edit2 size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleEliminar(f.id)}
+                          className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Dar de baja"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </>
+                    )}
                   </div>
                 </td>
               </tr>

@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { CheckCircle2, AlertCircle, Search, Save, Info, ArrowLeft, CheckCircle } from 'lucide-react';
+import { puedeEditar } from '../../utils/permisos';
 
 const ConciliacionBancaria = ({ movimientos, cuentas, conciliaciones, onCrear, onVincular, onFinalizar, onGetDetalle }) => {
   const [cuentaId, setCuentaId] = useState('');
@@ -80,7 +81,7 @@ const ConciliacionBancaria = ({ movimientos, cuentas, conciliaciones, onCrear, o
           <h1 className="text-2xl font-black text-gray-800">Conciliación Bancaria</h1>
           <p className="text-gray-500">Asegura que los saldos del ERP coincidan con tu banco</p>
         </div>
-        {!conciliacionActiva && (
+        {!conciliacionActiva && puedeEditar('tesoreria') && (
           <button
             onClick={() => setShowModalNueva(true)}
             className="px-6 py-3 bg-erp-orange text-white font-bold rounded-xl hover:bg-orange-600 shadow-lg transition-all"
@@ -180,14 +181,16 @@ const ConciliacionBancaria = ({ movimientos, cuentas, conciliaciones, onCrear, o
               </div>
             </div>
             <div className="flex items-center justify-center">
-              <button
-                onClick={handleFinalizar}
-                disabled={Math.abs(diferencia) > 0.01 || seleccionados.length === 0}
-                className="w-full py-4 bg-green-600 text-white font-black rounded-2xl shadow-lg hover:bg-green-700 disabled:opacity-30 disabled:grayscale transition-all flex items-center justify-center gap-2"
-              >
-                <CheckCircle size={22} />
-                Finalizar Conciliación
-              </button>
+              {puedeEditar('tesoreria') && (
+                <button
+                  onClick={handleFinalizar}
+                  disabled={Math.abs(diferencia) > 0.01 || seleccionados.length === 0}
+                  className="w-full py-4 bg-green-600 text-white font-black rounded-2xl shadow-lg hover:bg-green-700 disabled:opacity-30 disabled:grayscale transition-all flex items-center justify-center gap-2"
+                >
+                  <CheckCircle size={22} />
+                  Finalizar Conciliación
+                </button>
+              )}
             </div>
           </div>
 

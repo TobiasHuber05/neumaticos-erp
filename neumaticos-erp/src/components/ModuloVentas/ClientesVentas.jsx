@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Users, Plus, Search } from 'lucide-react';
 import ClienteForm from '../Forms/ClienteForm';
+import { puedeEditar } from '../../utils/permisos';
 
 const ClientesVentas = ({ ventas }) => {
   const [search, setSearch] = useState('');
@@ -36,13 +37,15 @@ const ClientesVentas = ({ ventas }) => {
               className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-erp-orange/20 focus:border-erp-orange text-sm font-medium"
             />
           </div>
-          <button
-            onClick={() => setMostrarClienteForm(true)}
-            className="flex items-center gap-2 bg-erp-orange text-white px-5 py-2.5 rounded-xl font-bold hover:bg-orange-600 transition-all shadow-md shrink-0"
-          >
-            <Plus size={18} />
-            Nuevo Cliente
-          </button>
+          {puedeEditar('ventas') && (
+            <button
+              onClick={() => setMostrarClienteForm(true)}
+              className="flex items-center gap-2 bg-erp-orange text-white px-5 py-2.5 rounded-xl font-bold hover:bg-orange-600 transition-all shadow-md shrink-0"
+            >
+              <Plus size={18} />
+              Nuevo Cliente
+            </button>
+          )}
         </div>
       </div>
 

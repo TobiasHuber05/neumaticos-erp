@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Package, Search, Plus } from 'lucide-react';
 import StockForm from './Forms/StockForm';
 import { useProductos } from '../hooks/useProductos';
+import { puedeEditar } from '../utils/permisos';
 
 const Stock = ({ proveedoresMaestro = [] }) => {
   // ✅ CORRECCIÓN 1: Se agregó 'marcas' a la desestructuración del hook
@@ -51,14 +52,16 @@ const Stock = ({ proveedoresMaestro = [] }) => {
           <Package className="text-erp-orange" />
           <h2 className="text-xl font-bold text-gray-800">Control de existencias</h2>
         </div>
-        <button
-          type="button"
-          onClick={() => setMostrarFormulario(true)}
-          className="flex items-center gap-2 bg-erp-orange text-white px-4 py-2 rounded-lg font-bold hover:bg-orange-600 transition-all shadow-md"
-        >
-          <Plus size={20} />
-          Nuevo producto
-        </button>
+        {puedeEditar('stock') && (
+          <button
+            type="button"
+            onClick={() => setMostrarFormulario(true)}
+            className="flex items-center gap-2 bg-erp-orange text-white px-4 py-2 rounded-lg font-bold hover:bg-orange-600 transition-all shadow-md"
+          >
+            <Plus size={20} />
+            Nuevo producto
+          </button>
+        )}
       </div>
 
       <div className="bg-white rounded shadow-md md:p-6 mb-6 mx-0 md:mx-0 border border-gray-500">

@@ -78,7 +78,8 @@ export const login = async (req, res) => {
         id_usuario: usuario.id_usuario,
         username: usuario.username || '',
         email: usuario.email,
-        rol: usuario.rol_empresa || usuario.rol
+        rol: usuario.rol_empresa || usuario.rol,
+        permisos: usuario.permisos || {}
       }
     });
 

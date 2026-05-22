@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Calendar, Plus, Lock, Unlock, CheckCircle2 } from 'lucide-react';
 
 import { usePeriodosContables } from '../../hooks/usePeriodosContables';
+import { puedeEditar } from '../../utils/permisos';
 
 const PeriodosContables = () => {
   const { periodos, loading, crearPeriodo, cerrarPeriodo } = usePeriodosContables();
@@ -49,12 +50,14 @@ const PeriodosContables = () => {
         <h2 className="text-xl font-bold text-erp-orange flex items-center gap-2">
           <Calendar /> Gestión de Periodos Contables
         </h2>
-        <button
-          onClick={() => setMostrarForm(true)}
-          className="bg-erp-orange text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 hover:bg-orange-600 transition-colors"
-        >
-          <Plus size={18} /> Nuevo Periodo
-        </button>
+        {puedeEditar('contabilidad') && (
+          <button
+            onClick={() => setMostrarForm(true)}
+            className="bg-erp-orange text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 hover:bg-orange-600 transition-colors"
+          >
+            <Plus size={18} /> Nuevo Periodo
+          </button>
+        )}
       </div>
 
       {mostrarForm && (
@@ -148,7 +151,7 @@ const PeriodosContables = () => {
                   </span>
                 </td>
                 <td className="px-6 py-4">
-                  {p.estado === 'Abierto' && (
+                  {p.estado === 'Abierto' && puedeEditar('contabilidad') && (
                     <button
                       onClick={() => handleCerrar(p.id_proc_contable)}
                       className="text-red-500 hover:text-red-700 font-bold text-xs flex items-center gap-1 uppercase"
