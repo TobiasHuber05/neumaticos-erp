@@ -7,7 +7,7 @@
   "scripts": {
   "server": "tsx watch server/index.js", 
   "frontend": "vite",
-  "dev": "concurrently \"npm run server\" \"npm run frontend\"",
+  "dev": "concurrently \"tsx watch server/index.js\" \"vite\"",
   "build": "vite build",
   "lint": "eslint .",
   "preview": "vite preview"
