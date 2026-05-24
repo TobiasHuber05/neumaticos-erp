@@ -12,6 +12,7 @@ const Proveedores = () => {
   const [confirmarEliminarId, setConfirmarEliminarId] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filtroCategoria, setFiltroCategoria] = useState('todas');
+  const [errorMsg, setErrorMsg] = useState(null);
 
   const categoriasDisponibles = useMemo(() => {
     // Usamos las categorías que vienen de la base de datos (nombre es .nombre en el hook)
@@ -31,10 +32,13 @@ const Proveedores = () => {
   });
 
   const guardar = async (data) => {
-    if (data.id) {
-      await actualizarProveedor(data.id, data);
-    } else {
-      await crearProveedor(data);
+    setErrorMsg(null);
+    const res = data.id
+      ? await actualizarProveedor(data.id, data)
+      : await crearProveedor(data);
+    if (!res.ok) {
+      setErrorMsg(res.error ?? 'Error al guardar el proveedor');
+      return;
     }
     setMostrarForm(false);
     setEditar(null);
@@ -42,7 +46,13 @@ const Proveedores = () => {
 
   if (mostrarForm || editar) {
     return (
-      <ProveedorForm
+      <>
+        {errorMsg && (
+          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 text-red-800 text-sm p-3">
+            {errorMsg}
+          </div>
+        )}
+        <ProveedorForm
         initial={editar}
         categoriasDisponibles={categoriasDB}
         onCancelar={() => {
@@ -51,6 +61,7 @@ const Proveedores = () => {
         }}
         onGuardar={guardar}
       />
+      </>
     );
   }
 

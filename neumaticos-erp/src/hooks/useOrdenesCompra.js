@@ -1,13 +1,14 @@
 // src/hooks/useOrdenesCompra.js
 
 import { useCallback, useEffect, useState } from 'react';
+import { validarFacturaContraOrden } from '../utils/comprasLogic';
 
 const API = '/api/ordenes-compra';
 
 function getHeaders() {
   return {
     'Content-Type': 'application/json',
-    Authorization: `Bearer ${localStorage.getItem('token')}`
+    Authorization: `Bearer ${localStorage.getItem('token')}`,
   };
 }
 
@@ -21,9 +22,10 @@ export function useOrdenesCompra() {
     setLoading(true);
     try {
       const res = await fetch(API, { headers: getHeaders() });
+      if (!res.ok) throw new Error('Error al cargar órdenes');
       const data = await res.json();
       setOrdenesCompra(data);
-    } catch (err) {
+    } catch {
       setError('Error al cargar órdenes de compra');
     } finally {
       setLoading(false);
@@ -33,9 +35,10 @@ export function useOrdenesCompra() {
   const fetchFacturas = useCallback(async () => {
     try {
       const res = await fetch(`${API}/facturas`, { headers: getHeaders() });
+      if (!res.ok) throw new Error('Error al cargar facturas');
       const data = await res.json();
       setFacturasProveedor(data);
-    } catch (err) {
+    } catch {
       console.error('Error al cargar facturas');
     }
   }, []);
@@ -45,34 +48,35 @@ export function useOrdenesCompra() {
     fetchFacturas();
   }, [fetchOrdenes, fetchFacturas]);
 
-  // Registrar factura contra una OC — compatible con registrarFacturaYStock del hook local
   const registrarFacturaYStock = useCallback(async (ordenCompra, payload) => {
     const { numero, timbrado, fecha, lineas } = payload;
+
+    const val = validarFacturaContraOrden(ordenCompra, lineas, facturasProveedor);
+    if (!val.ok) {
+      return { ok: false, errores: val.errores };
+    }
 
     try {
       const res = await fetch(`${API}/${ordenCompra.id}/factura`, {
         method: 'POST',
         headers: getHeaders(),
-        body: JSON.stringify({ numero, timbrado, fecha, lineas })
+        body: JSON.stringify({ numero, timbrado, fecha, lineas }),
       });
 
+      const data = await res.json();
       if (!res.ok) {
-        const err = await res.json();
-        return { ok: false, errores: [err.error] };
+        return { ok: false, errores: data.errores ?? [data.error ?? 'Error al registrar la factura'] };
       }
 
-      const data = await res.json();
-
-      // Actualizar estado local
       setFacturasProveedor((prev) => [data.factura, ...prev]);
-      await fetchOrdenes(); // refrescar estado de OC
-      await fetchFacturas(); // refrescar lista de facturas
+      await fetchOrdenes();
+      await fetchFacturas();
 
       return { ok: true, factura: data.factura };
-    } catch (err) {
+    } catch {
       return { ok: false, errores: ['Error al registrar la factura'] };
     }
-  }, [fetchOrdenes]);
+  }, [fetchOrdenes, fetchFacturas, facturasProveedor]);
 
   return {
     ordenesCompra,

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Sidebar from '../components/Sidebar';
 import backgroundImage from '../assets/taller_pro.png';
 import { puedeVer } from '../utils/permisos';
@@ -68,7 +68,7 @@ function getHeaders() {
 function Dashboard() {
   // ── Hooks de API ─────────────────────────────────────────
   const { proveedores } = useProveedores();
-  const { inventario, categorias, marcas, eliminarProducto } = useProductos();
+  const { inventario, categorias, marcas, eliminarProducto, refetch: refetchProductos } = useProductos();
   const productosBajoMinimo = () =>
     inventario.filter((p) => !p.esServicio && Number(p.stock) <= Number(p.min));
 
@@ -93,7 +93,7 @@ function Dashboard() {
     ordenesPagoProveedores,
     mediosPago,
     registrarOrdenPago,
-  } = usePagosProveedores({ onPagoRegistrado: refetchFacturas });
+  } = usePagosProveedores();
 
   const {
     cuentas,
@@ -122,6 +122,7 @@ function Dashboard() {
 
   // ── Estado local de pedidos (con API) ────────────────────
   const [pedidos, setPedidos] = useState([]);
+  const [errorPedido, setErrorPedido] = useState(null);
   const [moduloActual, setModuloActual] = useState('inicio');
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [mostrarFormCuenta, setMostrarFormCuenta] = useState(false);
@@ -136,13 +137,12 @@ function Dashboard() {
     }
   };
 
-  useMemo(() => { fetchPedidos(); }, []);
+  useEffect(() => { fetchPedidos(); }, []);
 
   const compras = useModuloCompras();
   const {
     notasDevolucion,
     notasCreditoProveedor,
-    asientosCompras,
     registrarNotaDevolucion,
     registrarNotaCreditoProveedor,
   } = compras;
@@ -156,18 +156,29 @@ function Dashboard() {
   );
 
   const guardarNuevoPedido = async (items) => {
+    setErrorPedido(null);
     try {
       const res = await fetch(`${API_PEDIDOS}/pedidos`, {
         method: 'POST',
         headers: getHeaders(),
         body: JSON.stringify({ items }),
       });
-      if (!res.ok) throw new Error('Error al crear pedido');
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        setErrorPedido(err.error ?? 'Error al crear pedido');
+        return;
+      }
       await fetchPedidos();
       setMostrarFormulario(false);
-    } catch (err) {
-      console.error('Error al guardar pedido:', err);
+    } catch {
+      setErrorPedido('Error de conexión al crear el pedido');
     }
+  };
+
+  const registrarFacturaConRefetch = async (ordenCompra, payload) => {
+    const res = await registrarFacturaYStock(ordenCompra, payload);
+    if (res.ok) await refetchProductos();
+    return res;
   };
 
   const generarPedidoCotizacion = async (pedido) => {
@@ -177,7 +188,7 @@ function Dashboard() {
   };
 
   const adjudicarYGenerarOrdenesConRefetch = async (pc) => {
-    const res = await adjudicarYGenerarOrdenes(pc, pedidos);
+    const res = await adjudicarYGenerarOrdenes(pc);
     if (res.ok) {
       await fetchPedidos();
       await refetchCotizaciones();
@@ -312,7 +323,7 @@ function Dashboard() {
             facturasProveedor={facturasProveedor}
             notasDevolucion={notasDevolucion}
             notasCreditoProveedor={notasCreditoProveedor}
-            registrarFacturaYStock={registrarFacturaYStock}
+            registrarFacturaYStock={registrarFacturaConRefetch}
             registrarNotaDevolucion={registrarNotaDevolucion}
             registrarNotaCreditoProveedor={registrarNotaCreditoProveedor}
           />
@@ -331,7 +342,7 @@ function Dashboard() {
         );
 
       case 'asientos_compras':
-        return <AsientosCompras asientos={asientosCompras} />;
+        return <AsientosCompras />;
 
       case 'stock':
         return <Stock proveedoresMaestro={proveedoresMaestro} onDelete={eliminarProducto} />;
@@ -462,6 +473,11 @@ function Dashboard() {
         }
         return (
           <>
+            {errorPedido && (
+              <div className="mb-4 rounded-lg border border-red-200 bg-red-50 text-red-800 text-sm p-3">
+                {errorPedido}
+              </div>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
               <div className="bg-white p-6 rounded-xl shadow-sm border-l-8 border-erp-orange">
                 <h3 className="font-bold text-gray-500 text-xs uppercase">Pedidos totales</h3>

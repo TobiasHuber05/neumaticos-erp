@@ -7,7 +7,7 @@ const API = '/api/pagos-proveedores';
 function getHeaders() {
   return {
     'Content-Type': 'application/json',
-    Authorization: `Bearer ${localStorage.getItem('token')}`
+    Authorization: `Bearer ${localStorage.getItem('token')}`,
   };
 }
 
@@ -23,7 +23,7 @@ export function usePagosProveedores() {
       const res = await fetch(API, { headers: getHeaders() });
       const data = await res.json();
       setOrdenesPagoProveedores(data);
-    } catch (err) {
+    } catch {
       setError('Error al cargar pagos');
     } finally {
       setLoading(false);
@@ -34,9 +34,8 @@ export function usePagosProveedores() {
     try {
       const res = await fetch(`${API}/formas-pago`, { headers: getHeaders() });
       const data = await res.json();
-      // Devolver solo los nombres para compatibilidad con el frontend
       setMediosPago(data.map((f) => f.nombre));
-    } catch (err) {
+    } catch {
       console.error('Error al cargar formas de pago');
     }
   }, []);
@@ -47,13 +46,13 @@ export function usePagosProveedores() {
   }, [fetchPagos, fetchFormasPago]);
 
   const registrarOrdenPago = useCallback(async (payload) => {
-    const { proveedorId, facturaIds, medios, fecha } = payload;
+    const { proveedorId, facturas, facturaIds, medios, fecha } = payload;
 
     try {
       const res = await fetch(API, {
         method: 'POST',
         headers: getHeaders(),
-        body: JSON.stringify({ proveedorId, facturaIds, medios, fecha })
+        body: JSON.stringify({ proveedorId, facturas, facturaIds, medios, fecha }),
       });
 
       if (!res.ok) {
@@ -62,12 +61,12 @@ export function usePagosProveedores() {
       }
 
       const data = await res.json();
-      setOrdenesPagoProveedores((prev) => [data.ordenPago, ...prev]);
+      await fetchPagos();
       return { ok: true, ordenPago: data.ordenPago };
-    } catch (err) {
+    } catch {
       return { ok: false, error: 'Error al registrar el pago' };
     }
-  }, []);
+  }, [fetchPagos]);
 
   return {
     ordenesPagoProveedores,

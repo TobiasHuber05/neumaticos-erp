@@ -241,7 +241,7 @@ const Cotizaciones = ({
                             </p>
                             <div className="flex items-center gap-2 mt-1">
                               <span
-                                className={`text-[9px] uppercase font-black px-1.5 py-0.5 rounded ${c.estado === 'Respondido'
+                                className={`text-[9px] uppercase font-black px-1.5 py-0.5 rounded ${c.estado === 'Respondido' || c.estado === 'Recibida'
                                     ? 'bg-green-100 text-green-700'
                                     : 'bg-gray-100 text-gray-500'
                                   }`}

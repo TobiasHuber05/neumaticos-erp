@@ -1,5 +1,7 @@
 import { prisma } from '../lib/prisma.js';
 
+const redondear = (n) => Math.round(Number(n) * 100) / 100;
+
 // GET /api/pagos-proveedores
 export const getPagos = async (req, res) => {
   try {
@@ -26,6 +28,10 @@ export const getPagos = async (req, res) => {
         monto: Number(m.monto ?? 0),
       })),
       facturaIds: op.detalle_orden_pago_facturas.map((d) => d.id_factura_compra),
+      facturas: op.detalle_orden_pago_facturas.map((d) => ({
+        facturaId: d.id_factura_compra,
+        monto: Number(d.monto_pagado_factura ?? 0),
+      })),
       total: op.orden_pago_forma_pago.reduce((acc, m) => acc + Number(m.monto ?? 0), 0),
     }));
 
@@ -53,36 +59,98 @@ export const getFormasPago = async (req, res) => {
   }
 };
 
-// POST /api/pagos-proveedores
+// POST /api/pagos-proveedores — soporta pagos parciales por factura
 export const registrarPago = async (req, res) => {
-  const { proveedorId, facturaIds, medios, fecha } = req.body;
+  const { proveedorId, facturaIds, facturas: facturasBody, medios, fecha } = req.body;
 
   if (!proveedorId) return res.status(400).json({ error: 'El proveedor es requerido' });
-  if (!facturaIds?.length) return res.status(400).json({ error: 'Seleccioná al menos una factura' });
   if (!medios?.length) return res.status(400).json({ error: 'Agregá al menos un medio de pago' });
 
-  const mediosValidos = medios.filter((m) => Number(m.monto) > 0);
-  if (!mediosValidos.length) return res.status(400).json({ error: 'El monto del medio de pago debe ser mayor a 0' });
+  const mediosValidos = medios
+    .map((m) => ({ medio: m.medio, monto: redondear(m.monto) }))
+    .filter((m) => m.monto > 0);
+
+  if (!mediosValidos.length) {
+    return res.status(400).json({ error: 'El monto del medio de pago debe ser mayor a 0' });
+  }
+
+  let lineasFactura = [];
+  if (Array.isArray(facturasBody) && facturasBody.length) {
+    lineasFactura = facturasBody.map((f) => ({
+      id: Number(f.id ?? f.facturaId),
+      monto: f.monto != null ? redondear(f.monto) : null,
+    }));
+  } else if (facturaIds?.length) {
+    lineasFactura = facturaIds.map((id) => ({ id: Number(id), monto: null }));
+  } else {
+    return res.status(400).json({ error: 'Seleccioná al menos una factura' });
+  }
 
   try {
     const resultado = await prisma.$transaction(async (tx) => {
-      // 1. Crear orden de pago
+      const montosPorFactura = [];
+
+      for (const linea of lineasFactura) {
+        const factura = await tx.factura_compra.findUnique({
+          where: { id_factura_compra: linea.id },
+          include: { detalle_orden_pago_facturas: true },
+        });
+
+        if (!factura) {
+          throw new Error(`Factura ${linea.id} no encontrada`);
+        }
+        if (Number(factura.id_proveedor) !== Number(proveedorId)) {
+          throw new Error(`La factura ${linea.id} no pertenece al proveedor seleccionado`);
+        }
+
+        const totalFactura = Number(factura.total ?? 0);
+        const yaPagado = (factura.detalle_orden_pago_facturas ?? []).reduce(
+          (acc, d) => acc + Number(d.monto_pagado_factura ?? 0),
+          0
+        );
+        const saldo = redondear(totalFactura - yaPagado);
+
+        if (saldo <= 0) {
+          throw new Error(`La factura ${linea.id} ya está pagada`);
+        }
+
+        const montoAplicar = linea.monto != null ? redondear(linea.monto) : saldo;
+
+        if (montoAplicar <= 0) {
+          throw new Error(`El monto a pagar de la factura ${linea.id} debe ser mayor a 0`);
+        }
+        if (montoAplicar > saldo + 0.009) {
+          throw new Error(
+            `El monto a pagar (Gs. ${montoAplicar.toLocaleString('de-DE')}) supera el saldo pendiente (Gs. ${saldo.toLocaleString('de-DE')})`
+          );
+        }
+
+        montosPorFactura.push({ id: linea.id, monto: montoAplicar });
+      }
+
+      const totalMedios = redondear(mediosValidos.reduce((acc, m) => acc + m.monto, 0));
+      const totalFacturas = redondear(montosPorFactura.reduce((acc, f) => acc + f.monto, 0));
+
+      if (Math.abs(totalMedios - totalFacturas) > 0.009) {
+        throw new Error(
+          `El total de medios de pago (Gs. ${totalMedios.toLocaleString('de-DE')}) debe coincidir con el total aplicado a facturas (Gs. ${totalFacturas.toLocaleString('de-DE')})`
+        );
+      }
+
       const ordenPago = await tx.orden_pago_proveedores.create({
         data: {
           id_proveedor: Number(proveedorId),
           fecha_pago: fecha ? new Date(fecha) : new Date(),
-        }
+        },
       });
 
-      // 2. Registrar medios de pago
       for (const medio of mediosValidos) {
-        // Buscar o crear la forma de pago
         let formaPago = await tx.forma_pago.findFirst({
-          where: { metodo_pago: medio.medio }
+          where: { metodo_pago: medio.medio },
         });
         if (!formaPago) {
           formaPago = await tx.forma_pago.create({
-            data: { metodo_pago: medio.medio, tipo_metodo: 'efectivo' }
+            data: { metodo_pago: medio.medio, tipo_metodo: 'efectivo' },
           });
         }
 
@@ -90,81 +158,74 @@ export const registrarPago = async (req, res) => {
           data: {
             id_orden_pago: ordenPago.id_orden_pago,
             id_forma_pago: formaPago.id_forma_pago,
-            monto: Number(medio.monto),
-          }
+            monto: medio.monto,
+          },
         });
 
-        // --- INTEGRACIÓN CON TESORERÍA ---
-        // Si el medio parece ser bancario, intentamos registrar el movimiento en el banco
         try {
           const bancoMatch = await tx.banco.findFirst({
             where: {
               OR: [
                 { nombre: { contains: medio.medio, mode: 'insensitive' } },
-                { nombre: { equals: medio.medio.split(' ')[0], mode: 'insensitive' } }
-              ]
+                { nombre: { equals: medio.medio.split(' ')[0], mode: 'insensitive' } },
+              ],
             },
-            include: { cuenta_bancaria: true }
+            include: { cuenta_bancaria: true },
           });
 
-          if (bancoMatch && bancoMatch.cuenta_bancaria.length > 0) {
+          if (bancoMatch?.cuenta_bancaria?.length > 0) {
             const cuenta = bancoMatch.cuenta_bancaria[0];
             await tx.movimiento_bancario.create({
               data: {
                 id_cuenta: cuenta.id_cuenta,
-                monto_egreso: Number(medio.monto),
+                monto_egreso: medio.monto,
                 fecha_movimiento: fecha ? new Date(fecha) : new Date(),
                 tipo_movimiento: 'Débito',
                 concepto: `Pago a Proveedor (OP-${String(ordenPago.id_orden_pago).padStart(4, '0')})`,
                 tipo_deposito: medio.medio.toLowerCase().includes('cheque') ? 'Cheque Propio' : 'Transferencia',
-                // Si es transferencia, se confirma de inmediato usualmente
-                fecha_confirmacion: medio.medio.toLowerCase().includes('transferencia') ? new Date() : null
-              }
+                fecha_confirmacion: medio.medio.toLowerCase().includes('transferencia') ? new Date() : null,
+              },
             });
           }
         } catch (tesoreriaErr) {
           console.error('Error al integrar con Tesorería (no bloqueante):', tesoreriaErr);
-          // No bloqueamos la transacción principal si falla la tesorería (soft fail)
         }
       }
 
-      // 3. Registrar facturas incluidas en el pago
-      for (const facturaId of facturaIds) {
-        const factura = await tx.factura_compra.findUnique({
-          where: { id_factura_compra: Number(facturaId) }
+      for (const { id, monto } of montosPorFactura) {
+        await tx.detalle_orden_pago_facturas.create({
+          data: {
+            id_orden_pago: ordenPago.id_orden_pago,
+            id_factura_compra: id,
+            monto_pagado_factura: monto,
+          },
         });
-
-        if (factura) {
-          await tx.detalle_orden_pago_facturas.create({
-            data: {
-              id_orden_pago: ordenPago.id_orden_pago,
-              id_factura_compra: Number(facturaId),
-              monto_pagado_factura: Number(factura.total ?? 0),
-            }
-          });
-        }
       }
 
-      return ordenPago;
+      return { ordenPago, montosPorFactura, totalMedios };
     });
 
-    const total = mediosValidos.reduce((acc, m) => acc + Number(m.monto), 0);
+    const { ordenPago, montosPorFactura, totalMedios } = resultado;
 
     return res.status(201).json({
       ok: true,
       ordenPago: {
-        id: resultado.id_orden_pago,
-        numero: `OP-${String(resultado.id_orden_pago).padStart(4, '0')}`,
+        id: ordenPago.id_orden_pago,
+        numero: `OP-${String(ordenPago.id_orden_pago).padStart(4, '0')}`,
         proveedorId: Number(proveedorId),
-        fecha: resultado.fecha_pago?.toISOString().split('T')[0],
-        facturaIds,
+        fecha: ordenPago.fecha_pago?.toISOString().split('T')[0],
+        facturaIds: montosPorFactura.map((f) => f.id),
+        facturas: montosPorFactura,
         medios: mediosValidos,
-        total,
+        total: totalMedios,
         estado: 'Registrada',
-      }
+      },
     });
   } catch (error) {
     console.error('Error al registrar pago:', error);
+    if (error?.message && !error?.code) {
+      return res.status(400).json({ error: error.message });
+    }
     if (error?.code === 'P2020') {
       return res.status(400).json({
         error: 'Monto demasiado grande para la columna en la base de datos. Ejecutá npx prisma db push para aplicar el último schema.',

@@ -7,7 +7,7 @@ const API = '/api/cotizaciones';
 function getHeaders() {
   return {
     'Content-Type': 'application/json',
-    Authorization: `Bearer ${localStorage.getItem('token')}`
+    Authorization: `Bearer ${localStorage.getItem('token')}`,
   };
 }
 
@@ -23,7 +23,6 @@ export function useCotizaciones() {
       const res = await fetch(API, { headers: getHeaders() });
       const data = await res.json();
 
-      // Agrupar por idPedidoProducto para armar pedidosCotizacion
       const grupos = {};
       data.forEach((c) => {
         const key = c.idPedidoProducto;
@@ -38,6 +37,9 @@ export function useCotizaciones() {
         }
         grupos[key].proveedorIds.push(c.proveedor?.id);
         if (c.estado === 'Adjudicado') grupos[key].estado = 'Adjudicado';
+        else if (c.estado === 'Respondido' && grupos[key].estado !== 'Adjudicado') {
+          grupos[key].estado = 'Enviado';
+        }
       });
 
       setPedidosCotizacion(Object.values(grupos));
@@ -47,17 +49,21 @@ export function useCotizaciones() {
         pedidoCotizacionId: c.idPedidoProducto,
         proveedorId: c.proveedor?.id,
         fechaRespuesta: null,
-        estado: c.lineas.some((l) => l.precio != null) ? 'Recibida' : 'Pendiente',
+        estado: c.estado === 'Adjudicado'
+          ? 'Adjudicado'
+          : c.estado === 'Respondido' || c.lineas.some((l) => l.precio != null && Number(l.precio) > 0)
+            ? 'Respondido'
+            : 'Pendiente',
         lineas: c.lineas.map((l) => ({
           productoId: l.productoId,
           nombreProducto: l.nombreProducto,
-          cantidadSolicitada: l.cantidadSolicitada, // Usar cantidad real del backend
+          cantidadSolicitada: l.cantidadSolicitada,
           precioUnitario: l.precio != null ? String(l.precio) : '',
           idDetalle: l.id,
         })),
       }));
       setCotizacionesProveedor(cotsNormalizadas);
-    } catch (err) {
+    } catch {
       setError('Error al cargar cotizaciones');
     } finally {
       setLoading(false);
@@ -70,27 +76,24 @@ export function useCotizaciones() {
 
   const generarCotizacion = useCallback(async (pedido, proveedores) => {
     try {
-      // Obtener categorías del pedido, ignorando vacíos
       const categoriasNecesarias = [
         ...new Set(
           (pedido.items ?? [])
             .map((i) => i.categoria)
-            .filter((c) => c && c.trim() !== '')
-        )
+            .filter((c) => c && c.trim() !== ''),
+        ),
       ];
 
       let provsFiltrados;
-
-      // Si no hay categorías definidas → enviar a todos los proveedores
       if (!categoriasNecesarias || categoriasNecesarias.length === 0) {
         provsFiltrados = proveedores;
       } else {
         provsFiltrados = proveedores.filter((p) =>
           (p.categorias ?? []).some((c) =>
             categoriasNecesarias.some(
-              (cn) => cn.toLowerCase().trim() === c.toLowerCase().trim()
-            )
-          )
+              (cn) => cn.toLowerCase().trim() === c.toLowerCase().trim(),
+            ),
+          ),
         );
       }
 
@@ -106,9 +109,9 @@ export function useCotizaciones() {
         method: 'POST',
         headers: getHeaders(),
         body: JSON.stringify({
-          idPedidoProducto: pedido.idDB,
+          idPedidoProducto: pedido.idDB ?? pedido.id,
           proveedorIds: provsFiltrados.map((p) => p.id),
-        })
+        }),
       });
 
       if (!res.ok) {
@@ -122,12 +125,12 @@ export function useCotizaciones() {
         ok: true,
         advertencia,
         pedidoCot: {
-          id: pedido.idDB,
+          id: pedido.idDB ?? pedido.id,
           numero: pedido.numero,
           proveedorIds: provsFiltrados.map((p) => p.id),
-        }
+        },
       };
-    } catch (err) {
+    } catch {
       return { ok: false, error: 'Error al generar cotización' };
     }
   }, [fetchCotizaciones]);
@@ -142,31 +145,24 @@ export function useCotizaciones() {
       const res = await fetch(`${API}/${cotizacionId}/precios`, {
         method: 'PUT',
         headers: getHeaders(),
-        body: JSON.stringify({ lineas: lineasPayload, fechaRespuesta })
+        body: JSON.stringify({ lineas: lineasPayload, fechaRespuesta }),
       });
 
       if (!res.ok) throw new Error('Error al actualizar precios');
 
-      setCotizacionesProveedor((prev) =>
-        prev.map((c) =>
-          c.id === cotizacionId
-            ? { ...c, lineas, fechaRespuesta, estado: 'Recibida' }
-            : c
-        )
-      );
-
+      await fetchCotizaciones();
       return { ok: true };
     } catch (err) {
       return { ok: false, error: err.message };
     }
-  }, []);
+  }, [fetchCotizaciones]);
 
   const adjudicarYGenerarOrdenes = useCallback(async (pedidoCotizacion) => {
     try {
       const res = await fetch(`${API}/adjudicar`, {
         method: 'POST',
         headers: getHeaders(),
-        body: JSON.stringify({ idPedidoProducto: pedidoCotizacion.id })
+        body: JSON.stringify({ idPedidoProducto: pedidoCotizacion.id }),
       });
 
       if (!res.ok) {
@@ -175,10 +171,7 @@ export function useCotizaciones() {
       }
 
       const data = await res.json();
-
-      setPedidosCotizacion((prev) =>
-        prev.map((p) => (p.id === pedidoCotizacion.id ? { ...p, estado: 'Adjudicado' } : p))
-      );
+      await fetchCotizaciones();
 
       const ordenes = data.adjudicaciones.map((a) => ({
         proveedorId: a.proveedorId,
@@ -186,11 +179,11 @@ export function useCotizaciones() {
       }));
       const ordenesUnicas = [...new Map(ordenes.map((o) => [o.proveedorId, o])).values()];
 
-      return { ok: true, ordenes: ordenesUnicas };
-    } catch (err) {
+      return { ok: true, ordenes: ordenesUnicas.length ? ordenesUnicas : data.ordenes ?? [] };
+    } catch {
       return { ok: false, error: 'Error al adjudicar' };
     }
-  }, []);
+  }, [fetchCotizaciones]);
 
   return {
     cotizacionesProveedor,

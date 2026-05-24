@@ -14,14 +14,16 @@ export const getPedidos = async (req, res) => {
             }
           }
         },
-        cotizacion: true
+        cotizacion: { include: { orden_compra: true } },
       },
-      orderBy: { id_pedido_producto: 'desc' }
+      orderBy: { id_pedido_producto: 'desc' },
     });
 
-    const data = pedidos.map(p => {
+    const data = pedidos.map((p) => {
       let estado = 'Pendiente Cotización';
-      if (p.cotizacion.length > 0) {
+      if (p.cotizacion.some((c) => c.orden_compra?.length > 0)) {
+        estado = 'Adjudicado';
+      } else if (p.cotizacion.length > 0) {
         estado = 'En Cotización';
       }
 

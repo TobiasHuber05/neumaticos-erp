@@ -348,6 +348,7 @@ model factura_compra {
   fecha_emision               DateTime?                     @db.Date
   fecha_vencimiento           DateTime?                     @db.Date
   timbrado                    String?                       @db.VarChar(30)
+  nro_factura                 String?                       @db.VarChar(30)
   contado_credito             Boolean?
   total                       Decimal?                      @db.Decimal(18, 2)
   detalle_factura             detalle_factura[]
@@ -567,6 +568,7 @@ model pedido_devolucion {
   id_pedido_d          Int                    @id @default(autoincrement())
   id_factura_compra    Int?
   fecha_emision        DateTime?              @db.Date
+  motivo               String?                @db.VarChar(250)
   nota_credito         nota_credito[]
   nota_credito_detalle nota_credito_detalle[]
   factura_compra       factura_compra?        @relation(fields: [id_factura_compra], references: [id_factura_compra], onDelete: NoAction, onUpdate: NoAction, map: "fk_peddev_factura")

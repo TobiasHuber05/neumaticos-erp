@@ -18,7 +18,11 @@ const PagosProveedores = ({
   const nombreProv = (id) => proveedores.find((p) => p.id === id)?.nombre ?? '';
 
   const facturasPendientes = facturasProveedor.filter(
-    (f) => f.estado === 'Aceptada' && f.estadoPago !== 'Pagada' && f.proveedorId === Number(proveedorId),
+    (f) =>
+      f.estado === 'Aceptada' &&
+      f.estadoPago !== 'Pagada' &&
+      Number(f.saldoPendiente ?? f.total) > 0 &&
+      f.proveedorId === Number(proveedorId),
   );
 
   const registrar = async (payload) => {

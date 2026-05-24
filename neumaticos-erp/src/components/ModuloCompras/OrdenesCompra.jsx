@@ -165,11 +165,18 @@ const OrdenesCompra = ({
                           className={`text-[10px] font-black uppercase px-2 py-1 rounded border ${
                             f.estadoPago === 'Pagada'
                               ? 'bg-green-100 text-green-800 border-green-200'
-                              : 'bg-gray-100 text-gray-700 border-gray-200'
+                              : f.estadoPago === 'Parcial'
+                                ? 'bg-amber-100 text-amber-800 border-amber-200'
+                                : 'bg-gray-100 text-gray-700 border-gray-200'
                           }`}
                         >
                           {f.estadoPago}
                         </span>
+                        {(f.estadoPago === 'Parcial' || Number(f.totalPagado) > 0) && (
+                          <p className="text-[10px] text-gray-500 mt-1">
+                            Saldo: Gs. {Number(f.saldoPendiente ?? 0).toLocaleString('de-DE')}
+                          </p>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-right space-x-2">
                         {puedeEditar('compras') && (

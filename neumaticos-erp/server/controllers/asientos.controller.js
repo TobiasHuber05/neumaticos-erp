@@ -28,8 +28,13 @@ async function idsPlanCuentasCompra(tx) {
 export const getAsientosCompras = async (req, res) => {
   try {
     const asientos = await prisma.asientos.findMany({
-      where: { tabla_origen: 'factura_compra' },
-      orderBy: { id_asiento: 'desc' }
+      where: {
+        OR: [
+          { tabla_origen: 'factura_compra' },
+          { tabla_origen: 'nota_credito' },
+        ],
+      },
+      orderBy: { id_asiento: 'desc' },
     });
     res.json(asientos);
   } catch (error) {
@@ -80,22 +85,22 @@ export const ejecutarAsientoContableCompra = async (tx, factura) => {
         cuenta_codigo: 'SYS-COMPRA-MERC',
         monto: montoNeto,
         debe_haber: true,
-        glosa: 'Mercaderías'
+        glosa: 'Mercaderías',
       },
       {
         cuenta_codigo: 'SYS-COMPRA-IVA',
         monto: montoIva,
         debe_haber: true,
-        glosa: 'IVA Crédito Fiscal 10%'
+        glosa: 'IVA Crédito Fiscal 10%',
       },
       {
         cuenta_codigo: 'SYS-COMPRA-PROV',
         monto: total,
         debe_haber: false,
-        glosa: 'Proveedores Locales'
-      }
-    ]
-  });
+        glosa: 'Proveedores Locales',
+      },
+    ],
+  }, tx, { strict: true });
 };
 
 export const ejecutarAsientoNotaCreditoCompra = async (tx, nc) => {
@@ -114,23 +119,23 @@ export const ejecutarAsientoNotaCreditoCompra = async (tx, nc) => {
       {
         cuenta_codigo: 'SYS-COMPRA-PROV',
         monto: total,
-        debe_haber: true, // DEBE (Disminuye deuda)
-        glosa: 'Cancelación Deuda Proveedor'
+        debe_haber: true,
+        glosa: 'Cancelación Deuda Proveedor',
       },
       {
         cuenta_codigo: 'SYS-COMPRA-MERC',
         monto: montoNeto,
-        debe_haber: false, // HABER (Disminuye mercadería)
-        glosa: 'Devolución de Mercaderías'
+        debe_haber: false,
+        glosa: 'Devolución de Mercaderías',
       },
       {
         cuenta_codigo: 'SYS-COMPRA-IVA',
         monto: montoIva,
-        debe_haber: false, // HABER (Reverso IVA)
-        glosa: 'Reverso IVA Crédito Fiscal 10%'
-      }
-    ]
-  });
+        debe_haber: false,
+        glosa: 'Reverso IVA Crédito Fiscal 10%',
+      },
+    ],
+  }, tx, { strict: true });
 };
 
 // Cuentas para nómina
