@@ -125,7 +125,7 @@ export const registrarPago = async (req, res) => {
           );
         }
 
-        montosPorFactura.push({ id: linea.id, monto: montoAplicar });
+        montosPorFactura.push({ id: linea.id, monto: montoAplicar, saldoOriginal: saldo });
       }
 
       const totalMedios = redondear(mediosValidos.reduce((acc, m) => acc + m.monto, 0));
@@ -200,6 +200,15 @@ export const registrarPago = async (req, res) => {
             monto_pagado_factura: monto,
           },
         });
+      }
+
+      // Generar asiento contable
+      try {
+        const esParcial = montosPorFactura.some((f) => f.monto < f.saldoOriginal);
+        const { ejecutarAsientoPagoProveedor } = await import('./asientos.controller.js');
+        await ejecutarAsientoPagoProveedor(tx, { ...ordenPago, total: totalMedios }, esParcial);
+      } catch (errorAsiento) {
+        console.error('⚠️ El asiento de pago falló, pero se guarda el pago sin interrumpir:', errorAsiento);
       }
 
       return { ordenPago, montosPorFactura, totalMedios };

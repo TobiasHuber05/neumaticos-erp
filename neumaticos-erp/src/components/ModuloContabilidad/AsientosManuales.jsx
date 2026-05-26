@@ -368,8 +368,43 @@ const AsientosManuales = () => {
             </div>
 
             <div className="p-8 space-y-6">
-              {/* Detalle de Productos (Si existe) */}
-              {detalleOrigen && detalleOrigen.length > 0 && (
+              {/* Detalle de Facturas Pagadas (Si es orden de pago a proveedor) */}
+              {asientoSeleccionado.tabla_origen === 'orden_pago_proveedores' && detalleOrigen && detalleOrigen.length > 0 && (
+                <div className="bg-orange-50/50 border border-orange-100 rounded-2xl p-6">
+                  <h3 className="text-xs font-black text-erp-orange uppercase tracking-wider mb-4">Facturas de compra pagadas en esta operación</h3>
+                  <div className="overflow-hidden border border-orange-100 rounded-xl bg-white">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-orange-100/50 text-orange-800 font-bold uppercase text-[9px]">
+                        <tr>
+                          <th className="p-3">Nro Factura</th>
+                          <th className="p-3 text-right">Total Factura</th>
+                          <th className="p-3 text-right">Monto Pagado</th>
+                          <th className="p-3 text-center">Tipo de Pago</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-orange-100">
+                        {detalleOrigen.map((item, idx) => (
+                          <tr key={idx} className="text-gray-700 hover:bg-orange-50/20">
+                            <td className="p-3 font-semibold">{item.nro_factura}</td>
+                            <td className="p-3 text-right">Gs. {Number(item.total_factura).toLocaleString('de-DE')}</td>
+                            <td className="p-3 text-right font-bold text-erp-orange">Gs. {Number(item.monto_pagado).toLocaleString('de-DE')}</td>
+                            <td className="p-3 text-center">
+                              <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider ${
+                                item.es_parcial ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-green-100 text-green-800 border border-green-200'
+                              }`}>
+                                {item.es_parcial ? 'Pago Parcial' : 'Pago Total'}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Detalle de Productos (Para otros documentos, ej: factura de compra, nota de crédito) */}
+              {asientoSeleccionado.tabla_origen !== 'orden_pago_proveedores' && detalleOrigen && detalleOrigen.length > 0 && (
                 <div className="bg-orange-50/50 border border-orange-100 rounded-2xl p-6">
                   <h3 className="text-xs font-black text-erp-orange uppercase tracking-wider mb-4">Productos vinculados a la operación</h3>
                   <div className="overflow-hidden border border-orange-100 rounded-xl">
@@ -396,6 +431,7 @@ const AsientosManuales = () => {
                   </div>
                 </div>
               )}
+
 
               <div className="border border-gray-100 rounded-2xl overflow-hidden">
                 <table className="w-full text-left text-sm">

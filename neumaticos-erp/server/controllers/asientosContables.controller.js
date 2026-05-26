@@ -132,6 +132,43 @@ export const getDetalleOrigenAsiento = async (req, res) => {
                 }));
             }
         }
+        else if (asiento.tabla_origen === 'orden_pago_proveedores') {
+            const op = await prisma.orden_pago_proveedores.findUnique({
+                where: { id_orden_pago: Number(asiento.id_registro_origen) },
+                include: {
+                    detalle_orden_pago_facturas: {
+                        include: {
+                            factura_compra: {
+                                include: {
+                                    detalle_orden_pago_facturas: true
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            if (op?.detalle_orden_pago_facturas) {
+                items = op.detalle_orden_pago_facturas.map(d => {
+                    const totalFactura = Number(d.factura_compra?.total ?? 0);
+                    const montoPagadoEnEstaOp = Number(d.monto_pagado_factura ?? 0);
+                    
+                    const totalPagadoHistorico = (d.factura_compra?.detalle_orden_pago_facturas ?? []).reduce(
+                        (acc, op_fac) => acc + Number(op_fac.monto_pagado_factura ?? 0),
+                        0
+                    );
+                    const saldoPendiente = totalFactura - totalPagadoHistorico;
+                    const esParcial = saldoPendiente > 0.009;
+
+                    return {
+                        nro_factura: d.factura_compra?.nro_factura ?? `FAC-P-${String(d.id_factura_compra).padStart(4, '0')}`,
+                        total_factura: totalFactura,
+                        monto_pagado: montoPagadoEnEstaOp,
+                        es_parcial: esParcial
+                    };
+                });
+            }
+        }
 
         res.json({ items });
     } catch (error) {

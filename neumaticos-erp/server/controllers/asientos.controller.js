@@ -138,6 +138,34 @@ export const ejecutarAsientoNotaCreditoCompra = async (tx, nc) => {
   }, tx, { strict: true });
 };
 
+export const ejecutarAsientoPagoProveedor = async (tx, ordenPago, esParcial) => {
+  const { registrarAsientoAutomatico } = await import('../utils/asientoAutomatico.utils.js');
+
+  const total = Number(ordenPago.total);
+  const descripcion = `Pago Proveedor OP-${String(ordenPago.id_orden_pago).padStart(4, '0')}${esParcial ? ' (Parcial)' : ''}`;
+
+  return await registrarAsientoAutomatico({
+    fecha: ordenPago.fecha_pago || new Date(),
+    descripcion,
+    tabla_origen: 'orden_pago_proveedores',
+    id_registro_origen: ordenPago.id_orden_pago,
+    detalles: [
+      {
+        cuenta_codigo: 'SYS-COMPRA-PROV',
+        monto: total,
+        debe_haber: true, // Debit proveedores to reduce debt
+        glosa: esParcial ? 'Pago Parcial Proveedor' : 'Cancelación Deuda Proveedor',
+      },
+      {
+        cuenta_codigo: 'SYS-COMPRA-CAJA',
+        monto: total,
+        debe_haber: false, // Credit cash/bank
+        glosa: 'Caja y Bancos (Egresos)',
+      },
+    ],
+  }, tx, { strict: true });
+};
+
 // Cuentas para nómina
 const CUENTAS_NOMINA = [
   { code: 'SYS-NOM-SUELDOS', nombre: 'Sueldos y Jornales' },
