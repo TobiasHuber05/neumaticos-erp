@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { X, PackageCheck } from 'lucide-react';
 import { cantidadPendientePorLinea } from '../../utils/comprasLogic';
+import FormattedNumberInput from './FormattedNumberInput';
 
 /**
  * Registro de factura del proveedor contra una OC: número, timbrado, líneas con cantidad y precio.
@@ -124,12 +125,11 @@ const FacturaRecepcionForm = ({ ordenCompra, facturasExistentes = [], onCancelar
                   />
                 </td>
                 <td className="px-2 py-2">
-                  <input
-                    type="number"
-                    min={0}
+                  <FormattedNumberInput
                     value={l.precioUnitario}
-                    onChange={(e) => setPrecio(l.productoId, e.target.value)}
-                    className="w-full p-1 border rounded text-right"
+                    onChange={(val) => setPrecio(l.productoId, val)}
+                    className="w-full p-1 border rounded text-right bg-gray-100 cursor-not-allowed"
+                    disabled
                   />
                 </td>
               </tr>

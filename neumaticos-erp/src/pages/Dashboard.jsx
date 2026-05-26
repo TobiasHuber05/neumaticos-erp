@@ -38,6 +38,9 @@ import PlanCuentas from '../components/ModuloContabilidad/PlanCuentas';
 import AsientosManuales from '../components/ModuloContabilidad/AsientosManuales';
 import ReportesContables from '../components/ModuloContabilidad/ReportesContables';
 
+// Imports Reportes
+import ReportesCompras from '../components/ModuloReportes/ReportesCompras';
+
 // Imports Seguridad
 import UsuariosModulo from '../components/Usuarios/UsuariosModulo';
 
@@ -220,6 +223,7 @@ function Dashboard() {
       'notas credito': 'Notas de Crédito',
       'asiento ventas': 'Asientos de Ventas',
       tesoreria: 'Tesorería',
+      reportes_compras: 'Reportes — Compras',
       gestion_cuentas: 'Cuentas bancarias',
       'movimientos bancarios': 'Movimientos bancarios',
       'conciliacion bancaria': 'Conciliaciones bancarias',
@@ -496,6 +500,8 @@ function Dashboard() {
           </>
         );
 
+      case 'reportes_compras':
+        return <ReportesCompras />;
       case 'usuarios':
         return <UsuariosModulo />;
 

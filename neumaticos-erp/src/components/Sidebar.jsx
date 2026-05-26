@@ -16,6 +16,7 @@ import {
   CoinsIcon,
   PieChart,
   Calendar,
+  BarChart2,
   FileText,
   Home,
 } from 'lucide-react';
@@ -23,6 +24,7 @@ import { useState } from 'react';
 import { puedeVer, puedeAdministrarUsuarios } from '../utils/permisos';
 
 const Sidebar = ({ setModulo, moduloActual }) => {
+  const [reportesAbierto, setReportesAbierto] = useState(false);
   const [comprasAbierto, setComprasAbierto] = useState(false);
   const [tesoreriaAbierto, setTesoreriaAbierto] = useState(false);
   const [ventasAbierto, setVentasAbierto] = useState(false);
@@ -251,7 +253,37 @@ const Sidebar = ({ setModulo, moduloActual }) => {
             )}
           </div>
         )}
+        {/* Modulo Reportes */}
+        {puedeVer('compras') && (
+          <div className="px-2">
+            <button
+              type="button"
+              onClick={() => setReportesAbierto((prev) => !prev)}
+              className="w-full flex items-center justify-between px-4 py-3 text-orange-900 hover:bg-orange-200 rounded-lg transition-all font-bold text-sm">
+              <span className="inline-flex items-center gap-3">
+                <BarChart2 size={20} />
+                Reportes
+              </span>
+              {reportesAbierto ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+            </button>
 
+            {reportesAbierto && (
+              <div className="mt-1 mb-2">
+                <button
+                  type="button"
+                  onClick={() => setModulo('reportes_compras')}
+                  className={`w-full flex items-center gap-3 px-8 py-2 rounded-lg transition-all font-medium text-sm
+                    ${moduloActual === 'reportes_compras'
+                      ? 'bg-erp-orange text-white shadow-inner'
+                      : 'text-orange-800 hover:bg-orange-200'}`}
+                >
+                  <FileText size={18} />
+                  <span>Compras</span>
+                </button>
+              </div>
+            )}
+          </div>
+        )}
         {/* Quick Links */}
         <div className="px-2 mt-4 pt-4 border-t border-orange-300">
           {puedeVer('stock') && (

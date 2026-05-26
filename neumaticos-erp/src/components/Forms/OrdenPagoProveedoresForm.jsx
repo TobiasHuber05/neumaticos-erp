@@ -1,14 +1,14 @@
 import { useMemo, useState } from 'react';
 import { X, Banknote } from 'lucide-react';
+import FormattedNumberInput from './FormattedNumberInput';
 
 /**
  * Orden de pago con soporte de pagos parciales por factura.
  */
 const OrdenPagoProveedoresForm = ({ proveedorNombre, facturasPendientes = [], mediosOpciones = [], onCancelar, onGuardar }) => {
   const [seleccion, setSeleccion] = useState({});
-  const [montosFactura, setMontosFactura] = useState({});
+  const [mediosFactura, setMediosFactura] = useState({}); // { facturaId: [{ medio: 'Efectivo', monto: '' }] }
   const [fecha, setFecha] = useState(() => new Date().toISOString().slice(0, 10));
-  const [medios, setMedios] = useState([{ medio: mediosOpciones[0] ?? 'Efectivo', monto: '' }]);
   const [error, setError] = useState('');
 
   const saldoDe = (f) => Number(f.saldoPendiente ?? f.total ?? 0);
@@ -18,9 +18,12 @@ const OrdenPagoProveedoresForm = ({ proveedorNombre, facturasPendientes = [], me
     const activo = !seleccion[id];
     setSeleccion((s) => ({ ...s, [id]: activo }));
     if (activo) {
-      setMontosFactura((m) => ({ ...m, [id]: String(saldoDe(f)) }));
+      setMediosFactura((m) => ({
+        ...m,
+        [id]: [{ medio: mediosOpciones[0] ?? 'Efectivo', monto: String(saldoDe(f)) }]
+      }));
     } else {
-      setMontosFactura((m) => {
+      setMediosFactura((m) => {
         const next = { ...m };
         delete next[id];
         return next;
@@ -35,26 +38,33 @@ const OrdenPagoProveedoresForm = ({ proveedorNombre, facturasPendientes = [], me
 
   const totalAplicarFacturas = useMemo(() => {
     return facturasSeleccionadas.reduce((acc, f) => {
-      const m = Number(montosFactura[f.id]) || 0;
-      return acc + m;
+      const medios = mediosFactura[f.id] || [];
+      const totalFac = medios.reduce((sum, m) => sum + (Number(m.monto) || 0), 0);
+      return acc + totalFac;
     }, 0);
-  }, [facturasSeleccionadas, montosFactura]);
+  }, [facturasSeleccionadas, mediosFactura]);
 
-  const totalMedios = useMemo(
-    () => medios.reduce((acc, m) => acc + (Number(m.monto) || 0), 0),
-    [medios]
-  );
-
-  const addMedio = () => {
-    setMedios((m) => [...m, { medio: mediosOpciones[0] ?? 'Efectivo', monto: '' }]);
+  const addMedioFactura = (facturaId) => {
+    setMediosFactura(prev => ({
+      ...prev,
+      [facturaId]: [...(prev[facturaId] || []), { medio: mediosOpciones[0] ?? 'Efectivo', monto: '' }]
+    }));
   };
 
-  const updateMedio = (idx, field, val) => {
-    setMedios((m) => m.map((row, i) => (i === idx ? { ...row, [field]: val } : row)));
+  const updateMedioFactura = (facturaId, idx, field, val) => {
+    setMediosFactura(prev => ({
+      ...prev,
+      [facturaId]: prev[facturaId].map((row, i) => (i === idx ? { ...row, [field]: val } : row))
+    }));
   };
 
-  const removeMedio = (idx) => {
-    setMedios((m) => (m.length <= 1 ? m : m.filter((_, i) => i !== idx)));
+  const removeMedioFactura = (facturaId, idx) => {
+    setMediosFactura(prev => ({
+      ...prev,
+      [facturaId]: prev[facturaId].length <= 1
+        ? prev[facturaId]
+        : prev[facturaId].filter((_, i) => i !== idx)
+    }));
   };
 
   const handleGuardar = () => {
@@ -66,36 +76,35 @@ const OrdenPagoProveedoresForm = ({ proveedorNombre, facturasPendientes = [], me
     }
 
     const facturas = [];
-    for (const f of facturasSeleccionadas) {
-      const monto = Number(montosFactura[f.id]) || 0;
-      const saldo = saldoDe(f);
-      if (monto <= 0) {
-        setError(`Ingresá un monto mayor a 0 para ${f.numero}.`);
-        return;
-      }
-      if (monto > saldo + 0.009) {
-        setError(`El monto de ${f.numero} supera el saldo pendiente (Gs. ${saldo.toLocaleString('de-DE')}).`);
-        return;
-      }
-      facturas.push({ id: f.id, monto });
-    }
+    const mediosPayload = [];
 
-    const mediosPayload = medios
-      .map((m) => ({ medio: m.medio, monto: Number(m.monto) || 0 }))
-      .filter((m) => m.monto > 0);
+    for (const f of facturasSeleccionadas) {
+      const mf = mediosFactura[f.id] || [];
+      const sumMonto = mf.reduce((acc, m) => acc + (Number(m.monto) || 0), 0);
+      const saldo = saldoDe(f);
+
+      if (sumMonto <= 0) {
+        setError(`El total ingresado para ${f.numero} debe ser mayor a 0.`);
+        return;
+      }
+      if (sumMonto > saldo + 0.009) {
+        setError(`El monto total de ${f.numero} supera el saldo pendiente (Gs. ${saldo.toLocaleString('de-DE')}).`);
+        return;
+      }
+
+      facturas.push({ id: f.id, monto: sumMonto });
+
+      // Agregar los medios de pago con monto válido
+      for (const m of mf) {
+        const montoMedio = Number(m.monto) || 0;
+        if (montoMedio > 0) {
+          mediosPayload.push({ medio: m.medio, monto: montoMedio });
+        }
+      }
+    }
 
     if (!mediosPayload.length) {
       setError('Agregá al menos un medio de pago con monto.');
-      return;
-    }
-
-    const sumMedios = mediosPayload.reduce((a, m) => a + m.monto, 0);
-    const sumFacturas = facturas.reduce((a, f) => a + f.monto, 0);
-
-    if (Math.abs(sumMedios - sumFacturas) > 0.009) {
-      setError(
-        `El total de medios (Gs. ${sumMedios.toLocaleString('de-DE')}) debe coincidir con el total a aplicar (Gs. ${sumFacturas.toLocaleString('de-DE')}).`
-      );
       return;
     }
 
@@ -143,24 +152,64 @@ const OrdenPagoProveedoresForm = ({ proveedorNombre, facturasPendientes = [], me
                     )}
                   </p>
                   {seleccion[f.id] && (
-                    <div className="mt-2 ml-6 flex items-center gap-2">
-                      <label className="text-xs text-gray-600 whitespace-nowrap">Monto a pagar:</label>
-                      <input
-                        type="number"
-                        min={0}
-                        max={saldo}
-                        step="1"
-                        value={montosFactura[f.id] ?? ''}
-                        onChange={(e) => setMontosFactura((m) => ({ ...m, [f.id]: e.target.value }))}
-                        className="flex-1 p-2 border rounded text-sm text-right"
-                      />
-                      <button
-                        type="button"
-                        className="text-[10px] font-bold text-erp-orange hover:underline"
-                        onClick={() => setMontosFactura((m) => ({ ...m, [f.id]: String(saldo) }))}
-                      >
-                        Total saldo
-                      </button>
+                    <div className="mt-3 ml-6 bg-orange-50/50 p-3 rounded-lg border border-orange-100">
+                      <div className="flex justify-between items-center mb-2">
+                        <label className="text-xs font-bold text-gray-700">Formas de pago para esta factura:</label>
+                        <button 
+                          type="button" 
+                          onClick={() => addMedioFactura(f.id)} 
+                          className="text-[10px] font-bold text-erp-orange hover:underline bg-white px-2 py-1 rounded border border-orange-200"
+                        >
+                          + Agregar pago
+                        </button>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        {(mediosFactura[f.id] || []).map((row, idx) => (
+                          <div key={idx} className="flex items-center gap-2">
+                            <select
+                              value={row.medio}
+                              onChange={(e) => updateMedioFactura(f.id, idx, 'medio', e.target.value)}
+                              className="flex-1 p-1.5 border rounded text-xs bg-white"
+                            >
+                              {mediosOpciones.map((m) => (
+                                <option key={m} value={m}>
+                                  {m}
+                                </option>
+                              ))}
+                            </select>
+                            <FormattedNumberInput
+                              max={saldo}
+                              placeholder="Monto"
+                              value={row.monto}
+                              onChange={(val) => updateMedioFactura(f.id, idx, 'monto', val)}
+                              className="w-24 p-1.5 border rounded text-xs text-right bg-white"
+                            />
+                            <button 
+                              type="button" 
+                              onClick={() => removeMedioFactura(f.id, idx)} 
+                              className="text-red-400 hover:text-red-600 text-xs px-1"
+                              title="Eliminar"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                      
+                      <div className="mt-2 flex justify-end">
+                        <button
+                          type="button"
+                          className="text-[10px] font-bold text-gray-500 hover:text-erp-orange hover:underline"
+                          onClick={() => {
+                            if (mediosFactura[f.id]?.length === 1) {
+                              updateMedioFactura(f.id, 0, 'monto', String(saldo));
+                            }
+                          }}
+                        >
+                          Completar con el total (Gs. {saldo.toLocaleString('de-DE')})
+                        </button>
+                      </div>
                     </div>
                   )}
                 </li>
@@ -169,59 +218,10 @@ const OrdenPagoProveedoresForm = ({ proveedorNombre, facturasPendientes = [], me
             {!facturasPendientes.length && <li className="text-gray-500 text-sm">No hay facturas pendientes.</li>}
           </ul>
         </div>
-        <div>
-          <div className="flex justify-between items-center mb-2">
-            <p className="text-xs font-bold text-gray-600">Medios de pago</p>
-            <button type="button" onClick={addMedio} className="text-xs font-bold text-erp-orange hover:underline">
-              + Medio
-            </button>
-          </div>
-          {medios.map((row, idx) => (
-            <div key={idx} className="flex gap-2 mb-2">
-              <select
-                value={row.medio}
-                onChange={(e) => updateMedio(idx, 'medio', e.target.value)}
-                className="flex-1 p-2 border rounded text-sm"
-              >
-                {mediosOpciones.map((m) => (
-                  <option key={m} value={m}>
-                    {m}
-                  </option>
-                ))}
-              </select>
-              <input
-                type="number"
-                min={0}
-                placeholder="Monto"
-                value={row.monto}
-                onChange={(e) => updateMedio(idx, 'monto', e.target.value)}
-                className="w-28 p-2 border rounded text-sm text-right"
-              />
-              <button type="button" onClick={() => removeMedio(idx)} className="text-red-500 text-xs px-2">
-                ✕
-              </button>
-            </div>
-          ))}
-          {totalAplicarFacturas > 0 && (
-            <button
-              type="button"
-              className="text-[10px] font-bold text-erp-orange hover:underline mt-1"
-              onClick={() => setMedios([{ medio: mediosOpciones[0] ?? 'Efectivo', monto: String(totalAplicarFacturas) }])}
-            >
-              Usar un solo medio por Gs. {totalAplicarFacturas.toLocaleString('de-DE')}
-            </button>
-          )}
-        </div>
-        <div className="text-sm text-gray-700 space-y-1 bg-gray-50 rounded-lg p-3">
-          <p>
-            Total a aplicar en facturas:{' '}
-            <span className="font-black">Gs. {totalAplicarFacturas.toLocaleString('de-DE')}</span>
-          </p>
-          <p>
-            Total medios de pago:{' '}
-            <span className={`font-black ${Math.abs(totalMedios - totalAplicarFacturas) > 0.009 && totalAplicarFacturas > 0 ? 'text-red-600' : ''}`}>
-              Gs. {totalMedios.toLocaleString('de-DE')}
-            </span>
+        <div className="text-sm text-gray-700 space-y-1 bg-gray-50 rounded-lg p-3 border border-gray-200 mt-4">
+          <p className="flex justify-between items-center">
+            <span>Total a pagar seleccionado:</span>
+            <span className="font-black text-erp-orange text-lg">Gs. {totalAplicarFacturas.toLocaleString('de-DE')}</span>
           </p>
         </div>
       </div>

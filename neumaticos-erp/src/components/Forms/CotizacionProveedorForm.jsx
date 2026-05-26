@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { X, Save } from 'lucide-react';
+import FormattedNumberInput from './FormattedNumberInput';
 
 /**
  * Carga de precios unitarios por ítem para una cotización de un proveedor.
@@ -63,12 +64,9 @@ const CotizacionProveedorForm = ({ proveedorNombre, cotizacion, onCancelar, onGu
                 <td className="px-3 py-2 font-medium">{l.nombreProducto}</td>
                 <td className="px-3 py-2 text-center">{l.cantidadSolicitada}</td>
                 <td className="px-3 py-2">
-                  <input
-                    type="number"
-                    min={0}
-                    step="1"
+                  <FormattedNumberInput
                     value={l.precioUnitario}
-                    onChange={(e) => updatePrecio(l.productoId, e.target.value)}
+                    onChange={(val) => updatePrecio(l.productoId, val)}
                     className="w-full p-1.5 border rounded text-right"
                     placeholder="0"
                   />
