@@ -3,7 +3,7 @@ import {
     getReporteOrdenes,
     getKpis,
     getProveedoresLista,
-} from '../controllers/reportesCompras.controller.js';
+} from '../controllers/Reportes/reportesCompras.controller';
 
 const router = Router();
 

@@ -1,9 +1,9 @@
 import { Router } from 'express';
-import { 
-    getLibroDiario, 
-    getLibroMayor, 
-    getSumasSaldos 
-} from '../controllers/reportesContables.controller.js';
+import {
+    getLibroDiario,
+    getLibroMayor,
+    getSumasSaldos
+} from '../controllers/Contabilidad/reportesContables.controller.js';
 import { verifyToken } from '../middlewares/auth.middleware.js';
 
 const router = Router();

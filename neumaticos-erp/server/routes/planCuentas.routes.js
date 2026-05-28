@@ -4,7 +4,7 @@ import {
     createCuenta,
     updateCuenta,
     deleteCuenta,
-} from '../controllers/planCuentas.controller.js';
+} from '../controllers/Contabilidad/planCuentas.controller.js';
 import { verifyToken } from '../middlewares/auth.middleware.js';
 
 const router = express.Router();

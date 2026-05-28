@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { BookMarked, Loader2 } from 'lucide-react';
+import Pagination, { usePagination } from './Pagination';
 
 function getHeaders() {
   return {
@@ -11,6 +12,7 @@ const AsientosCompras = () => {
   const [asientos, setAsientos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { currentPage: curPageAs, totalPages: totPagesAs, currentItems: currentAsientos, setCurrentPage: setCurPageAs } = usePagination(asientos);
 
   useEffect(() => {
     setLoading(true);
@@ -48,37 +50,41 @@ const AsientosCompras = () => {
       )}
 
       {!loading && !error && (
-        <table className="w-full text-sm text-left">
-          <thead className="bg-orange-50 text-orange-600 uppercase text-xs font-bold">
-            <tr>
-              <th className="px-4 py-3">ID</th>
-              <th className="px-4 py-3">Fecha</th>
-              <th className="px-4 py-3">Descripción</th>
-              <th className="px-4 py-3">Origen</th>
-              <th className="px-4 py-3 text-right">Monto</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y">
-            {asientos.map((a) => (
-              <tr key={a.id_asiento} className="hover:bg-gray-50">
-                <td className="px-4 py-3 font-mono font-bold">#{a.id_asiento}</td>
-                <td className="px-4 py-3">{new Date(a.fecha).toLocaleDateString()}</td>
-                <td className="px-4 py-3 text-gray-600">{a.descripcion}</td>
-                <td className="px-4 py-3 text-xs text-gray-500">{a.tabla_origen ?? '—'}</td>
-                <td className="px-4 py-3 text-right font-bold text-orange-700">
-                  Gs. {Number(a.total_debe).toLocaleString('de-DE')}
-                </td>
-              </tr>
-            ))}
-            {!asientos.length && (
+        <>
+          <Pagination currentPage={curPageAs} totalPages={totPagesAs} onPageChange={setCurPageAs} className="mb-4" />
+          <table className="w-full text-sm text-left">
+            <thead className="bg-orange-50 text-orange-600 uppercase text-xs font-bold">
               <tr>
-                <td colSpan={5} className="px-4 py-12 text-center text-gray-400">
-                  No hay asientos de compras registrados.
-                </td>
+                <th className="px-4 py-3">ID</th>
+                <th className="px-4 py-3">Fecha</th>
+                <th className="px-4 py-3">Descripción</th>
+                <th className="px-4 py-3">Origen</th>
+                <th className="px-4 py-3 text-right">Monto</th>
               </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y">
+              {currentAsientos.map((a) => (
+                <tr key={a.id_asiento} className="hover:bg-gray-50">
+                  <td className="px-4 py-3 font-mono font-bold">#{a.id_asiento}</td>
+                  <td className="px-4 py-3">{new Date(a.fecha).toLocaleDateString()}</td>
+                  <td className="px-4 py-3 text-gray-600">{a.descripcion}</td>
+                  <td className="px-4 py-3 text-xs text-gray-500">{a.tabla_origen ?? '—'}</td>
+                  <td className="px-4 py-3 text-right font-bold text-orange-700">
+                    Gs. {Number(a.total_debe).toLocaleString('de-DE')}
+                  </td>
+                </tr>
+              ))}
+              {!asientos.length && (
+                <tr>
+                  <td colSpan={5} className="px-4 py-12 text-center text-gray-400">
+                    No hay asientos de compras registrados.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+          <Pagination currentPage={curPageAs} totalPages={totPagesAs} onPageChange={setCurPageAs} className="mt-4" />
+        </>
       )}
     </div>
   );

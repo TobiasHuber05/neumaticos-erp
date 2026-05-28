@@ -1,4 +1,4 @@
-import { prisma } from '../lib/prisma.js';
+import { prisma } from '../../lib/prisma.js';
 
 // ─── Helper: construye el where de fecha según query params ───────────────────
 function buildFechaWhere(fechaDesde, fechaHasta) {

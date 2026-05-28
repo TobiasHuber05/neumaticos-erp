@@ -3,10 +3,10 @@ import { Plus, Phone, MapPin, Users, Tag, Search, Trash2, AlertTriangle, X } fro
 import ProveedorForm from '../Forms/ProveedorForm';
 import { useProveedores } from '../../hooks/useProveedores';
 import { puedeEditar } from '../../utils/permisos';
+import Pagination, { usePagination } from './Pagination';
 
 const Proveedores = () => {
   const { proveedores, crearProveedor, actualizarProveedor, eliminarProveedor, categorias: categoriasDB } = useProveedores();
-
   const [mostrarForm, setMostrarForm] = useState(false);
   const [editar, setEditar] = useState(null);
   const [confirmarEliminarId, setConfirmarEliminarId] = useState(null);
@@ -20,6 +20,7 @@ const Proveedores = () => {
   }, [categoriasDB]);
 
   const proveedoresFiltrados = proveedores.filter((p) => {
+
     const q = searchTerm.trim().toLowerCase();
     const coincideTexto =
       !q ||
@@ -53,14 +54,14 @@ const Proveedores = () => {
           </div>
         )}
         <ProveedorForm
-        initial={editar}
-        categoriasDisponibles={categoriasDB}
-        onCancelar={() => {
-          setMostrarForm(false);
-          setEditar(null);
-        }}
-        onGuardar={guardar}
-      />
+          initial={editar}
+          categoriasDisponibles={categoriasDB}
+          onCancelar={() => {
+            setMostrarForm(false);
+            setEditar(null);
+          }}
+          onGuardar={guardar}
+        />
       </>
     );
   }
@@ -77,7 +78,7 @@ const Proveedores = () => {
             <>
               <button
                 type="button"
-                onClick={() => {/* Lógica para abrir modal de gestión de categorías */}}
+                onClick={() => {/* Lógica para abrir modal de gestión de categorías */ }}
                 className="flex items-center gap-2 bg-white text-gray-700 px-4 py-2 rounded-lg font-bold hover:bg-gray-50 transition-all shadow-sm border border-gray-300"
               >
                 <Tag size={20} className="text-gray-400" /> Categorías

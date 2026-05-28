@@ -7,7 +7,7 @@ import {
   deleteProducto,
   getCategorias,
   getMarcas,
-} from '../controllers/productos.controller.js';
+} from '../controllers/Inventario/productos.controller.js';
 import { verifyToken } from '../middlewares/auth.middleware.js';
 
 const router = express.Router();

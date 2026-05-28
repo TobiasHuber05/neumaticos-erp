@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Banknote } from 'lucide-react';
 import OrdenPagoProveedoresForm from '../Forms/OrdenPagoProveedoresForm';
 import { puedeEditar } from '../../utils/permisos';
+import Pagination, { usePagination } from './Pagination';
 
 const PagosProveedores = ({
   proveedores = [],
@@ -14,6 +15,8 @@ const PagosProveedores = ({
 }) => {
   const [proveedorId, setProveedorId] = useState(proveedores[0]?.id ?? '');
   const [modal, setModal] = useState(false);
+
+  const { currentPage: curPagePagos, totalPages: totPagesPagos, currentItems: currentPagos, setCurrentPage: setCurPagePagos } = usePagination(ordenesPagoProveedores);
   const [msg, setMsg] = useState(null);
 
   const nombreProv = (id) => proveedores.find((p) => p.id === id)?.nombre ?? '';
@@ -91,8 +94,13 @@ const PagosProveedores = ({
               <th className="px-4 py-3 text-right">Total</th>
             </tr>
           </thead>
+          <Pagination
+            currentPage={curPagePagos}
+            totalPages={totPagesPagos}
+            onPageChange={setCurPagePagos}
+          />
           <tbody className="divide-y">
-            {ordenesPagoProveedores.map((op) => (
+            {currentPagos.map((op) => (
               <tr key={op.id}>
                 <td className="px-4 py-3 font-mono font-bold">{op.numero}</td>
                 <td className="px-4 py-3">{nombreProv(op.proveedorId)}</td>
@@ -107,7 +115,7 @@ const PagosProveedores = ({
                 <td className="px-4 py-3 text-right font-bold">Gs. {Number(op.total).toLocaleString('de-DE')}</td>
               </tr>
             ))}
-            {!ordenesPagoProveedores.length && (
+            {!currentPagos.length && (
               <tr>
                 <td colSpan={5} className="px-4 py-10 text-center text-gray-400">
                   No hay órdenes de pago.

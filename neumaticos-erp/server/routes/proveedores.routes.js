@@ -6,7 +6,7 @@ import {
   updateProveedor,
   deleteProveedor,
   getCategorias
-} from '../controllers/proveedores.controller.js';
+} from '../controllers/Compras/proveedores.controller.js';
 import { verifyToken } from '../middlewares/auth.middleware.js';
 
 const router = express.Router();

@@ -3,7 +3,7 @@ import {
     getFuncionarios, getFuncionarioById, createFuncionario,
     updateFuncionario, deleteFuncionario,
     getFamiliares, addFamiliar, deleteFamiliar
-} from '../controllers/funcionarios.controller.js';
+} from '../controllers/Personal/funcionarios.controller.js';
 
 const router = Router();
 router.get('/funcionarios', getFuncionarios);

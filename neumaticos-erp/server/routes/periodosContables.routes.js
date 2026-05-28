@@ -1,9 +1,9 @@
 import { Router } from 'express';
-import { 
-    getPeriodosContables, 
-    createPeriodoContable, 
-    cerrarPeriodoContable 
-} from '../controllers/periodosContables.controller.js';
+import {
+    getPeriodosContables,
+    createPeriodoContable,
+    cerrarPeriodoContable
+} from '../controllers/Contabilidad/periodosContables.controller.js';
 import { verifyToken } from '../middlewares/auth.middleware.js';
 
 const router = Router();

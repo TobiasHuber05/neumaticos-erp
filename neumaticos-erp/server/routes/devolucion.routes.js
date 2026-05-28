@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getNotaCredito, procesarDevolucion } from '../controllers/devolucion.controller.js';
+import { getNotaCredito, procesarDevolucion } from '../controllers/Ventas/devolucion.controller.js';
 
 const router = Router();
 

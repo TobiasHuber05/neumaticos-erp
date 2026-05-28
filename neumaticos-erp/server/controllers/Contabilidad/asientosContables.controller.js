@@ -1,4 +1,4 @@
-import { prisma } from '../lib/prisma.js';
+import { prisma } from '../../lib/prisma.js';
 
 // GET /api/asientos-contables
 export const getAsientosContables = async (req, res) => {
@@ -34,7 +34,7 @@ export const createAsientoContable = async (req, res) => {
     const totalDebe = detalles
         .filter(d => d.debe_haber === true)
         .reduce((sum, d) => sum + Number(d.monto), 0);
-    
+
     const totalHaber = detalles
         .filter(d => d.debe_haber === false)
         .reduce((sum, d) => sum + Number(d.monto), 0);
@@ -108,7 +108,7 @@ export const getDetalleOrigenAsiento = async (req, res) => {
                 precio_unitario: Number(d.precio_unitario),
                 subtotal: Number(d.subtotal)
             }));
-        } 
+        }
         else if (asiento.tabla_origen === 'nota_credito') {
             const nc = await prisma.nota_credito.findUnique({
                 where: { id_nota_credito: Number(asiento.id_registro_origen) },
@@ -122,7 +122,7 @@ export const getDetalleOrigenAsiento = async (req, res) => {
                     }
                 }
             });
-            
+
             if (nc?.pedido_devolucion?.nota_credito_detalle) {
                 items = nc.pedido_devolucion.nota_credito_detalle.map(d => ({
                     producto: d.producto?.descripcion || 'Producto desconocido',
@@ -152,7 +152,7 @@ export const getDetalleOrigenAsiento = async (req, res) => {
                 items = op.detalle_orden_pago_facturas.map(d => {
                     const totalFactura = Number(d.factura_compra?.total ?? 0);
                     const montoPagadoEnEstaOp = Number(d.monto_pagado_factura ?? 0);
-                    
+
                     const totalPagadoHistorico = (d.factura_compra?.detalle_orden_pago_facturas ?? []).reduce(
                         (acc, op_fac) => acc + Number(op_fac.monto_pagado_factura ?? 0),
                         0

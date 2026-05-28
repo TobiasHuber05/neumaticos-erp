@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { ShoppingBag, Search, FileText, Users, RotateCcw, TrendingUp, Plus, UserPlus } from 'lucide-react';
-import { useModuloVentas } from '../hooks/useModuloVentas';
 import ClienteForm from './Forms/ClienteForm';
 import { puedeEditar } from '../utils/permisos';
 import Presupuestos from './ModuloVentas/Presupuestos';
@@ -162,18 +161,16 @@ const Ventas = ({ ventas, inventario, setInventario, servicios = [], defaultTab 
                 <button
                   key={t.id}
                   onClick={() => setTab(t.id)}
-                  className={`flex items-center gap-2 px-6 py-3 font-bold text-sm uppercase transition-all border-t border-r border-b rounded-t-lg group ${
-                    tab === t.id
+                  className={`flex items-center gap-2 px-6 py-3 font-bold text-sm uppercase transition-all border-t border-r border-b rounded-t-lg group ${tab === t.id
                       ? 'bg-white text-erp-orange border-erp-orange shadow-sm -mb-px z-10'
                       : 'bg-transparent text-gray-500 hover:text-gray-700 hover:bg-white border-gray-200'
-                  }`}
+                    }`}
                 >
                   <t.icon size={16} className={`${tab === t.id ? 'text-erp-orange' : 'text-gray-400'} group-hover:text-erp-orange transition-colors`} />
                   {t.label}
                   {t.count > 0 && (
-                    <span className={`ml-1 px-2 py-0.5 rounded-full text-xs font-black ${
-                      tab === t.id ? 'bg-erp-orange/10 text-erp-orange' : 'bg-gray-200 text-gray-600'
-                    }`}>
+                    <span className={`ml-1 px-2 py-0.5 rounded-full text-xs font-black ${tab === t.id ? 'bg-erp-orange/10 text-erp-orange' : 'bg-gray-200 text-gray-600'
+                      }`}>
                       {t.count}
                     </span>
                   )}

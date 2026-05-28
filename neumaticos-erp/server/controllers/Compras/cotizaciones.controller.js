@@ -1,4 +1,4 @@
-import { prisma } from '../lib/prisma.js';
+import { prisma } from '../../lib/prisma.js';
 
 const mapCotizacion = (c) => {
   const tienePrecios = c.detalle_cotizacion?.some((d) => d.precio != null && Number(d.precio) > 0);
@@ -96,9 +96,31 @@ export const generarCotizaciones = async (req, res) => {
     }
 
     const hoy = new Date();
+    const preciosHistoricos = await Promise.all(
+      proveedorIds.map(async (provId) => {
+        const precios = {};
+        await Promise.all(
+          pedido.detalles_pedidos.map(async (det) => {
+            const mejor = await prisma.detalle_cotizacion.findFirst({
+              where: {
+                id_producto: det.id_producto,
+                cotizacion: { id_proveedor: Number(provId) },
+                precio: { not: null },
+              },
+              orderBy: { precio: 'asc' },
+              select: { precio: true },
+            });
+            precios[det.id_producto] = mejor?.precio ?? null;
+          }),
+        );
+        return { provId, precios };
+      }),
+    );
+
     const cotizaciones = await prisma.$transaction(
-      proveedorIds.map((provId) =>
-        prisma.cotizacion.create({
+      proveedorIds.map((provId) => {
+        const historico = preciosHistoricos.find((p) => p.provId === provId)?.precios ?? {};
+        return prisma.cotizacion.create({
           data: {
             id_pedido_producto: Number(idPedidoProducto),
             id_proveedor: Number(provId),
@@ -106,7 +128,7 @@ export const generarCotizaciones = async (req, res) => {
             detalle_cotizacion: {
               create: pedido.detalles_pedidos.map((det) => ({
                 id_producto: det.id_producto,
-                precio: null,
+                precio: historico[det.id_producto] ?? null,
                 seleccionado: false,
               })),
             },
@@ -117,8 +139,8 @@ export const generarCotizaciones = async (req, res) => {
             detalle_cotizacion: { include: { producto: true } },
             orden_compra: true,
           },
-        }),
-      ),
+        });
+      }),
     );
 
     return res.status(201).json({ ok: true, cotizaciones: cotizaciones.map(mapCotizacion) });

@@ -1,4 +1,4 @@
-import { prisma } from '../lib/prisma.js'; // Importación centralizada
+import { prisma } from '../../lib/prisma.js'; // Importación centralizada
 
 // GET /api/productos
 export const getProductos = async (req, res) => {
@@ -7,7 +7,9 @@ export const getProductos = async (req, res) => {
       include: {
         categoria: true,
         marcas: true,
-        stock: true,
+        stock: {
+          some: { activo: true }
+        },
         producto_servicio: true,
       },
       orderBy: { descripcion: 'asc' }
@@ -44,6 +46,7 @@ export const getProductos = async (req, res) => {
         stock: stockRow?.cantidad ?? 0,
         min: 10,
         precio: stockRow?.precio ? Number(stockRow.precio) : 0,
+        precioCompra: stockRow?.precio_compra ? Number(stockRow.precio_compra) : null,
         idStock: stockRow?.id_stock ?? null,
         duracion_aprox: serviceRow?.duracion_aprox ?? '—',
         estado: serviceRow?.estado ?? 'Disponible',
@@ -82,6 +85,7 @@ export const getProductoById = async (req, res) => {
       esServicio: p.es_servicio ?? false,
       stock: stockRow?.cantidad ?? 0,
       precio: stockRow?.precio ? Number(stockRow.precio) : 0,
+      precioCompra: stockRow?.precio_compra ? Number(stockRow.precio_compra) : null,
       idStock: stockRow?.id_stock ?? null,
       duracion_aprox: serviceRow?.duracion_aprox ?? '—',
       estado: serviceRow?.estado ?? 'Disponible',
@@ -185,6 +189,7 @@ export const updateProducto = async (req, res) => {
           data: {
             precio: precio ? Number(precio) : 0,
             fecha_modificacion: new Date(),
+            activo: false,
           }
         });
       }

@@ -1,14 +1,14 @@
-import { prisma } from '../lib/prisma.js';
+import { prisma } from '../../lib/prisma.js';
 
 export const crearPresupuesto = async (req, res) => {
-  const { id_cliente, items } = req.body; 
+  const { id_cliente, items } = req.body;
   // items: [{ id_producto, cantidad_producto, precio_unitario }]
 
   try {
     const fechaEmision = new Date();
     const fechaVencimiento = new Date();
     // El presupuesto tiene una validez de 10 días hábiles 
-    fechaVencimiento.setDate(fechaEmision.getDate() + 10); 
+    fechaVencimiento.setDate(fechaEmision.getDate() + 10);
 
     const nuevoPresupuesto = await prisma.presupuesto.create({
       data: {
@@ -26,7 +26,7 @@ export const crearPresupuesto = async (req, res) => {
         }
       },
       include: {
-        cliente: true, 
+        cliente: true,
         detalle_presupuesto: true
       }
     });
@@ -40,11 +40,11 @@ export const crearPresupuesto = async (req, res) => {
 
 export const obtenerPresupuestos = async (req, res) => {
   try {
-    const lista = await prisma.presupuesto.findMany({ 
-      include: { 
+    const lista = await prisma.presupuesto.findMany({
+      include: {
         cliente: true,
         detalle_presupuesto: true
-      } 
+      }
     });
     res.json(lista);
   } catch (error) {

@@ -1,8 +1,8 @@
 import { Router } from 'express';
-import { 
-    crearPresupuesto, 
-    obtenerPresupuestos 
-} from '../controllers/presupuesto.controller.js';
+import {
+    crearPresupuesto,
+    obtenerPresupuestos
+} from '../controllers/Ventas/presupuesto.controller.js';
 
 const router = Router();
 

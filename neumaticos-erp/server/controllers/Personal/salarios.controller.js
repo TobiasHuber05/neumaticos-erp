@@ -1,4 +1,4 @@
-import { prisma } from '../lib/prisma.js';
+import { prisma } from '../../lib/prisma.js';
 
 const SALARIO_MINIMO = 2680373; // Guaraníes 2025 — ajustar según corresponda
 const PORCENTAJE_IPS = 0.09;
@@ -251,7 +251,7 @@ export const cerrarProceso = async (req, res) => {
 
     // --- INTEGRACIÓN CONTABLE ---
     try {
-      const { registrarAsientoAutomatico } = await import('../utils/asientoAutomatico.utils.js');
+      const { registrarAsientoAutomatico } = await import('../../utils/asientoAutomatico.utils.js');
       const procesoFull = await prisma.cabecera_pago.findUnique({
         where: { id_pago: Number(id) },
         include: { sueldos: { include: { conceptos: true } } }

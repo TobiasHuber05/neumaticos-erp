@@ -5,7 +5,7 @@ import {
   generarCotizaciones,
   actualizarPrecios,
   adjudicar,
-} from '../controllers/cotizaciones.controller.js';
+} from '../controllers/Compras/cotizaciones.controller.js';
 import { verifyToken } from '../middlewares/auth.middleware.js';
 
 const router = express.Router();

@@ -1,4 +1,4 @@
-import { prisma } from '../lib/prisma.js';
+import { prisma } from '../../lib/prisma.js';
 
 export const procesarDevolucion = async (req, res) => {
   const { id_factura_venta, motivo, items_a_devolver } = req.body;
@@ -75,7 +75,7 @@ export const procesarDevolucion = async (req, res) => {
       }
 
       // 5. GENERAR ASIENTO CONTABLE AUTOMÁTICO
-      const { registrarAsientoAutomatico } = await import('../utils/asientoAutomatico.utils.js');
+      const { registrarAsientoAutomatico } = await import('../../utils/asientoAutomatico.utils.js');
       const totalDevolucion = items_a_devolver.reduce((sum, i) => sum + (i.precio_unitario * i.cantidad), 0);
       const montoIva = Math.round(totalDevolucion / 11);
       const montoSinIva = totalDevolucion - montoIva;
@@ -119,31 +119,31 @@ export const procesarDevolucion = async (req, res) => {
   }
 };
 export const getNotaCredito = async (req, res) => {
-      try{
-        // creamos la respuesta del json incluyendo el detalle de la nota credito.
-        //utilizamos siempre await para las peticiones.
-        const notas = await prisma.nota_credito_venta.findMany({
+  try {
+    // creamos la respuesta del json incluyendo el detalle de la nota credito.
+    //utilizamos siempre await para las peticiones.
+    const notas = await prisma.nota_credito_venta.findMany({
+      include: {
+        detalle_nota_credito: {
           include: {
-            detalle_nota_credito: {
+            producto_servicio: {
               include: {
-                producto_servicio: {
-                  include: {
-                    producto: true
-                  }
-                }
-              }
-            },
-            devolucion_cliente: {
-              include: {
-                factura_venta: true
+                producto: true
               }
             }
           }
-        });
-        res.json(notas);
+        },
+        devolucion_cliente: {
+          include: {
+            factura_venta: true
+          }
+        }
       }
-      catch (error) {
-        // en el hipotetico caso de que haya errores.
-        res.status(500).json({error: error.message});
-      }
-    }
+    });
+    res.json(notas);
+  }
+  catch (error) {
+    // en el hipotetico caso de que haya errores.
+    res.status(500).json({ error: error.message });
+  }
+}

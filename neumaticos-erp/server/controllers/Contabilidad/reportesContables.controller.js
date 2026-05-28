@@ -1,4 +1,4 @@
-import { prisma } from '../lib/prisma.js';
+import { prisma } from '../../lib/prisma.js';
 
 // GET /api/reportes-contables/libro-diario?periodo=ID
 export const getLibroDiario = async (req, res) => {
@@ -73,7 +73,7 @@ export const getSumasSaldos = async (req, res) => {
             const totalDebe = cuenta.asiento_detalle
                 .filter(d => d.debe_haber === true)
                 .reduce((sum, d) => sum + Number(d.monto), 0);
-            
+
             const totalHaber = cuenta.asiento_detalle
                 .filter(d => d.debe_haber === false)
                 .reduce((sum, d) => sum + Number(d.monto), 0);

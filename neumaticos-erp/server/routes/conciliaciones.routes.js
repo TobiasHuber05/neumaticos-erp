@@ -1,11 +1,11 @@
 import express from 'express';
-import { 
-    getConciliaciones, 
-    getConciliacionById, 
-    crearConciliacion, 
-    vincularMovimientos, 
-    finalizarConciliacion 
-} from '../controllers/conciliaciones.controller.js';
+import {
+    getConciliaciones,
+    getConciliacionById,
+    crearConciliacion,
+    vincularMovimientos,
+    finalizarConciliacion
+} from '../controllers/Tesoreria/conciliaciones.controller.js';
 
 const router = express.Router();
 

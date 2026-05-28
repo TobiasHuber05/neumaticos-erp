@@ -1,5 +1,5 @@
 //@88gonzalex
-import { prisma } from '../lib/prisma.js';
+import { prisma } from '../../lib/prisma.js';
 
 // Obtener todos los clientes
 export const getClientes = async (req, res) => {

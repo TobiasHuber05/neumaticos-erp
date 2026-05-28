@@ -39,7 +39,7 @@ export const getCargos = async (req, res) => {
 export const createUsuario = async (req, res) => {
   try {
     const { username, email, telefono, direccion, id_cargo, permisos, password } = req.body;
-    
+
     // Verificar si ya existe
     const existe = await prisma.usuarios.findFirst({
       where: { OR: [{ email }, { username }] }
@@ -83,7 +83,7 @@ export const updateUsuario = async (req, res) => {
   try {
     const { id } = req.params;
     const { username, email, telefono, direccion, id_cargo, permisos } = req.body;
-    
+
     const cargo = await prisma.cargos.findUnique({ where: { id_cargo: parseInt(id_cargo) } });
 
     const usuarioActualizado = await prisma.usuarios.update({

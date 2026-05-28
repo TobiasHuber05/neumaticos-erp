@@ -1,10 +1,10 @@
 import express from 'express';
-import { 
-  getServicios, 
-  createServicio, 
-  updateServicio, 
-  deleteServicio 
-} from '../controllers/servicios.controller.js';
+import {
+  getServicios,
+  createServicio,
+  updateServicio,
+  deleteServicio
+} from '../controllers/Inventario/servicios.controller.js';
 import { verifyToken } from '../middlewares/auth.middleware.js';
 
 const router = express.Router();

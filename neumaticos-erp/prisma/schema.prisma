@@ -710,6 +710,8 @@ model stock {
   cantidad           Int?
   fecha_modificacion DateTime? @db.Date
   precio             Decimal?  @db.Decimal(10, 2)
+  precio_compra      Decimal?  @db.Decimal(10, 2) 
+  activo             Boolean   @default(true)
   producto           producto? @relation(fields: [id_producto], references: [id_producto], onDelete: NoAction, onUpdate: NoAction, map: "fk_stock_producto")
 }
 

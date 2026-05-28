@@ -4,6 +4,8 @@ import CotizacionProveedorForm from '../Forms/CotizacionProveedorForm';
 import { ESTADOS_PEDIDO_COMPRA } from '../Forms/comprasFormDefaults';
 import { puedeEditar } from '../../utils/permisos';
 
+import Pagination, { usePagination } from './Pagination';
+
 const Cotizaciones = ({
   pedidos = [],
   proveedores = [],
@@ -25,6 +27,20 @@ const Cotizaciones = ({
   const pedidosPendientesCot = pedidos.filter(
     (p) => p.estado === ESTADOS_PEDIDO_COMPRA.PENDIENTE_COTIZACION,
   );
+
+  const {
+    currentPage: curPagePendientes,
+    totalPages: totPagesPendientes,
+    currentItems: currentPendientes,
+    setCurrentPage: setCurPagePendientes
+  } = usePagination(pedidosPendientesCot);
+
+  const {
+    currentPage: curPageCotizaciones,
+    totalPages: totPagesCotizaciones,
+    currentItems: currentCotizaciones,
+    setCurrentPage: setCurPageCotizaciones
+  } = usePagination(pedidosCotizacion);
 
   const onGenerar = async (pedido) => {
     setLoadingGenerar(pedido.id);
@@ -70,10 +86,10 @@ const Cotizaciones = ({
       {mensaje && (
         <div
           className={`rounded-lg border p-4 text-sm font-medium ${mensaje.tipo === 'err'
-              ? 'bg-red-50 border-red-200 text-red-800'
-              : mensaje.tipo === 'warn'
-                ? 'bg-amber-50 border-amber-200 text-amber-900'
-                : 'bg-green-50 border-green-200 text-green-800'
+            ? 'bg-red-50 border-red-200 text-red-800'
+            : mensaje.tipo === 'warn'
+              ? 'bg-amber-50 border-amber-200 text-amber-900'
+              : 'bg-green-50 border-green-200 text-green-800'
             }`}
         >
           {mensaje.tipo === 'warn' && (
@@ -102,6 +118,13 @@ const Cotizaciones = ({
           Se invitan automáticamente a los proveedores que cubren las categorías de los productos
           (objetivo: al menos tres proveedores).
         </p>
+
+        <Pagination
+          currentPage={curPagePendientes}
+          totalPages={totPagesPendientes}
+          onPageChange={setCurPagePendientes}
+        />
+
         <div className="overflow-x-auto p-4">
           <table className="w-full text-left text-sm">
             <thead className="bg-orange-50 text-erp-orange uppercase text-xs font-black">
@@ -113,7 +136,7 @@ const Cotizaciones = ({
               </tr>
             </thead>
             <tbody className="divide-y">
-              {pedidosPendientesCot.map((p) => (
+              {currentPendientes.map((p) => (
                 <tr key={p.id}>
                   <td className="px-4 py-3 font-bold">{p.numero}</td>
                   <td className="px-4 py-3 text-gray-600">{p.fecha}</td>
@@ -142,7 +165,7 @@ const Cotizaciones = ({
                   </td>
                 </tr>
               ))}
-              {!pedidosPendientesCot.length && (
+              {!currentPendientes.length && (
                 <tr>
                   <td colSpan={4} className="px-4 py-8 text-center text-gray-400">
                     No hay pedidos pendientes de cotización.
@@ -152,6 +175,12 @@ const Cotizaciones = ({
             </tbody>
           </table>
         </div>
+
+        <Pagination
+          currentPage={curPagePendientes}
+          totalPages={totPagesPendientes}
+          onPageChange={setCurPagePendientes}
+        />
       </div>
 
       {/* Cotizaciones por proveedor */}
@@ -160,8 +189,15 @@ const Cotizaciones = ({
           <Users className="text-erp-orange" />
           <h2 className="text-xl font-bold text-gray-800">Cotizaciones por proveedor</h2>
         </div>
+
+        <Pagination
+          currentPage={curPageCotizaciones}
+          totalPages={totPagesCotizaciones}
+          onPageChange={setCurPageCotizaciones}
+        />
+
         <div className="divide-y max-h-[480px] overflow-y-auto">
-          {pedidosCotizacion.map((pc) => {
+          {currentCotizaciones.map((pc) => {
             const isExpanded = expandedPcs.includes(pc.id);
             const toggleExpand = () => {
               setExpandedPcs((prev) =>
@@ -242,8 +278,8 @@ const Cotizaciones = ({
                             <div className="flex items-center gap-2 mt-1">
                               <span
                                 className={`text-[9px] uppercase font-black px-1.5 py-0.5 rounded ${c.estado === 'Respondido' || c.estado === 'Recibida'
-                                    ? 'bg-green-100 text-green-700'
-                                    : 'bg-gray-100 text-gray-500'
+                                  ? 'bg-green-100 text-green-700'
+                                  : 'bg-gray-100 text-gray-500'
                                   }`}
                               >
                                 {c.estado}
@@ -272,12 +308,18 @@ const Cotizaciones = ({
               </div>
             );
           })}
-          {!pedidosCotizacion.length && (
+          {!currentCotizaciones.length && (
             <p className="p-8 text-center text-gray-400 text-sm">
               Todavía no hay pedidos de cotización generados.
             </p>
           )}
         </div>
+
+        <Pagination
+          currentPage={curPageCotizaciones}
+          totalPages={totPagesCotizaciones}
+          onPageChange={setCurPageCotizaciones}
+        />
       </div>
 
       {/* Modal cargar precios */}

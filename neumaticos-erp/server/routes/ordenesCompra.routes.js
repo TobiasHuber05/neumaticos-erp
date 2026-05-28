@@ -8,7 +8,7 @@ import {
   getDevoluciones,
   registrarNotaCreditoCompra,
   getNotasCredito,
-} from '../controllers/ordenesCompra.controller.js';
+} from '../controllers/Compras/ordenesCompra.controller.js';
 import { verifyToken } from '../middlewares/auth.middleware.js';
 
 const router = express.Router();

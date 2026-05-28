@@ -5,7 +5,6 @@ import { useProductos } from '../hooks/useProductos';
 import { puedeEditar } from '../utils/permisos';
 
 const Stock = ({ proveedoresMaestro = [] }) => {
-  // ✅ CORRECCIÓN 1: Se agregó 'marcas' a la desestructuración del hook
   const { inventario, categorias, marcas, crearProducto, eliminarProducto, loading } = useProductos();
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -92,6 +91,7 @@ const Stock = ({ proveedoresMaestro = [] }) => {
                   <th className="px-6 py-4 text-center">Stock actual</th>
                   <th className="px-6 py-4 text-center">Stock mín.</th>
                   <th className="px-6 py-4 text-right">Precio unitario</th>
+                  <th className="px-6 py-4 text-right">Precio de compra</th>
                   <th className="px-6 py-4 text-center">Estado</th>
                 </tr>
               </thead>
@@ -118,6 +118,13 @@ const Stock = ({ proveedoresMaestro = [] }) => {
                           <span className="text-gray-400 font-medium">—</span>
                         ) : (
                           <>Gs. {Number(item.precio.toString().replace(/\./g, '')).toLocaleString('de-DE')}</>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-right font-bold text-gray-700">
+                        {item.precioCompra == null ? (
+                          <span className="text-gray-400 font-medium">—</span>
+                        ) : (
+                          <>Gs. {Number(item.precioCompra.toString().replace(/\./g, '')).toLocaleString('de-DE')}</>
                         )}
                       </td>
                       <td className="px-6 py-4 text-center">

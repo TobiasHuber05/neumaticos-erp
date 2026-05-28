@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getCargos, getCargoById, createCargo, updateCargo, deleteCargo } from '../controllers/cargos.controller.js';
+import { getCargos, getCargoById, createCargo, updateCargo, deleteCargo } from '../controllers/Personal/cargos.controller.js';
 
 const router = Router();
 router.get('/cargos', getCargos);

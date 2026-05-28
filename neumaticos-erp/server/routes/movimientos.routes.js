@@ -4,7 +4,7 @@ import {
     registrarMovimiento,
     confirmarMovimientos,
     getEstadisticasTesoreria,
-} from '../controllers/movimientos.controller.js';
+} from '../controllers/Tesoreria/movimientos.controller.js';
 import { verifyToken } from '../middlewares/auth.middleware.js';
 
 const router = express.Router();

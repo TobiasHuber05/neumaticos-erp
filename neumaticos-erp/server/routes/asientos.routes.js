@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getAsientosCompras, getAsientosNomina, createAsiento, getAsientosVentas } from '../controllers/asientos.controller.js';
+import { getAsientosCompras, getAsientosNomina, createAsiento, getAsientosVentas } from '../controllers/Contabilidad/asientos.controller.js';
 import { verifyToken } from '../middlewares/auth.middleware.js';
 
 const router = Router();

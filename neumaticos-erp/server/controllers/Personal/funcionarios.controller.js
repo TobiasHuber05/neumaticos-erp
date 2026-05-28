@@ -1,4 +1,4 @@
-import { prisma } from '../lib/prisma.js';
+import { prisma } from '../../lib/prisma.js';
 
 
 // GET /api/funcionarios
@@ -8,7 +8,7 @@ export const getFuncionarios = async (req, res) => {
             include: {
                 personas: true,
                 cargos: true,
-                familiares: { include: { personas: true} },
+                familiares: { include: { personas: true } },
                 contrato: { include: { sueldos: true } },
                 historial: { include: { cargos: true }, orderBy: { fecha_ingreso: 'desc' } }
             },
@@ -24,7 +24,7 @@ export const getFuncionarios = async (req, res) => {
             historial: f.historial,
             // Cantidad de hijos menores de 18 (para bonificación familiar)
             hijos_menores: f.familiares.filter(fam => {
-                if (fam.parentesco?.toLowerCase() !== 'hijo' && 
+                if (fam.parentesco?.toLowerCase() !== 'hijo' &&
                     fam.parentesco?.toLowerCase() !== 'hija') return false;
                 if (!fam.fecha_nacimiento) return false;
                 const hoy = new Date();
@@ -50,7 +50,7 @@ export const getFuncionarioById = async (req, res) => {
             include: {
                 personas: true,
                 cargos: true,
-                familiares: { include: { personas: true} },
+                familiares: { include: { personas: true } },
                 contrato: { include: { sueldos: { include: { conceptos: true } } } },
                 historial: { include: { cargos: true }, orderBy: { fecha_ingreso: 'desc' } }
             }
@@ -79,43 +79,43 @@ export const createFuncionario = async (req, res) => {
 
     try {
         const resultado = await prisma.$transaction(async (tx) => {
-        // 1. Crear persona
+            // 1. Crear persona
             const persona = await tx.personas.create({
                 data: {
-                nombre, apellido, ci, ruc, estado_civil, sexo, razon_social,
-                fecha_nacimiento: fecha_nacimiento ? new Date(fecha_nacimiento) : null,
-                tipo_persona: 'FUNCIONARIO'
+                    nombre, apellido, ci, ruc, estado_civil, sexo, razon_social,
+                    fecha_nacimiento: fecha_nacimiento ? new Date(fecha_nacimiento) : null,
+                    tipo_persona: 'FUNCIONARIO'
                 }
             });
 
             // 2. Crear funcionario
             const funcionario = await tx.funcionarios.create({
                 data: {
-                id_persona: persona.id_persona,
-                id_cargo: id_cargo ? Number(id_cargo) : null
+                    id_persona: persona.id_persona,
+                    id_cargo: id_cargo ? Number(id_cargo) : null
                 }
             });
 
             // 3. Crear historial de cargo inicial
             if (id_cargo && fecha_ingreso) {
                 await tx.historial.create({
-                data: {
-                    id_funcionario: funcionario.id_funcionario,
-                    id_cargo: Number(id_cargo),
-                    fecha_ingreso: new Date(fecha_ingreso)
-                }
+                    data: {
+                        id_funcionario: funcionario.id_funcionario,
+                        id_cargo: Number(id_cargo),
+                        fecha_ingreso: new Date(fecha_ingreso)
+                    }
                 });
             }
 
             // 4. Crear contrato
             if (id_cargo || salario_base) {
                 await tx.contrato.create({
-                data: {
-                    id_funcionario: funcionario.id_funcionario,
-                    id_cargo: id_cargo ? Number(id_cargo) : null,
-                    fecha_ingreso: fecha_ingreso ? new Date(fecha_ingreso) : new Date(),
-                    salario_base: salario_base ? Number(salario_base) : null
-                }
+                    data: {
+                        id_funcionario: funcionario.id_funcionario,
+                        id_cargo: id_cargo ? Number(id_cargo) : null,
+                        fecha_ingreso: fecha_ingreso ? new Date(fecha_ingreso) : new Date(),
+                        salario_base: salario_base ? Number(salario_base) : null
+                    }
                 });
             }
 
@@ -124,22 +124,22 @@ export const createFuncionario = async (req, res) => {
                 // Crear persona del familiar
                 const personaFam = await tx.personas.create({
                     data: {
-                    nombre:           fam.nombre || null,
-                    ci:               fam.cedula || null,
-                    fecha_nacimiento: fam.fecha_nacimiento ? new Date(fam.fecha_nacimiento) : null,
-                    tipo_persona:     'FAMILIAR'
+                        nombre: fam.nombre || null,
+                        ci: fam.cedula || null,
+                        fecha_nacimiento: fam.fecha_nacimiento ? new Date(fam.fecha_nacimiento) : null,
+                        tipo_persona: 'FAMILIAR'
                     }
                 });
                 // Crear familiar vinculado
                 await tx.familiares.create({
                     data: {
-                    id_funcionario:   funcionario.id_funcionario,
-                    id_persona:       personaFam.id_persona,
-                    parentesco:       fam.parentesco,
-                    fecha_nacimiento: fam.fecha_nacimiento ? new Date(fam.fecha_nacimiento) : null,
+                        id_funcionario: funcionario.id_funcionario,
+                        id_persona: personaFam.id_persona,
+                        parentesco: fam.parentesco,
+                        fecha_nacimiento: fam.fecha_nacimiento ? new Date(fam.fecha_nacimiento) : null,
                     }
                 });
-}
+            }
 
             return funcionario;
         });
@@ -258,27 +258,27 @@ export const addFamiliar = async (req, res) => {
 
     try {
         const resultado = await prisma.$transaction(async (tx) => {
-        // 1. Crear persona del familiar
-        const persona = await tx.personas.create({
-            data: {
-            nombre:           nombre,
-            ci:               cedula || null,
-            fecha_nacimiento: fecha_nacimiento ? new Date(fecha_nacimiento) : null,
-            tipo_persona:     'FAMILIAR'
-            }
-        });
+            // 1. Crear persona del familiar
+            const persona = await tx.personas.create({
+                data: {
+                    nombre: nombre,
+                    ci: cedula || null,
+                    fecha_nacimiento: fecha_nacimiento ? new Date(fecha_nacimiento) : null,
+                    tipo_persona: 'FAMILIAR'
+                }
+            });
 
-        // 2. Crear el familiar vinculado a la persona y al funcionario
-        const familiar = await tx.familiares.create({
-            data: {
-            id_funcionario: Number(id),
-            id_persona:     persona.id_persona,
-            parentesco,
-            fecha_nacimiento: fecha_nacimiento ? new Date(fecha_nacimiento) : null,
-            }
-        });
+            // 2. Crear el familiar vinculado a la persona y al funcionario
+            const familiar = await tx.familiares.create({
+                data: {
+                    id_funcionario: Number(id),
+                    id_persona: persona.id_persona,
+                    parentesco,
+                    fecha_nacimiento: fecha_nacimiento ? new Date(fecha_nacimiento) : null,
+                }
+            });
 
-        return familiar;
+            return familiar;
         });
 
         res.status(201).json(resultado);

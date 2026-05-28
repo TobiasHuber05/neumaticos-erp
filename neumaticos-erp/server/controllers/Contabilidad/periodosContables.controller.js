@@ -1,4 +1,4 @@
-import { prisma } from '../lib/prisma.js';
+import { prisma } from '../../lib/prisma.js';
 
 // GET /api/periodos-contables
 export const getPeriodosContables = async (req, res) => {

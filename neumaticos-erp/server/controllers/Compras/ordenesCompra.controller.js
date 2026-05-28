@@ -1,5 +1,5 @@
-import { prisma } from '../lib/prisma.js';
-import { ejecutarAsientoContableCompra, ejecutarAsientoNotaCreditoCompra } from './asientos.controller.js';
+import { prisma } from '../../lib/prisma.js';
+import { ejecutarAsientoContableCompra, ejecutarAsientoNotaCreditoCompra } from '../Contabilidad/asientos.controller.js';
 
 function buildLineasOC(oc) {
   const detallesSeleccionados = oc.cotizacion?.detalle_cotizacion ?? [];
@@ -212,6 +212,7 @@ export const registrarFactura = async (req, res) => {
             data: {
               cantidad: (stockExistente.cantidad ?? 0) + Number(linea.cantidad || 0),
               fecha_modificacion: new Date(),
+              precio_compra: Number(linea.precioUnitario || 0),
             },
           });
         } else {
@@ -221,6 +222,7 @@ export const registrarFactura = async (req, res) => {
               cantidad: Number(linea.cantidad || 0),
               fecha_modificacion: new Date(),
               precio: Number(linea.precioUnitario || 0),
+              precio_compra: Number(linea.precioUnitario || 0),
             },
           });
         }

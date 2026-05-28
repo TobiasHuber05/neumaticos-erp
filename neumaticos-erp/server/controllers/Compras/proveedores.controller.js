@@ -1,4 +1,4 @@
-import { prisma } from '../lib/prisma.js';
+import { prisma } from '../../lib/prisma.js';
 
 // GET /api/proveedores
 export const getProveedores = async (req, res) => {

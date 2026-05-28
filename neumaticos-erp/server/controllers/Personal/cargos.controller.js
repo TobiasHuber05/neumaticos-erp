@@ -1,4 +1,4 @@
-import { prisma } from '../lib/prisma.js';
+import { prisma } from '../../lib/prisma.js';
 
 // GET /api/cargos
 export const getCargos = async (req, res) => {
@@ -6,7 +6,7 @@ export const getCargos = async (req, res) => {
         const cargos = await prisma.cargos.findMany({
             orderBy: { id_cargo: 'asc' }
         });
-    res.json(cargos);
+        res.json(cargos);
     } catch (error) {
         console.error('Error al obtener cargos:', error);
         res.status(500).json({ error: 'Error al obtener cargos' });
@@ -18,8 +18,8 @@ export const getCargoById = async (req, res) => {
     const { id } = req.params;
     try {
         const cargo = await prisma.cargos.findUnique({
-        where: { id_cargo: Number(id) },
-        include: { funcionarios: { include: { personas: true } } }
+            where: { id_cargo: Number(id) },
+            include: { funcionarios: { include: { personas: true } } }
         });
         if (!cargo) return res.status(404).json({ error: 'Cargo no encontrado' });
         res.json(cargo);
@@ -55,8 +55,10 @@ export const updateCargo = async (req, res) => {
     try {
         const cargo = await prisma.cargos.update({
             where: { id_cargo: Number(id) },
-            data: { nombre_cargo, descripcion_cargo, area_superior, jefe_inmediato,
-                sueldo_base: sueldo_base ? Number(sueldo_base) : null }
+            data: {
+                nombre_cargo, descripcion_cargo, area_superior, jefe_inmediato,
+                sueldo_base: sueldo_base ? Number(sueldo_base) : null
+            }
         });
         res.json(cargo);
     } catch (error) {

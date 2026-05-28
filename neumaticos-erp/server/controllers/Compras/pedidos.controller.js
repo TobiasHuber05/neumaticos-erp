@@ -1,4 +1,4 @@
-import { prisma } from '../lib/prisma.js';
+import { prisma } from '../../lib/prisma.js';
 
 // 1. Obtener todos los pedidos
 export const getPedidos = async (req, res) => {

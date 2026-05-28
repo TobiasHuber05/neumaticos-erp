@@ -1,4 +1,4 @@
-import { prisma } from '../lib/prisma.js';
+import { prisma } from '../../lib/prisma.js';
 
 // Auxiliar para lógica de saldos
 export const calcularSaldos = (movs, saldoInicial = 0, saldoDisponibleInicial = 0) => {
@@ -89,7 +89,7 @@ export const registrarMovimiento = async (req, res) => {
 
     try {
         let f_conf = fecha_confirmacion ? new Date(fecha_confirmacion) : null;
-        
+
         if (confirmar_inmediato || ['Efectivo', 'Cheque Mismo Banco', 'Transferencia'].includes(tipo_deposito)) {
             f_conf = new Date();
         }
@@ -121,9 +121,9 @@ export const registrarMovimiento = async (req, res) => {
             tipo_deposito: movimiento.tipo_deposito,
         });
     } catch (error) {
-        return res.status(500).json({ 
+        return res.status(500).json({
             error: 'Error interno al registrar movimiento',
-            detalle: error.message 
+            detalle: error.message
         });
     }
 };

@@ -3,7 +3,7 @@ import {
   getPagos,
   getFormasPago,
   registrarPago,
-} from '../controllers/pagosProveedores.controller.js';
+} from '../controllers/Compras/pagosProveedores.controller.js';
 import { verifyToken } from '../middlewares/auth.middleware.js';
 
 const router = express.Router();

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getAsientosContables, createAsientoContable, getDetalleOrigenAsiento } from '../controllers/asientosContables.controller.js';
+import { getAsientosContables, createAsientoContable, getDetalleOrigenAsiento } from '../controllers/Contabilidad/asientosContables.controller.js';
 
 const router = Router();
 

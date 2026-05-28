@@ -3,8 +3,17 @@ import { Plus, Eye, ClipboardList, X } from 'lucide-react';
 import { ESTADOS_PEDIDO_COMPRA } from '../Forms/comprasFormDefaults';
 import { puedeEditar } from '../../utils/permisos';
 
+import Pagination, { usePagination } from './Pagination';
+
 const PedidosCompra = ({ onNuevoPedido, pedidos }) => {
   const [pedidoDetalle, setPedidoDetalle] = useState(null);
+
+  const {
+    currentPage,
+    totalPages,
+    currentItems: currentPedidos,
+    setCurrentPage
+  } = usePagination(pedidos);
 
   return (
     <div className="bg-white rounded-xl shadow-md overflow-hidden border border-orange-100">
@@ -24,6 +33,12 @@ const PedidosCompra = ({ onNuevoPedido, pedidos }) => {
         )}
       </div>
 
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+      />
+
       <div className="overflow-x-auto">
         <table className="w-full text-left">
           <thead className="bg-orange-50 text-erp-orange uppercase text-sm">
@@ -35,7 +50,7 @@ const PedidosCompra = ({ onNuevoPedido, pedidos }) => {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {pedidos.map((p) => (
+            {currentPedidos.map((p) => (
               <tr key={p.id} className="hover:bg-orange-50/50 transition-colors">
                 <td className="px-6 py-4 font-bold text-gray-700">{p.numero ?? `#${p.id}`}</td>
                 <td className="px-6 py-4 text-gray-600">{p.fecha}</td>
@@ -69,6 +84,12 @@ const PedidosCompra = ({ onNuevoPedido, pedidos }) => {
           </tbody>
         </table>
       </div>
+
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+      />
 
       {pedidoDetalle && (
         <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-4 pt-16">

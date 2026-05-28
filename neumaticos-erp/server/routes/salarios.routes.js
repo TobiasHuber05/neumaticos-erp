@@ -3,7 +3,7 @@ import {
     getConceptosBase, createConcepto,
     getProcesos, createProceso, getProcesoById,
     cerrarProceso, getRecibos
-} from '../controllers/salarios.controller.js';
+} from '../controllers/Personal/salarios.controller.js';
 
 const router = Router();
 router.get('/salarios/conceptos', getConceptosBase);
