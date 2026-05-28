@@ -53,6 +53,7 @@ import { usePagosProveedores } from '../hooks/usePagosProveedores';
 import { useTesoreria } from '../hooks/useTesoreria';
 import { useMovimientosBancarios } from '../hooks/useMovimientosBancarios';
 import { useConciliaciones } from '../hooks/useConciliaciones';
+import { useCobranzas } from '../hooks/useCobranzas';
 
 // Hook local solo para lo que todavía no tiene backend
 import { useModuloCompras } from '../hooks/useModuloCompras';
@@ -122,6 +123,8 @@ function Dashboard() {
     getConciliacionById,
     refetch: refetchConciliaciones
   } = useConciliaciones();
+
+  const { mediosCobro, registrarCobro } = useCobranzas();
 
   // ── Estado local de pedidos (con API) ────────────────────
   const [pedidos, setPedidos] = useState([]);
@@ -340,8 +343,13 @@ function Dashboard() {
             facturasProveedor={facturasProveedor}
             ordenesPagoProveedores={ordenesPagoProveedores}
             mediosPago={mediosPago}
+            cuentas={cuentas}
             registrarOrdenPago={registrarOrdenPago}
-            onPagoRegistrado={refetchFacturas}
+            onPagoRegistrado={async () => {
+              await refetchFacturas();
+              await refetchCuentas();
+              await refetchMovimientos();
+            }}
           />
         );
 
@@ -364,6 +372,14 @@ function Dashboard() {
             clientes={moduloVentas.clientes}
             inventario={inventario}
             setInventario={() => { }}
+            cuentas={cuentas}
+            mediosCobro={mediosCobro}
+            registrarCobro={registrarCobro}
+            onCobroRegistrado={async () => {
+              await moduloVentas.refetch();
+              await refetchCuentas();
+              await refetchMovimientos();
+            }}
           />
         );
 
@@ -398,6 +414,10 @@ function Dashboard() {
               cuentas={cuentas}
               movimientos={movimientos}
               onNuevaCuenta={() => setMostrarFormCuenta(true)}
+              onActualizar={async () => {
+                await refetchCuentas();
+                await refetchMovimientos();
+              }}
             />
             {mostrarFormCuenta && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
@@ -440,6 +460,11 @@ function Dashboard() {
             onVincular={vincularMovimientos}
             onFinalizar={finalizarConciliacion}
             onGetDetalle={getConciliacionById}
+            onConciliacionCompletada={async () => {
+              await refetchMovimientos();
+              await refetchCuentas();
+              await refetchConciliaciones();
+            }}
           />
         );
 

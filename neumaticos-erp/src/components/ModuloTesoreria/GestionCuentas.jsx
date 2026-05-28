@@ -1,12 +1,38 @@
-import React, { useState } from 'react';
-import { Landmark, Wallet, ArrowUpCircle, ArrowDownCircle, Plus } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Landmark, Wallet, Plus } from 'lucide-react';
 import { calcularSaldosDeCuenta } from '../../utils/tesoreriasLogis';
 import { puedeEditar } from '../../utils/permisos';
 
-const GestionCuentas = ({ bancos, cuentas, movimientos, onNuevaCuenta }) => {
+const GestionCuentas = ({ bancos, cuentas, movimientos, onNuevaCuenta, onActualizar }) => {
   const [cuentaSeleccionada, setCuentaSeleccionada] = useState(null);
 
-  const nombreBanco = (id) => bancos.find((b) => b.id_banco === id)?.nombre ?? 'Banco Desconocido';
+  useEffect(() => {
+    onActualizar?.();
+    // Solo al abrir la pantalla (evita loop si el padre recrea la función)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const nombreBanco = (cta) => {
+    if (typeof cta.banco === 'string' && cta.banco !== '—') return cta.banco;
+    return bancos.find((b) => b.id_banco === cta.id_banco)?.nombre ?? 'Banco';
+  };
+
+  const resolverSaldos = (cta) => {
+    const movsDeEstaCuenta = movimientos.filter((m) => m.id_cuenta === cta.id_cuenta);
+    const calculado = calcularSaldosDeCuenta(
+      movsDeEstaCuenta,
+      cta.saldo_inicial ?? 0,
+      cta.saldo_disponible_inicial ?? 0,
+    );
+    // Priorizar saldos calculados en el servidor (incluyen todos los movimientos de BD)
+    const saldoReal =
+      cta.saldo != null && cta.saldo !== undefined ? Number(cta.saldo) : calculado.saldoReal;
+    const saldoDisponible =
+      cta.saldo_disponible != null && cta.saldo_disponible !== undefined
+        ? Number(cta.saldo_disponible)
+        : calculado.saldoDisponible;
+    return { saldoReal, saldoDisponible };
+  };
 
   return (
     <div className="space-y-6">
@@ -29,9 +55,8 @@ const GestionCuentas = ({ bancos, cuentas, movimientos, onNuevaCuenta }) => {
       {/* Grid de Tarjetas de Cuentas */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {cuentas.map((cta) => {
-          // Usamos la lógica para obtener saldos dinámicos
-          const movsDeEstaCuenta = movimientos.filter(m => m.id_cuenta === cta.id_cuenta);
-          const { saldoReal, saldoDisponible } = calcularSaldosDeCuenta(movsDeEstaCuenta);
+          const { saldoReal, saldoDisponible } = resolverSaldos(cta);
+          const hayChequesPendientes = Math.abs(saldoReal - saldoDisponible) > 0.01;
 
           return (
             <div
@@ -51,23 +76,29 @@ const GestionCuentas = ({ bancos, cuentas, movimientos, onNuevaCuenta }) => {
                 </span>
               </div>
 
-              <h3 className="font-bold text-gray-800">{nombreBanco(cta.id_banco)}</h3>
+              <h3 className="font-bold text-gray-800">{nombreBanco(cta)}</h3>
               <p className="text-xs text-gray-500 font-mono mb-4">Nº {cta.numero_cuenta}</p>
 
               <div className="space-y-3">
                 <div className="flex justify-between items-end">
-                  <span className="text-xs text-gray-400 uppercase font-bold">Saldo Disponible</span>
+                  <span className="text-xs text-gray-400 uppercase font-bold">Saldo real</span>
+                  <span className="text-xl font-black text-gray-900">
+                    Gs. {saldoReal.toLocaleString('de-DE')}
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-end pt-2 border-t border-dashed">
+                  <span className="text-xs text-gray-400 uppercase font-bold">Saldo disponible</span>
                   <span className="text-lg font-black text-green-600">
                     Gs. {saldoDisponible.toLocaleString('de-DE')}
                   </span>
                 </div>
-                
-                <div className="flex justify-between items-end pt-2 border-t border-dashed">
-                  <span className="text-xs text-gray-400 uppercase font-bold">Saldo Real</span>
-                  <span className="text-sm font-bold text-gray-700">
-                    Gs. {saldoReal.toLocaleString('de-DE')}
-                  </span>
-                </div>
+
+                {hayChequesPendientes && (
+                  <p className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-2 py-1">
+                    Hay instrumentos pendientes de confirmar (cheques, etc.)
+                  </p>
+                )}
               </div>
             </div>
           );

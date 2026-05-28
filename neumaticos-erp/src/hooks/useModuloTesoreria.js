@@ -1,68 +1,144 @@
-import { useState, useMemo } from 'react';
-import { 
-  BANCOS, 
-  CUENTAS_BANCARIAS, 
-  MOVIMIENTOS_BANCARIOS 
-} from '../data/erpInitialTesoreria';
+import { useState, useEffect } from 'react';
+import { calcularSaldosDeCuenta } from '../utils/tesoreriasLogis';
 
-export const useModuloTesoreria = () => {
-  const [cuentas, setCuentas] = useState(CUENTAS_BANCARIAS);
-  const [movimientos, setMovimientos] = useState(MOVIMIENTOS_BANCARIOS);
+const getHeaders = () => ({
+  'Content-Type': 'application/json',
+  Authorization: `Bearer ${localStorage.getItem('token')}`,
+});
 
-  // Lógica para obtener el saldo real y disponible por cuenta
-  const obtenerEstadoCuenta = (cuentaId) => {
-    const cuenta = cuentas.find(c => c.id === cuentaId);
-    const movs = movimientos.filter(m => m.id_cuenta === cuentaId);
-
-    // Saldo Real: Todo lo registrado
-    const saldoReal = movs.reduce((acc, m) => acc + (m.monto_ingreso - m.monto_egreso), 0);
-
-    // Saldo Disponible: Solo lo que tiene fecha_confirmacion o no es un depósito pendiente
-    const saldoDisponible = movs.reduce((acc, m) => {
-      if (m.monto_ingreso > 0 && !m.fecha_confirmacion) {
-        return acc; // Si es ingreso pero no está confirmado, no suma al disponible
-      }
-      return acc + (m.monto_ingreso - m.monto_egreso);
-    }, 0);
-
-    return { ...cuenta, saldoReal, saldoDisponible };
-  };
-
-const registrarMovimiento = (nuevoMov) => {
-    const esInmediato = debeConfirmarInmediatamente(nuevoMov.tipo_deposito || nuevoMov.tipo_movimiento);
-    
-    const movFinal = {
-        ...nuevoMov,
-        id_movimiento: Date.now(),
-        // Si es efectivo o tipo inmediato, le ponemos fecha de confirmación hoy
-        fecha_confirmacion: esInmediato ? new Date().toISOString().split('T')[0] : null
-    };
-    
-    setMovimientos(prev => [...prev, movFinal]);
+// Helper for API requests with JSON handling
+const apiFetch = async (url, options = {}) => {
+  const response = await fetch(url, {
+    ...options,
+    headers: { ...getHeaders(), ...(options.headers ?? {}) },
+  });
+  if (!response.ok) {
+    const errorBody = await response.json().catch(() => ({}));
+    throw new Error(errorBody.error || `Error ${response.status}`);
+  }
+  return response.json();
 };
 
-  const registrarCuenta = (nuevaCuenta) => {
-    setCuentas((prev) => [...prev, { ...nuevaCuenta, id_cuenta: Date.now() }]);
+export const useModuloTesoreria = () => {
+  // State
+  const [cuentas, setCuentas] = useState([]);
+  const [movimientos, setMovimientos] = useState([]);
+  const [conciliaciones, setConciliaciones] = useState([]);
+  const [bancos, setBancos] = useState([]);
+  const [monedas, setMonedas] = useState([]);
+  const [cargando, setCargando] = useState(false);
+
+  // Load all needed data from the backend
+  const cargarDatos = async () => {
+    setCargando(true);
+    try {
+      const [c, m, co, b, mon] = await Promise.all([
+        apiFetch('/api/tesoreria/cuentas'),
+        apiFetch('/api/movimientos-bancarios'),
+        apiFetch('/api/conciliaciones'),
+        apiFetch('/api/tesoreria/bancos'),
+        apiFetch('/api/tesoreria/monedas'),
+      ]);
+      setCuentas(c);
+      setMovimientos(m);
+      setConciliaciones(co);
+      setBancos(b);
+      setMonedas(mon);
+    } catch (e) {
+      console.error('Error cargando datos de tesorería:', e);
+    } finally {
+      setCargando(false);
+    }
   };
 
-  const confirmarMovimientos = (movimientosSeleccionados) => {
-    const hoy = new Date().toISOString().slice(0, 10);
-    setMovimientos((prev) =>
-      prev.map((mov) =>
-        movimientosSeleccionados.includes(mov.id_movimiento)
-          ? { ...mov, fecha_confirmacion: hoy }
-          : mov,
-      ),
+  // Initial load
+  useEffect(() => {
+    cargarDatos();
+  }, []);
+
+  // ---------- API actions ----------
+  const crearConciliacion = async (payload) => {
+    // payload: { id_cuenta, fecha, descripcion, saldo_banco }
+    const data = await apiFetch('/api/conciliaciones', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    // Insert new conciliación at the top of the list (most recent first)
+    setConciliaciones((prev) => [data, ...prev]);
+    return { ok: true, data };
+  };
+
+  // Register new bank account
+  const registrarCuenta = async (nuevaCuenta) => {
+    const data = await apiFetch('/api/tesoreria/cuentas', {
+      method: 'POST',
+      body: JSON.stringify(nuevaCuenta),
+    });
+    // Refresh full data to ensure balances are recomputed
+    await cargarDatos();
+    return { ok: true, data };
+  };
+
+  // Register new manual movement
+  const registrarMovimiento = async (nuevoMov) => {
+    const data = await apiFetch('/api/movimientos-bancarios', {
+      method: 'POST',
+      body: JSON.stringify(nuevoMov),
+    });
+    // Refresh full data to include new movement in calculations
+    await cargarDatos();
+    return { ok: true, data };
+  };
+
+  const vincularMovimientos = async (conciliacionId, movimientoIds) => {
+    const data = await apiFetch(`/api/conciliaciones/${conciliacionId}/vincular`, {
+      method: 'POST',
+      body: JSON.stringify({ movimientoIds }),
+    });
+    // Refresh data to reflect updated totals
+    await cargarDatos();
+    return { ok: true, data };
+  };
+
+  const finalizarConciliacion = async (conciliacionId) => {
+    const data = await apiFetch(`/api/conciliaciones/${conciliacionId}/finalizar`, {
+      method: 'PATCH',
+    });
+    await cargarDatos();
+    return { ok: true, data };
+  };
+
+  const obtenerDetalleConciliacion = async (id) => {
+    return await apiFetch(`/api/conciliaciones/${id}`);
+  };
+
+  // ---------- Helper for account balances ----------
+  const obtenerEstadoCuenta = (cuentaId) => {
+    const cuenta = cuentas.find((c) => c.id_cuenta === cuentaId);
+    if (!cuenta) return null;
+    const movs = movimientos.filter((m) => m.id_cuenta === cuentaId);
+    const { saldoReal, saldoDisponible } = calcularSaldosDeCuenta(
+      movs,
+      cuenta.saldo_inicial ?? cuenta.saldo ?? 0,
+      cuenta.saldo_disponible_inicial ?? cuenta.saldo_disponible ?? 0,
     );
+    return { ...cuenta, saldoReal, saldoDisponible };
   };
 
   return {
     cuentas,
     movimientos,
+    conciliaciones,
+    bancos,
+    monedas,
     obtenerEstadoCuenta,
-    registrarMovimiento,
     registrarCuenta,
-    confirmarMovimientos,
-    bancos: BANCOS,
+    registrarMovimiento,
+    crearConciliacion,
+    vincularMovimientos,
+    finalizarConciliacion,
+    obtenerDetalleConciliacion,
+    cargarDatos,
+    cargando,
   };
 };

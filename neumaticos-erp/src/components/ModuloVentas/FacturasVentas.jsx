@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { ShoppingBag, Clock, CheckCircle, RotateCcw, User, Eye, X, FileText } from 'lucide-react';
+import { ShoppingBag, Clock, CheckCircle, RotateCcw, User, Eye, X, FileText, Banknote } from 'lucide-react';
 import NotaCreditoVentaForm from '../Forms/NotaCreditoVentaForm';
+import CobroFacturaForm from '../Forms/CobroFacturaForm';
 import * as ventasLogic from '../../utils/ventasLogic.js';
 import { puedeEditar } from '../../utils/permisos';
 
@@ -8,11 +9,25 @@ import { puedeEditar } from '../../utils/permisos';
  * Lista facturas ventas, NC si <48h.
  * Props: ventas, clientes, inventario, setInventario
  */
-const FacturasVentas = ({ ventas, clientes, inventario, setInventario, servicios = [] }) => {
+const FacturasVentas = ({
+  ventas,
+  clientes,
+  inventario,
+  setInventario,
+  servicios = [],
+  cuentas = [],
+  mediosCobro = [],
+  registrarCobro,
+  onCobroRegistrado,
+}) => {
   const [devolviendoFactura, setDevolviendoFactura] = useState(null);
   const [facturaDetalle, setFacturaDetalle] = useState(null);
+  const [cobrandoFactura, setCobrandoFactura] = useState(null);
+  const [msg, setMsg] = useState(null);
 
-  const facturasPendientes = ventas.facturasVentas?.filter(f => ['Emitida', 'Con NC Parcial', 'Con NC'].includes(f.estado)) || [];
+  const facturasPendientes = ventas.facturasVentas?.filter(
+    (f) => f.estado !== 'Cobrado' && Number(f.saldoPendiente ?? f.total) > 0,
+  ) || [];
   const facturasCobradas = ventas.facturasVentas?.filter(f => f.estado === 'Cobrado') || [];
 
   const handleDevolver = (factura) => {
@@ -21,8 +36,28 @@ const FacturasVentas = ({ ventas, clientes, inventario, setInventario, servicios
     }
   };
 
+  const registrar = async (payload) => {
+    const res = await registrarCobro?.(payload);
+    if (!res?.ok) {
+      setMsg(res?.error ?? 'Error al registrar el cobro');
+      return;
+    }
+    setMsg(`Cobro ${res.cobranza?.nroRecibo ?? ''} registrado correctamente.`);
+    setCobrandoFactura(null);
+    await onCobroRegistrado?.();
+  };
+
   return (
     <div className="space-y-8">
+      {msg && (
+        <div className="rounded-lg border border-green-200 bg-green-50 text-green-800 text-sm p-3 flex justify-between items-center">
+          {msg}
+          <button type="button" className="text-xs underline" onClick={() => setMsg(null)}>
+            Cerrar
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center bg-white p-6 rounded-xl shadow-sm border border-orange-100 mb-8">
         <div className="flex items-center gap-3">
@@ -52,6 +87,22 @@ const FacturasVentas = ({ ventas, clientes, inventario, setInventario, servicios
 
 
       {/* Form NC */}
+      {cobrandoFactura && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <CobroFacturaForm
+            factura={cobrandoFactura}
+            clienteNombre={(() => {
+              const c = clientes.find((cl) => cl.id === cobrandoFactura.clientId);
+              return c ? `${c.nombre} ${c.apellido ?? ''}`.trim() : 'Cliente';
+            })()}
+            mediosOpciones={mediosCobro}
+            cuentas={cuentas}
+            onCancelar={() => setCobrandoFactura(null)}
+            onGuardar={registrar}
+          />
+        </div>
+      )}
+
       {devolviendoFactura && (
         <NotaCreditoVentaForm
           factura={devolviendoFactura}
@@ -201,6 +252,18 @@ const FacturasVentas = ({ ventas, clientes, inventario, setInventario, servicios
                         <Eye size={14} />
                         Ver detalle
                       </button>
+                      {puedeEditar('ventas') && f.estado !== 'Cobrado' && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCobrandoFactura(f);
+                          }}
+                          className="bg-green-50 text-green-700 hover:bg-green-100 px-3 py-2 rounded-lg transition-all text-xs font-bold flex items-center gap-2 mx-auto whitespace-nowrap border border-green-200"
+                        >
+                          <Banknote size={14} />
+                          Registrar cobro
+                        </button>
+                      )}
                       {puedeEditar('ventas') &&
                         (dentro48h && (f.estado === 'Emitida' || f.estado === 'Con NC Parcial')) && (
                         <button

@@ -5,9 +5,9 @@ import FormattedNumberInput from './FormattedNumberInput';
 /**
  * Orden de pago con soporte de pagos parciales por factura.
  */
-const OrdenPagoProveedoresForm = ({ proveedorNombre, facturasPendientes = [], mediosOpciones = [], onCancelar, onGuardar }) => {
+const OrdenPagoProveedoresForm = ({ proveedorNombre, facturasPendientes = [], mediosOpciones = [], cuentas = [], onCancelar, onGuardar }) => {
   const [seleccion, setSeleccion] = useState({});
-  const [mediosFactura, setMediosFactura] = useState({}); // { facturaId: [{ medio: 'Efectivo', monto: '' }] }
+  const [mediosFactura, setMediosFactura] = useState({}); // { facturaId: [{ medio: 'Efectivo', monto: '', id_cuenta: '' }] }
   const [fecha, setFecha] = useState(() => new Date().toISOString().slice(0, 10));
   const [error, setError] = useState('');
 
@@ -20,7 +20,7 @@ const OrdenPagoProveedoresForm = ({ proveedorNombre, facturasPendientes = [], me
     if (activo) {
       setMediosFactura((m) => ({
         ...m,
-        [id]: [{ medio: mediosOpciones[0] ?? 'Efectivo', monto: String(saldoDe(f)) }]
+        [id]: [{ medio: mediosOpciones[0] ?? 'Efectivo', monto: String(saldoDe(f)), id_cuenta: '' }]
       }));
     } else {
       setMediosFactura((m) => {
@@ -47,14 +47,24 @@ const OrdenPagoProveedoresForm = ({ proveedorNombre, facturasPendientes = [], me
   const addMedioFactura = (facturaId) => {
     setMediosFactura(prev => ({
       ...prev,
-      [facturaId]: [...(prev[facturaId] || []), { medio: mediosOpciones[0] ?? 'Efectivo', monto: '' }]
+      [facturaId]: [...(prev[facturaId] || []), { medio: mediosOpciones[0] ?? 'Efectivo', monto: '', id_cuenta: '' }]
     }));
   };
 
   const updateMedioFactura = (facturaId, idx, field, val) => {
     setMediosFactura(prev => ({
       ...prev,
-      [facturaId]: prev[facturaId].map((row, i) => (i === idx ? { ...row, [field]: val } : row))
+      [facturaId]: prev[facturaId].map((row, i) => {
+        if (i === idx) {
+          const updated = { ...row, [field]: val };
+          // If changing medio, reset id_cuenta if it's not a bank method
+          if (field === 'medio' && val !== 'Transferencia bancaria' && val !== 'Cheque') {
+            updated.id_cuenta = '';
+          }
+          return updated;
+        }
+        return row;
+      })
     }));
   };
 
@@ -98,7 +108,15 @@ const OrdenPagoProveedoresForm = ({ proveedorNombre, facturasPendientes = [], me
       for (const m of mf) {
         const montoMedio = Number(m.monto) || 0;
         if (montoMedio > 0) {
-          mediosPayload.push({ medio: m.medio, monto: montoMedio });
+          if ((m.medio === 'Transferencia bancaria' || m.medio === 'Cheque') && !m.id_cuenta) {
+            setError(`Seleccioná la cuenta bancaria para el pago de Gs. ${montoMedio.toLocaleString('de-DE')} con ${m.medio} en ${f.numero}.`);
+            return;
+          }
+          mediosPayload.push({
+            medio: m.medio,
+            monto: montoMedio,
+            id_cuenta: m.id_cuenta ? Number(m.id_cuenta) : undefined
+          });
         }
       }
     }
@@ -164,35 +182,54 @@ const OrdenPagoProveedoresForm = ({ proveedorNombre, facturasPendientes = [], me
                         </button>
                       </div>
                       
-                      <div className="space-y-2">
+                      <div className="space-y-3">
                         {(mediosFactura[f.id] || []).map((row, idx) => (
-                          <div key={idx} className="flex items-center gap-2">
-                            <select
-                              value={row.medio}
-                              onChange={(e) => updateMedioFactura(f.id, idx, 'medio', e.target.value)}
-                              className="flex-1 p-1.5 border rounded text-xs bg-white"
-                            >
-                              {mediosOpciones.map((m) => (
-                                <option key={m} value={m}>
-                                  {m}
-                                </option>
-                              ))}
-                            </select>
-                            <FormattedNumberInput
-                              max={saldo}
-                              placeholder="Monto"
-                              value={row.monto}
-                              onChange={(val) => updateMedioFactura(f.id, idx, 'monto', val)}
-                              className="w-24 p-1.5 border rounded text-xs text-right bg-white"
-                            />
-                            <button 
-                              type="button" 
-                              onClick={() => removeMedioFactura(f.id, idx)} 
-                              className="text-red-400 hover:text-red-600 text-xs px-1"
-                              title="Eliminar"
-                            >
-                              ✕
-                            </button>
+                          <div key={idx} className="flex flex-col gap-2 border-b border-gray-100/80 pb-3 last:border-0 last:pb-0">
+                            <div className="flex items-center gap-2">
+                              <select
+                                value={row.medio}
+                                onChange={(e) => updateMedioFactura(f.id, idx, 'medio', e.target.value)}
+                                className="flex-1 p-1.5 border rounded text-xs bg-white font-medium"
+                              >
+                                {mediosOpciones.map((m) => (
+                                  <option key={m} value={m}>
+                                    {m}
+                                  </option>
+                                ))}
+                              </select>
+                              <FormattedNumberInput
+                                max={saldo}
+                                placeholder="Monto"
+                                value={row.monto}
+                                onChange={(val) => updateMedioFactura(f.id, idx, 'monto', val)}
+                                className="w-24 p-1.5 border rounded text-xs text-right bg-white font-mono"
+                              />
+                              <button 
+                                type="button" 
+                                onClick={() => removeMedioFactura(f.id, idx)} 
+                                className="text-red-400 hover:text-red-600 text-xs px-1"
+                                title="Eliminar"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                            {(row.medio === 'Transferencia bancaria' || row.medio === 'Cheque') && (
+                              <div className="flex gap-2 items-center">
+                                <label className="text-[10px] uppercase font-bold text-gray-400 whitespace-nowrap">Cuenta Origen:</label>
+                                <select
+                                  value={row.id_cuenta || ''}
+                                  onChange={(e) => updateMedioFactura(f.id, idx, 'id_cuenta', e.target.value)}
+                                  className="flex-1 p-1.5 border rounded text-[11px] bg-white font-medium text-gray-700"
+                                >
+                                  <option value="">Seleccionar cuenta bancaria...</option>
+                                  {cuentas.map((c) => (
+                                    <option key={c.id_cuenta} value={c.id_cuenta}>
+                                      {c.banco} — {c.numero_cuenta} (Saldo: Gs. {Number(c.saldo_disponible ?? 0).toLocaleString('de-DE')})
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>

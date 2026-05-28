@@ -8,6 +8,7 @@ const PagosProveedores = ({
   facturasProveedor = [],
   ordenesPagoProveedores = [],
   mediosPago = [],
+  cuentas = [],
   registrarOrdenPago,
   onPagoRegistrado,
 }) => {
@@ -123,6 +124,7 @@ const PagosProveedores = ({
             proveedorNombre={nombreProv(proveedorId)}
             facturasPendientes={facturasPendientes}
             mediosOpciones={mediosPago}
+            cuentas={cuentas}
             onCancelar={() => setModal(false)}
             onGuardar={registrar}
           />

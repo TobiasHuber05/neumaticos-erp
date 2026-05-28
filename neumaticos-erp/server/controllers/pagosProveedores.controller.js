@@ -1,4 +1,8 @@
 import { prisma } from '../lib/prisma.js';
+import {
+  esMedioBancario,
+  datosMovimientoPagoProveedor,
+} from '../utils/tesoreriaIntegracion.utils.js';
 
 const redondear = (n) => Math.round(Number(n) * 100) / 100;
 
@@ -67,11 +71,23 @@ export const registrarPago = async (req, res) => {
   if (!medios?.length) return res.status(400).json({ error: 'Agregá al menos un medio de pago' });
 
   const mediosValidos = medios
-    .map((m) => ({ medio: m.medio, monto: redondear(m.monto) }))
+    .map((m) => ({
+      medio: m.medio,
+      monto: redondear(m.monto),
+      id_cuenta: m.id_cuenta ? Number(m.id_cuenta) : null
+    }))
     .filter((m) => m.monto > 0);
 
   if (!mediosValidos.length) {
     return res.status(400).json({ error: 'El monto del medio de pago debe ser mayor a 0' });
+  }
+
+  for (const m of mediosValidos) {
+    if (esMedioBancario(m.medio) && !m.id_cuenta) {
+      return res.status(400).json({
+        error: `Seleccioná la cuenta bancaria para el pago con ${m.medio}`,
+      });
+    }
   }
 
   let lineasFactura = [];
@@ -163,27 +179,44 @@ export const registrarPago = async (req, res) => {
         });
 
         try {
-          const bancoMatch = await tx.banco.findFirst({
-            where: {
-              OR: [
-                { nombre: { contains: medio.medio, mode: 'insensitive' } },
-                { nombre: { equals: medio.medio.split(' ')[0], mode: 'insensitive' } },
-              ],
-            },
-            include: { cuenta_bancaria: true },
-          });
+          if (!esMedioBancario(medio.medio)) continue;
 
-          if (bancoMatch?.cuenta_bancaria?.length > 0) {
-            const cuenta = bancoMatch.cuenta_bancaria[0];
+          let cuenta = null;
+          if (medio.id_cuenta) {
+            cuenta = await tx.cuenta_bancaria.findUnique({
+              where: { id_cuenta: medio.id_cuenta },
+            });
+            if (!cuenta) {
+              throw new Error(`La cuenta bancaria ${medio.id_cuenta} no existe`);
+            }
+          } else {
+            const bancoMatch = await tx.banco.findFirst({
+              where: {
+                OR: [
+                  { nombre: { contains: medio.medio, mode: 'insensitive' } },
+                  { nombre: { equals: medio.medio.split(' ')[0], mode: 'insensitive' } },
+                ],
+              },
+              include: { cuenta_bancaria: true },
+            });
+            if (bancoMatch?.cuenta_bancaria?.length > 0) {
+              cuenta = bancoMatch.cuenta_bancaria[0];
+            }
+          }
+
+          if (cuenta) {
+            const referencia = `Pago a Proveedor (OP-${String(ordenPago.id_orden_pago).padStart(4, '0')})`;
+            const datosMov = datosMovimientoPagoProveedor(
+              medio.medio,
+              medio.monto,
+              fecha,
+              referencia,
+            );
             await tx.movimiento_bancario.create({
               data: {
                 id_cuenta: cuenta.id_cuenta,
-                monto_egreso: medio.monto,
+                ...datosMov,
                 fecha_movimiento: fecha ? new Date(fecha) : new Date(),
-                tipo_movimiento: 'Débito',
-                concepto: `Pago a Proveedor (OP-${String(ordenPago.id_orden_pago).padStart(4, '0')})`,
-                tipo_deposito: medio.medio.toLowerCase().includes('cheque') ? 'Cheque Propio' : 'Transferencia',
-                fecha_confirmacion: medio.medio.toLowerCase().includes('transferencia') ? new Date() : null,
               },
             });
           }

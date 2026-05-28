@@ -1,35 +1,27 @@
-export const calcularSaldosDeCuenta = (movimientos) => {
-    let saldoReal = 0;
-    let saldoDisponible = 0;
-  
-    movimientos.forEach((mov) => {
-        const ingreso = Number(mov.monto_ingreso || 0);
-        const egreso = Number(mov.monto_egreso || 0);
-  
-        // 1. El Saldo Real siempre se afecta (Enunciado: "afectará el saldo de la cuenta")
-        saldoReal += (ingreso - egreso);
-  
-        // 2. Cálculo del Saldo Disponible (Regras del flujo)
-        
-        // Manejo de Egresos (Pagos)
-        if (egreso > 0) {
-            // Si es transferencia, afecta disponible de inmediato.
-            // Si es cheque, SOLO afecta si ya fue conciliado (tiene fecha_confirmacion).
-            if (mov.tipo_movimiento === 'Transferencia' || mov.fecha_confirmacion) {
-                saldoDisponible -= egreso;
-            }
-        } 
-        
-        // Manejo de Ingresos (Depósitos)
-        else if (ingreso > 0) {
-            // Afecta disponible si ya está confirmado (pasaron 48hs o es efectivo/mismo banco)
-            if (mov.fecha_confirmacion) {
-                saldoDisponible += ingreso;
-            }
-        }
-    });
-  
-    return { saldoReal, saldoDisponible };
+export const calcularSaldosDeCuenta = (
+  movimientos,
+  saldoInicial = 0,
+  saldoDisponibleInicial = 0,
+) => {
+  let saldoReal = Number(saldoInicial) || 0;
+  let saldoDisponible = Number(saldoDisponibleInicial) || 0;
+
+  movimientos.forEach((mov) => {
+    const ingreso = Number(mov.monto_ingreso || 0);
+    const egreso = Number(mov.monto_egreso || 0);
+
+    saldoReal += ingreso - egreso;
+
+    if (egreso > 0) {
+      if (mov.fecha_confirmacion || mov.tipo_deposito === 'Transferencia') {
+        saldoDisponible -= egreso;
+      }
+    } else if (ingreso > 0 && mov.fecha_confirmacion) {
+      saldoDisponible += ingreso;
+    }
+  });
+
+  return { saldoReal, saldoDisponible };
 };
   
 /**

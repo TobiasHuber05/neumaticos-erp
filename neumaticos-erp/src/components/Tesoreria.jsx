@@ -11,10 +11,16 @@ const Tesoreria = () => {
   const {
     cuentas,
     movimientos,
+    conciliaciones,
     bancos,
-    registrarMovimiento,
+    monedas,
     registrarCuenta,
-    confirmarMovimientos,
+    registrarMovimiento,
+    crearConciliacion,
+    vincularMovimientos,
+    finalizarConciliacion,
+    obtenerDetalleConciliacion,
+    cargarDatos,
   } = useModuloTesoreria();
 
   const [modo, setModo] = useState(null);
@@ -78,6 +84,8 @@ const Tesoreria = () => {
 
       {modo === 'cuenta' && (
         <CuentaBancariaForm
+          bancos={bancos}
+          monedas={monedas}
           onCancelar={() => setModo(null)}
           onGuardar={(cuenta) => {
             registrarCuenta(cuenta);
@@ -101,15 +109,22 @@ const Tesoreria = () => {
         <ConciliacionBancaria
           cuentas={cuentas}
           movimientos={movimientos}
-          onCancelar={() => setModo(null)}
-          onConfirmarConciliacion={(ids) => {
-            confirmarMovimientos(ids);
-            setModo(null);
-          }}
+          conciliaciones={conciliaciones}
+          onCrear={crearConciliacion}
+          onVincular={vincularMovimientos}
+          onFinalizar={finalizarConciliacion}
+          onGetDetalle={obtenerDetalleConciliacion}
+          onConciliacionCompletada={cargarDatos}
         />
       )}
 
-      <GestionCuentas bancos={bancos} cuentas={cuentas} movimientos={movimientos} onNuevaCuenta={() => setModo('cuenta')} />
+      <GestionCuentas
+        bancos={bancos}
+        cuentas={cuentas}
+        movimientos={movimientos}
+        onNuevaCuenta={() => setModo('cuenta')}
+        onActualizar={cargarDatos}
+      />
     </div>
   );
 };

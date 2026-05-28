@@ -111,6 +111,8 @@ model cobranza {
   id_factura_venta       Int?
   id_movimiento_bancario Int?
   nro_recibo             String?              @db.Char(50)
+  fecha_cobro            DateTime?            @db.Date
+  total                  Decimal?             @db.Decimal(15, 2)
   factura_venta          factura_venta?       @relation(fields: [id_factura_venta], references: [id_factura_venta], onDelete: NoAction, onUpdate: NoAction, map: "fk_cobranza_factura")
   movimiento_bancario    movimiento_bancario? @relation(fields: [id_movimiento_bancario], references: [id_movimiento], onDelete: NoAction, onUpdate: NoAction, map: "fk_cobranza_movimiento")
   detalle_cobranza       detalle_cobranza[]
@@ -194,6 +196,7 @@ model detalle_cobranza {
   id_detalle_cobranza Int       @id @default(autoincrement())
   id_cobranza         Int?
   forma_pago          String?   @db.VarChar(50)
+  monto               Decimal?  @db.Decimal(15, 2)
   estado              String?   @db.VarChar(100)
   cobranza            cobranza? @relation(fields: [id_cobranza], references: [id_cobranza], onDelete: NoAction, onUpdate: NoAction, map: "fk_detcobranza_cobranza")
 }

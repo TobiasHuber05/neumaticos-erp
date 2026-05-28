@@ -59,6 +59,8 @@ export const getCuentas = async (req, res) => {
                 id_moneda: c.id_moneda,
                 numero_cuenta: c.numero_cuenta?.trim(),
                 tipo_cuenta: c.tipo_cuenta,
+                saldo_inicial: Number(c.saldo ?? 0),
+                saldo_disponible_inicial: Number(c.saldo_disponible ?? 0),
                 saldo: saldoReal,
                 saldo_disponible: saldoDisponible,
                 banco: c.banco?.nombre ?? '—',
@@ -94,14 +96,19 @@ export const crearCuenta = async (req, res) => {
             include: { banco: true, monedas: true }
         });
 
+        const saldoInicial = Number(cuenta.saldo ?? 0);
+        const saldoDispInicial = Number(cuenta.saldo_disponible ?? 0);
+
         return res.status(201).json({
             id_cuenta: cuenta.id_cuenta,
             id_banco: cuenta.id_banco,
             id_moneda: cuenta.id_moneda,
             numero_cuenta: cuenta.numero_cuenta?.trim(),
             tipo_cuenta: cuenta.tipo_cuenta,
-            saldo: Number(cuenta.saldo ?? 0),
-            saldo_disponible: Number(cuenta.saldo_disponible ?? 0),
+            saldo_inicial: saldoInicial,
+            saldo_disponible_inicial: saldoDispInicial,
+            saldo: saldoInicial,
+            saldo_disponible: saldoDispInicial,
             banco: cuenta.banco?.nombre ?? '—',
             moneda: cuenta.monedas?.nombre ?? '—',
         });
@@ -146,4 +153,4 @@ export const actualizarCuenta = async (req, res) => {
         return res.status(500).json({ error: 'Error al actualizar cuenta' });
     }
 };
-
+

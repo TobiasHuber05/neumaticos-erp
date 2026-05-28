@@ -100,9 +100,20 @@ export const useModuloVentas = () => {
         const totalQtyFacturada = lineasMap.reduce((acc, l) => acc + l.cantidad, 0);
         const totalQtyDevuelta = lineasMap.reduce((acc, l) => acc + l.cantidadDevuelta, 0);
 
+        const saldoPendiente = Math.round(
+          lineasMap.reduce((acc, l) => {
+            const qtyNet = l.cantidad - (l.cantidadDevuelta || 0);
+            return acc + qtyNet * l.precioUnitario;
+          }, 0) * 100,
+        ) / 100;
+        const totalCobrado = (f.cobranza ?? []).reduce((acc, c) => acc + Number(c.total ?? 0), 0);
+
         let estadoFinal = f.estado ?? 'Emitida';
         if (totalQtyDevuelta > 0) {
           estadoFinal = totalQtyDevuelta >= totalQtyFacturada ? 'Con NC' : 'Con NC Parcial';
+        }
+        if (saldoPendiente > 0 && totalCobrado >= saldoPendiente - 0.009) {
+          estadoFinal = 'Cobrado';
         }
 
         return {
@@ -112,6 +123,8 @@ export const useModuloVentas = () => {
           clientId: f.id_cliente,
           fechaFactura: f.fecha_emision?.split('T')[0],
           total: f.total,
+          saldoPendiente,
+          totalCobrado,
           estado: estadoFinal,
           fecha48h: new Date(
             new Date(f.fecha_emision).getTime() + 48 * 60 * 60 * 1000
@@ -273,6 +286,8 @@ export const useModuloVentas = () => {
       clientId: data.id_cliente,
       fechaFactura: data.fecha_emision?.split('T')[0],
       total: data.total,
+      saldoPendiente: Number(data.total ?? 0),
+      totalCobrado: 0,
       estado: 'Emitida',
       fecha48h: new Date(
         new Date(data.fecha_emision).getTime() + 48 * 60 * 60 * 1000
