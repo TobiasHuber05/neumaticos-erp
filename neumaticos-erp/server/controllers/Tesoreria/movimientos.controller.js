@@ -1,4 +1,6 @@
 import { prisma } from '../../lib/prisma.js';
+import { registrarAsientoAutomatico } from '../../utils/asientoAutomatico.utils.js';
+import { generarAsientoMovimientoManual } from '../../utils/tesoreria-contabilidad.helper.js';
 
 // Auxiliar para lógica de saldos
 export const calcularSaldos = (movs, saldoInicial = 0, saldoDisponibleInicial = 0) => {
@@ -67,7 +69,8 @@ export const registrarMovimiento = async (req, res) => {
         concepto,
         tipo_deposito,
         confirmar_inmediato,
-        es_manual
+        es_manual,
+        tipo_contable
     } = req.body;
 
     if (!id_cuenta) return res.status(400).json({ error: 'La cuenta es requerida' });
@@ -94,20 +97,38 @@ export const registrarMovimiento = async (req, res) => {
             f_conf = new Date();
         }
 
-        const movimiento = await prisma.movimiento_bancario.create({
-            data: {
-                cuenta_bancaria: {
-                    connect: { id_cuenta: Number(id_cuenta) }
-                },
-                monto_ingreso: Number(monto_ingreso ?? 0),
-                monto_egreso: Number(monto_egreso ?? 0),
-                fecha_movimiento: fecha_movimiento ? new Date(fecha_movimiento) : new Date(),
-                fecha_confirmacion: f_conf,
-                tipo_movimiento: tipo_movimiento ?? 'Manual',
-                concepto: concepto?.trim() || (tipo_movimiento === 'Crédito' ? 'Ingreso Manual' : 'Egreso Manual'),
-                tipo_deposito: tipo_deposito,
+        const resultado = await prisma.$transaction(async (tx) => {
+            const movimiento = await tx.movimiento_bancario.create({
+                data: {
+                    cuenta_bancaria: {
+                        connect: { id_cuenta: Number(id_cuenta) }
+                    },
+                    monto_ingreso: Number(monto_ingreso ?? 0),
+                    monto_egreso: Number(monto_egreso ?? 0),
+                    fecha_movimiento: fecha_movimiento ? new Date(fecha_movimiento) : new Date(),
+                    fecha_confirmacion: f_conf,
+                    tipo_movimiento: tipo_movimiento ?? 'Manual',
+                    concepto: concepto?.trim() || (tipo_movimiento === 'Crédito' ? 'Ingreso Manual' : 'Egreso Manual'),
+                    tipo_deposito: tipo_deposito,
+                }
+            });
+
+            let asiento = null;
+            if (tipo_contable) {
+                const paramsAsiento = generarAsientoMovimientoManual({
+                    ...movimiento,
+                    tipo_contable,
+                    fecha_movimiento: movimiento.fecha_movimiento,
+                });
+                if (paramsAsiento) {
+                    asiento = await registrarAsientoAutomatico(paramsAsiento, tx, { strict: false });
+                }
             }
+
+            return { movimiento, asiento };
         });
+
+        const { movimiento, asiento } = resultado;
 
         return res.status(201).json({
             id_movimiento: movimiento.id_movimiento,
@@ -119,6 +140,11 @@ export const registrarMovimiento = async (req, res) => {
             tipo_movimiento: movimiento.tipo_movimiento,
             concepto: movimiento.concepto || movimiento.tipo_movimiento,
             tipo_deposito: movimiento.tipo_deposito,
+            asiento_generado: asiento ? {
+                id_asiento: asiento.id_asiento,
+                numero_asiento: asiento.numero_asiento,
+                descripcion: asiento.descripcion,
+            } : null,
         });
     } catch (error) {
         return res.status(500).json({

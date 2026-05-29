@@ -9,6 +9,7 @@ const MovimientoManualForm = ({ cuentas = [], onCancelar, onGuardar }) => {
   const [fechaMovimiento, setFechaMovimiento] = useState(new Date().toISOString().slice(0, 10));
   const [fechaConfirmacion, setFechaConfirmacion] = useState('');
   const [instrumento, setInstrumento] = useState('Efectivo');
+  const [tipoContable, setTipoContable] = useState('deposito');
 
   const handleGuardar = () => {
     if (!idCuenta || !monto || !concepto.trim()) return;
@@ -21,7 +22,8 @@ const MovimientoManualForm = ({ cuentas = [], onCancelar, onGuardar }) => {
       fecha_confirmacion: fechaConfirmacion || null,
       tipo_movimiento: tipoMovimiento,
       concepto: concepto.trim(),
-      tipo_deposito: instrumento, // Guardamos el instrumento aquí
+      tipo_deposito: instrumento,
+      tipo_contable: tipoContable,
     });
   };
 
@@ -66,7 +68,7 @@ const MovimientoManualForm = ({ cuentas = [], onCancelar, onGuardar }) => {
               onChange={(e) => {
                 const val = e.target.value;
                 setTipoMovimiento(val);
-                // Ajustar instrumento por defecto según tipo
+                setTipoContable(val === 'Crédito' ? 'deposito' : 'gasto_bancario');
                 setInstrumento(val === 'Crédito' ? 'Efectivo' : 'Transferencia');
               }}
               className="w-full p-3 border rounded-lg bg-white focus:ring-2 focus:ring-erp-orange outline-none"
@@ -113,6 +115,27 @@ const MovimientoManualForm = ({ cuentas = [], onCancelar, onGuardar }) => {
               className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-erp-orange outline-none"
             />
           </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-1">Tipo contable</label>
+          <select
+            value={tipoContable}
+            onChange={(e) => setTipoContable(e.target.value)}
+            className="w-full p-3 border rounded-lg bg-white focus:ring-2 focus:ring-erp-orange outline-none"
+          >
+            {tipoMovimiento === 'Crédito' ? (
+              <>
+                <option value="deposito">Depósito (Ingreso en efectivo/transferencia)</option>
+                <option value="intereses">Intereses</option>
+              </>
+            ) : (
+              <>
+                <option value="gasto_bancario">Gasto bancario (Chequera, comisiones, multas)</option>
+                <option value="cheque_rechazado">Cheque rechazado</option>
+              </>
+            )}
+          </select>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

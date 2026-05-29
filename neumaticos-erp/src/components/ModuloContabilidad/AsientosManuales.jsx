@@ -4,6 +4,14 @@ import { useAsientosContables } from '../../hooks/useAsientosContables';
 import { Eye } from 'lucide-react';
 import { puedeEditar } from '../../utils/permisos';
 
+const obtenerFechaLocal = () => {
+  const hoy = new Date();
+  const año = hoy.getFullYear();
+  const mes = String(hoy.getMonth() + 1).padStart(2, '0');
+  const dia = String(hoy.getDate()).padStart(2, '0');
+  return `${año}-${mes}-${dia}`;
+};
+
 const AsientosManuales = () => {
   const { periodos, periodoActivo, setPeriodoActivo, cuentas } = usePlanCuentas();
   const { asientos, loading, crearAsiento, getDetalleOrigen } = useAsientosContables(periodoActivo);
@@ -24,7 +32,7 @@ const AsientosManuales = () => {
 
   // Estado para el nuevo asiento
   const [nuevoAsiento, setNuevoAsiento] = useState({
-    fecha: new Date().toISOString().split('T')[0],
+    fecha: obtenerFechaLocal(),
     descripcion: '',
     lineas: [
       { id: Date.now(), cuentaId: '', glosa: '', debe: 0, haber: 0 },
@@ -90,7 +98,7 @@ const AsientosManuales = () => {
     if (res.ok) {
       setShowForm(false);
       setNuevoAsiento({
-        fecha: new Date().toISOString().split('T')[0],
+        fecha: obtenerFechaLocal(),
         descripcion: '',
         lineas: [
           { id: Date.now(), cuentaId: '', glosa: '', debe: 0, haber: 0 },
@@ -166,7 +174,7 @@ const AsientosManuales = () => {
                 asientos.map((asiento) => (
                   <tr key={asiento.id_asiento} className="hover:bg-orange-50/30 transition-colors">
                     <td className="p-5 font-bold text-gray-700">#{asiento.numero_asiento}</td>
-                    <td className="p-5 text-gray-500 text-sm">{new Date(asiento.fecha).toLocaleDateString()}</td>
+                    <td className="p-5 text-gray-500 text-sm">{asiento.fecha || '—'}</td>
                     <td className="p-5 text-gray-700 font-medium">
                       {asiento.descripcion}
                       <div className="text-[10px] text-gray-400 mt-1">
@@ -360,7 +368,7 @@ const AsientosManuales = () => {
             <div className="bg-gray-800 p-6 flex justify-between items-center text-white">
               <div>
                 <h2 className="text-xl font-black uppercase tracking-tighter">Detalle de Asiento #{asientoSeleccionado.numero_asiento}</h2>
-                <p className="text-[10px] font-bold text-gray-400 uppercase">{new Date(asientoSeleccionado.fecha).toLocaleDateString()} — {asientoSeleccionado.descripcion}</p>
+                <p className="text-[10px] font-bold text-gray-400 uppercase">{asientoSeleccionado.fecha || '—'} — {asientoSeleccionado.descripcion}</p>
               </div>
               <button onClick={() => setAsientoSeleccionado(null)} className="hover:bg-white/20 p-2 rounded-full transition-colors">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12" /></svg>

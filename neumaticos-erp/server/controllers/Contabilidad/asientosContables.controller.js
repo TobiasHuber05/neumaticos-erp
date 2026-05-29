@@ -13,9 +13,16 @@ export const getAsientosContables = async (req, res) => {
                     }
                 }
             },
-            orderBy: { fecha: 'desc' }
+            orderBy: [
+                { fecha: 'desc' },
+                { id_asiento: 'desc' }
+            ]
         });
-        res.json(asientos);
+        const data = asientos.map((a) => ({
+            ...a,
+            fecha: a.fecha ? a.fecha.toISOString().split('T')[0] : null,
+        }));
+        res.json(data);
     } catch (error) {
         console.error('Error al obtener asientos contables:', error);
         res.status(500).json({ error: 'Error al obtener asientos contables' });
