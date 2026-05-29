@@ -7,7 +7,11 @@ import { X, Banknote } from 'lucide-react';
 const OrdenPagoProveedoresForm = ({ proveedorNombre, facturasPendientes = [], mediosOpciones = [], cuentas = [], onCancelar, onGuardar }) => {
   const [seleccion, setSeleccion] = useState({});
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
   const [mediosFactura, setMediosFactura] = useState({}); // { facturaId: [{ medio: 'Efectivo', monto: '', id_cuenta: '' }] }
+=======
+  const [montosFactura, setMontosFactura] = useState({});
+>>>>>>> Stashed changes
 =======
   const [montosFactura, setMontosFactura] = useState({});
 >>>>>>> Stashed changes
@@ -23,10 +27,14 @@ const OrdenPagoProveedoresForm = ({ proveedorNombre, facturasPendientes = [], me
     setSeleccion((s) => ({ ...s, [id]: activo }));
     if (activo) {
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
       setMediosFactura((m) => ({
         ...m,
         [id]: [{ medio: mediosOpciones[0] ?? 'Efectivo', monto: String(saldoDe(f)), id_cuenta: '' }]
       }));
+=======
+      setMontosFactura((m) => ({ ...m, [id]: String(saldoDe(f)) }));
+>>>>>>> Stashed changes
 =======
       setMontosFactura((m) => ({ ...m, [id]: String(saldoDe(f)) }));
 >>>>>>> Stashed changes
@@ -51,6 +59,7 @@ const OrdenPagoProveedoresForm = ({ proveedorNombre, facturasPendientes = [], me
     }, 0);
   }, [facturasSeleccionadas, montosFactura]);
 
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
   const addMedioFactura = (facturaId) => {
     setMediosFactura(prev => ({
@@ -89,6 +98,21 @@ const OrdenPagoProveedoresForm = ({ proveedorNombre, facturasPendientes = [], me
 >>>>>>> Stashed changes
   };
 
+=======
+  const totalMedios = useMemo(
+    () => medios.reduce((acc, m) => acc + (Number(m.monto) || 0), 0),
+    [medios]
+  );
+
+  const addMedio = () => {
+    setMedios((m) => [...m, { medio: mediosOpciones[0] ?? 'Efectivo', monto: '' }]);
+  };
+
+  const updateMedio = (idx, field, val) => {
+    setMedios((m) => m.map((row, i) => (i === idx ? { ...row, [field]: val } : row)));
+  };
+
+>>>>>>> Stashed changes
   const removeMedio = (idx) => {
     setMedios((m) => (m.length <= 1 ? m : m.filter((_, i) => i !== idx)));
   };
@@ -114,6 +138,7 @@ const OrdenPagoProveedoresForm = ({ proveedorNombre, facturasPendientes = [], me
         return;
       }
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
       facturas.push({ id: f.id, monto: sumMonto });
 
@@ -132,6 +157,9 @@ const OrdenPagoProveedoresForm = ({ proveedorNombre, facturasPendientes = [], me
           });
         }
       }
+=======
+      facturas.push({ id: f.id, monto });
+>>>>>>> Stashed changes
 =======
       facturas.push({ id: f.id, monto });
 >>>>>>> Stashed changes
@@ -200,6 +228,7 @@ const OrdenPagoProveedoresForm = ({ proveedorNombre, facturasPendientes = [], me
                     )}
                   </p>
                   {seleccion[f.id] && (
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
                     <div className="mt-3 ml-6 bg-orange-50/50 p-3 rounded-lg border border-orange-100">
                       <div className="flex justify-between items-center mb-2">
@@ -279,6 +308,8 @@ const OrdenPagoProveedoresForm = ({ proveedorNombre, facturasPendientes = [], me
                         </button>
                       </div>
 =======
+=======
+>>>>>>> Stashed changes
                     <div className="mt-2 ml-6 flex items-center gap-2">
                       <label className="text-xs text-gray-600 whitespace-nowrap">Monto a pagar:</label>
                       <input
@@ -297,6 +328,9 @@ const OrdenPagoProveedoresForm = ({ proveedorNombre, facturasPendientes = [], me
                       >
                         Total saldo
                       </button>
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
                     </div>
                   )}
