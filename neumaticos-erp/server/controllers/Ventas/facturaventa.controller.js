@@ -135,9 +135,13 @@ export const getFactura = async (req, res) => {
         detalle_factura_venta: true,
         devolucion_cliente: {
           include: {
-            detalle_devolucion: true
+            detalle_devolucion: true,
+            nota_credito_venta: { include: { detalle_nota_credito: true } },
           }
-        }
+        },
+        cobranza: {
+          include: { detalle_cobranza: true },
+        },
       }
     });
     res.json(facturas);

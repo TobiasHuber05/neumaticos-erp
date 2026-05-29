@@ -8,7 +8,8 @@ export const getProductos = async (req, res) => {
         categoria: true,
         marcas: true,
         stock: {
-          some: { activo: true }
+          where:
+            { activo: true }
         },
         producto_servicio: true,
       },

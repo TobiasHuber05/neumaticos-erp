@@ -1,9 +1,9 @@
-import { prisma } from '../lib/prisma.js';
+import { prisma } from '../../lib/prisma.js';
 import {
   esMedioBancario,
   datosMovimientoCobroCliente,
   estadoDetalleCobro,
-} from '../utils/tesoreriaIntegracion.utils.js';
+} from '../../utils/tesoreriaIntegracion.utils.js';
 
 const redondear = (n) => Math.round(Number(n) * 100) / 100;
 

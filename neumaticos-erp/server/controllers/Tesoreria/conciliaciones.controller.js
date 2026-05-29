@@ -89,8 +89,14 @@ export const vincularMovimientos = async (req, res) => {
     const { movimientoIds } = req.body; // Array de IDs de movimientos
 
     try {
-        // Primero eliminamos vínculos previos si los hubiera para este proceso (opcional)
-        // await prisma.detalle_conciliacion.deleteMany({ where: { id_conciliacion: Number(id) } });
+        await prisma.detalle_conciliacion.deleteMany({
+            where: { id_conciliacion: Number(id) },
+        });
+
+        if (!movimientoIds?.length) {
+            await recalcularTotales(Number(id));
+            return res.json({ ok: true });
+        }
 
         const operations = movimientoIds.map(movId =>
             prisma.detalle_conciliacion.create({
@@ -146,32 +152,42 @@ export const finalizarConciliacion = async (req, res) => {
     }
 };
 
-// Helper para recalcular totales
+// Helper para recalcular totales (saldo libros vs extracto + monto seleccionado)
 async function recalcularTotales(id_conciliacion) {
-    const detalles = await prisma.detalle_conciliacion.findMany({
-        where: { id_conciliacion, conciliado: true },
-        include: { movimiento_bancario: true }
-    });
-
-    let montoErp = 0;
-    detalles.forEach(d => {
-        const ingreso = Number(d.movimiento_bancario.monto_ingreso ?? 0);
-        const egreso = Number(d.movimiento_bancario.monto_egreso ?? 0);
-        montoErp += (ingreso - egreso);
-    });
+    const { calcularSaldos } = await import('./movimientos.controller.js');
 
     const cabecera = await prisma.conciliacion_bancaria.findUnique({
-        where: { id_conciliacion }
+        where: { id_conciliacion },
+        include: {
+            cuenta_bancaria: { include: { movimiento_bancario: true } },
+            detalle_conciliacion: { include: { movimiento_bancario: true } },
+        },
+    });
+
+    if (!cabecera) return;
+
+    const { saldoReal } = calcularSaldos(
+        cabecera.cuenta_bancaria?.movimiento_bancario ?? [],
+        Number(cabecera.cuenta_bancaria?.saldo ?? 0),
+        Number(cabecera.cuenta_bancaria?.saldo_disponible ?? 0),
+    );
+
+    let montoSeleccionado = 0;
+    (cabecera.detalle_conciliacion ?? []).forEach((d) => {
+        if (!d.conciliado || !d.movimiento_bancario) return;
+        const ingreso = Number(d.movimiento_bancario.monto_ingreso ?? 0);
+        const egreso = Number(d.movimiento_bancario.monto_egreso ?? 0);
+        montoSeleccionado += ingreso - egreso;
     });
 
     const saldoBanco = Number(cabecera.saldo_banco ?? 0);
-    const diferencia = saldoBanco - montoErp;
+    const diferencia = saldoBanco - saldoReal;
 
     await prisma.conciliacion_bancaria.update({
         where: { id_conciliacion },
         data: {
-            monto_erp: montoErp,
-            diferencia: diferencia
-        }
+            monto_erp: montoSeleccionado,
+            diferencia,
+        },
     });
 }

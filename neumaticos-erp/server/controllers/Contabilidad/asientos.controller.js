@@ -69,7 +69,7 @@ export const getAsientosVentas = async (req, res) => {
 };
 
 export const ejecutarAsientoContableCompra = async (tx, factura) => {
-  const { registrarAsientoAutomatico } = await import('../utils/asientoAutomatico.utils.js');
+  const { registrarAsientoAutomatico } = await import('../../utils/asientoAutomatico.utils.js');
 
   const total = Number(factura.total);
   const montoIva = Math.round(total / 11);
@@ -104,7 +104,7 @@ export const ejecutarAsientoContableCompra = async (tx, factura) => {
 };
 
 export const ejecutarAsientoNotaCreditoCompra = async (tx, nc) => {
-  const { registrarAsientoAutomatico } = await import('../utils/asientoAutomatico.utils.js');
+  const { registrarAsientoAutomatico } = await import('../../utils/asientoAutomatico.utils.js');
 
   const total = Number(nc.monto_subtotal);
   const montoIva = Math.round(total / 11);
@@ -138,8 +138,36 @@ export const ejecutarAsientoNotaCreditoCompra = async (tx, nc) => {
   }, tx, { strict: true });
 };
 
+export const ejecutarAsientoCobroCliente = async (tx, cobranza, factura) => {
+  const { registrarAsientoAutomatico } = await import('../../utils/asientoAutomatico.utils.js');
+
+  const total = Number(cobranza.total);
+  const nroFactura = factura.nro_factura ?? factura.id_factura_venta;
+
+  return await registrarAsientoAutomatico({
+    fecha: cobranza.fecha_cobro || new Date(),
+    descripcion: `Cobro Factura Nro: ${nroFactura} — Recibo ${cobranza.nro_recibo ?? ''}`.trim(),
+    tabla_origen: 'cobranza',
+    id_registro_origen: cobranza.id_cobranza,
+    detalles: [
+      {
+        cuenta_codigo: '1.1.01',
+        monto: total,
+        debe_haber: true,
+        glosa: 'Caja y Bancos (Ingreso por cobro)',
+      },
+      {
+        cuenta_codigo: '1.1.02',
+        monto: total,
+        debe_haber: false,
+        glosa: 'Clientes por Ventas',
+      },
+    ],
+  }, tx, { strict: true });
+};
+
 export const ejecutarAsientoPagoProveedor = async (tx, ordenPago, esParcial) => {
-  const { registrarAsientoAutomatico } = await import('../utils/asientoAutomatico.utils.js');
+  const { registrarAsientoAutomatico } = await import('../../utils/asientoAutomatico.utils.js');
 
   const total = Number(ordenPago.total);
   const descripcion = `Pago Proveedor OP-${String(ordenPago.id_orden_pago).padStart(4, '0')}${esParcial ? ' (Parcial)' : ''}`;

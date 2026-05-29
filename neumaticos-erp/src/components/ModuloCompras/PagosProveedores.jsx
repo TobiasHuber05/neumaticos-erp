@@ -84,6 +84,11 @@ const PagosProveedores = ({
 
       <div className="bg-white rounded-xl shadow-md border border-orange-100 overflow-hidden">
         <div className="p-4 border-b bg-gray-50 font-bold text-gray-800">Órdenes de pago registradas</div>
+        <Pagination
+          currentPage={curPagePagos}
+          totalPages={totPagesPagos}
+          onPageChange={setCurPagePagos}
+        />
         <table className="w-full text-sm text-left">
           <thead className="bg-orange-50 text-erp-orange uppercase text-xs font-black">
             <tr>
@@ -94,11 +99,6 @@ const PagosProveedores = ({
               <th className="px-4 py-3 text-right">Total</th>
             </tr>
           </thead>
-          <Pagination
-            currentPage={curPagePagos}
-            totalPages={totPagesPagos}
-            onPageChange={setCurPagePagos}
-          />
           <tbody className="divide-y">
             {currentPagos.map((op) => (
               <tr key={op.id}>

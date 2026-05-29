@@ -6,17 +6,27 @@ import { puedeEditar } from '../../utils/permisos';
 
 const API = 'http://localhost:3000/api';
 
+const api = axios.create({
+  baseURL: API,
+});
+
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
+
 const Funcionarios = ({ personal }) => {
   const { funcionarios, actions } = personal;
-  const [filtro, setFiltro]       = useState('');
-  const [showForm, setShowForm]   = useState(false);
+  const [filtro, setFiltro] = useState('');
+  const [showForm, setShowForm] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [errorForm, setErrorForm] = useState('');
-  const [cargos, setCargos]       = useState([]);
+  const [cargos, setCargos] = useState([]);
 
   const [modalFamiliar, setModalFamiliar] = useState(null); // guarda el funcionario seleccionado
   const [modalListaFam, setModalListaFam] = useState(null)
-  const [nuevoFam, setNuevoFam] = useState({ parentesco: '', fecha_nacimiento: '', nombre: '', cedula:'' });
+  const [nuevoFam, setNuevoFam] = useState({ parentesco: '', fecha_nacimiento: '', nombre: '', cedula: '' });
   const [guardandoFam, setGuardandoFam] = useState(false);
 
   const [form, setForm] = useState({
@@ -27,7 +37,7 @@ const Funcionarios = ({ personal }) => {
 
   // ── Cargar cargos desde la API ──────────────────────────────
   useEffect(() => {
-    axios.get(`${API}/cargos`)
+    api.get(`/cargos`)
       .then(res => setCargos(res.data))
       .catch(() => setCargos([]));
   }, []);
@@ -52,19 +62,19 @@ const Funcionarios = ({ personal }) => {
     setGuardando(true);
     try {
       await actions.agregarFuncionario({
-        nombre:           form.nombre,
-        apellido:         form.apellido,
-        ci:               form.ci,
-        ruc:              form.ruc,
-        estado_civil:     form.estado_civil,
-        sexo:             form.sexo,
+        nombre: form.nombre,
+        apellido: form.apellido,
+        ci: form.ci,
+        ruc: form.ruc,
+        estado_civil: form.estado_civil,
+        sexo: form.sexo,
         fecha_nacimiento: form.fecha_nacimiento || null,
-        id_cargo:         Number(form.id_cargo),
-        fecha_ingreso:    form.fecha_ingreso || null,
+        id_cargo: Number(form.id_cargo),
+        fecha_ingreso: form.fecha_ingreso || null,
         // El salario base viene del cargo, no del form
-        salario_base:     cargoSeleccionado?.sueldo_base
-                            ? Number(cargoSeleccionado.sueldo_base)
-                            : null,
+        salario_base: cargoSeleccionado?.sueldo_base
+          ? Number(cargoSeleccionado.sueldo_base)
+          : null,
         familiares: [],
       });
       setForm({
@@ -86,14 +96,14 @@ const Funcionarios = ({ personal }) => {
       alert("El nombre y parentesco son obligatorios");
       return;
     }
-    
+
     setGuardandoFam(true);
     try {
       await axios.post(`${API}/funcionarios/${modalFamiliar.id}/familiares`, {
-        parentesco:       nuevoFam.parentesco,
+        parentesco: nuevoFam.parentesco,
         fecha_nacimiento: nuevoFam.fecha_nacimiento || null,
-        nombre:           nuevoFam.nombre,
-        cedula:           nuevoFam.cedula || null 
+        nombre: nuevoFam.nombre,
+        cedula: nuevoFam.cedula || null
       });
       await actions.recargar();
       setNuevoFam({ parentesco: '', fecha_nacimiento: '', nombre: '', cedula: '' });
@@ -195,7 +205,7 @@ const Funcionarios = ({ personal }) => {
                       Familiares ({f.nucleoFamiliar?.length || 0})
                     </button>
 
-          
+
                     {puedeEditar('personal') && (
                       <button
                         onClick={() => setModalFamiliar(f)}
@@ -478,7 +488,7 @@ const Funcionarios = ({ personal }) => {
       {modalListaFam && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden border border-gray-100">
-            
+
             <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
               <div>
                 <h2 className="text-xl font-black text-gray-800 uppercase tracking-tighter">
@@ -488,7 +498,7 @@ const Funcionarios = ({ personal }) => {
                   {modalListaFam.nombre}
                 </p>
               </div>
-              <button 
+              <button
                 onClick={() => setModalListaFam(null)}
                 className="p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 rounded-full transition-colors"
               >
