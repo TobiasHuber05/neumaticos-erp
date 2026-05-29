@@ -119,15 +119,17 @@ model cobranza {
 }
 
 model conceptos {
-  id_concepto Int      @id @default(autoincrement())
-  id_sueldo   Int?
-  nombre      String?  @db.VarChar(50)
-  descripcion String?  @db.VarChar(250)
-  credito     Decimal? @db.Decimal(10, 2)
-  debito      Decimal? @db.Decimal(10, 2)
-  afecta_ips  Boolean?
-  formula     String?  @db.VarChar(250)
-  sueldos     sueldos? @relation(fields: [id_sueldo], references: [id_sueldo], onDelete: NoAction, onUpdate: NoAction, map: "fk_concepto_sueldo")
+  id_concepto    Int           @id @default(autoincrement())
+  id_sueldo      Int?
+  id_funcionario Int?
+  nombre         String?       @db.VarChar(50)
+  descripcion    String?       @db.VarChar(250)
+  credito        Decimal?      @db.Decimal(10, 2)
+  debito         Decimal?      @db.Decimal(10, 2)
+  afecta_ips     Boolean?
+  formula        String?       @db.VarChar(250)
+  sueldos        sueldos?      @relation(fields: [id_sueldo], references: [id_sueldo], onDelete: NoAction, onUpdate: NoAction, map: "fk_concepto_sueldo")
+  funcionarios   funcionarios? @relation(fields: [id_funcionario], references: [id_funcionario], onDelete: Cascade, onUpdate: NoAction, map: "fk_concepto_funcionario")
 }
 
 model conciliacion_bancaria {
@@ -411,6 +413,7 @@ model funcionarios {
   personas           personas?            @relation(fields: [id_persona], references: [id_persona], onDelete: NoAction, onUpdate: NoAction, map: "fk_funcionarios_persona")
   historial          historial[]
   usuarios           usuarios[]
+  conceptos_extra    conceptos[]
 }
 
 model historial {

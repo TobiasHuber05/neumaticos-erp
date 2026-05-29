@@ -298,3 +298,60 @@ export const deleteFamiliar = async (req, res) => {
         res.status(500).json({ error: 'Error al eliminar familiar' });
     }
 };
+
+// ─── CONCEPTOS EXTRAS POR FUNCIONARIO ────────────────────────────
+// Usamos la tabla `conceptos` existente con id_funcionario.
+// formula = 'recurrente' → se aplica todos los meses y persiste.
+// formula = null         → único uso, se elimina tras liquidar.
+
+// GET /api/funcionarios/:id/conceptos
+export const getConceptosFuncionario = async (req, res) => {
+    const { id } = req.params;
+    try {
+        const conceptos = await prisma.conceptos.findMany({
+            where: { id_funcionario: Number(id), id_sueldo: null },
+            orderBy: { id_concepto: 'asc' }
+        });
+        res.json(conceptos);
+    } catch (error) {
+        res.status(500).json({ error: 'Error al obtener conceptos del funcionario' });
+    }
+};
+
+// POST /api/funcionarios/:id/conceptos
+export const addConceptoFuncionario = async (req, res) => {
+    const { id } = req.params;
+    const { nombre, descripcion, tipo, monto, afecta_ips, recurrente } = req.body;
+
+    if (!nombre) return res.status(400).json({ error: 'nombre es requerido' });
+    if (!monto || isNaN(Number(monto))) return res.status(400).json({ error: 'monto es requerido y debe ser un número' });
+
+    try {
+        const concepto = await prisma.conceptos.create({
+            data: {
+                id_funcionario: Number(id),
+                nombre,
+                descripcion: descripcion || null,
+                credito: tipo === 'Ingreso' ? Number(monto) : null,
+                debito:  tipo === 'Egreso'  ? Number(monto) : null,
+                afecta_ips: Boolean(afecta_ips),
+                formula: recurrente ? 'recurrente' : null,
+            }
+        });
+        res.status(201).json(concepto);
+    } catch (error) {
+        console.error('Error al agregar concepto a funcionario:', error);
+        res.status(500).json({ error: 'Error al agregar concepto' });
+    }
+};
+
+// DELETE /api/funcionarios/conceptos/:idConcepto
+export const deleteConceptoFuncionario = async (req, res) => {
+    const { idConcepto } = req.params;
+    try {
+        await prisma.conceptos.delete({ where: { id_concepto: Number(idConcepto) } });
+        res.json({ ok: true });
+    } catch (error) {
+        res.status(500).json({ error: 'Error al eliminar concepto' });
+    }
+};

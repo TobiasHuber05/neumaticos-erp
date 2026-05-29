@@ -14,6 +14,12 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Configurar token de autorización para axios
+const token = localStorage.getItem('token');
+if (token) {
+  axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+}
+
 // ── Mapea la respuesta del backend al formato que espera el frontend ──
 const mapearFuncionario = (f) => {
   const contrato = f.contrato?.[0];
@@ -240,6 +246,20 @@ export const useModuloPersonal = () => {
     return res.data;
   }, []);
 
+  // ── Conceptos extras por funcionario ────────────────────────────
+  const getConceptosFuncionario = useCallback(async (funcionarioId) => {
+    const res = await axios.get(`${API}/funcionarios/${funcionarioId}/conceptos`);
+    return res.data;
+  }, []);
+
+  const agregarConceptoFuncionario = useCallback(async (funcionarioId, concepto) => {
+    await axios.post(`${API}/funcionarios/${funcionarioId}/conceptos`, concepto);
+  }, []);
+
+  const eliminarConceptoFuncionario = useCallback(async (conceptoId) => {
+    await axios.delete(`${API}/funcionarios/conceptos/${conceptoId}`);
+  }, []);
+
   // KPIs 
   const ultimoProcesoCerrado = [...procesosPago]
     .filter(p => p.estado === 'Cerrado')
@@ -271,6 +291,9 @@ export const useModuloPersonal = () => {
       getRecibos,
       setConfig,
       recargar: cargarDatos,
+      getConceptosFuncionario,
+      agregarConceptoFuncionario,
+      eliminarConceptoFuncionario,
     },
   };
 };

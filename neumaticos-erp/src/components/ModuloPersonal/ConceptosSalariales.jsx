@@ -5,6 +5,12 @@ import { puedeEditar } from '../../utils/permisos';
 
 const API = 'http://localhost:3000/api';
 
+// Configurar token de autorización para axios
+const token = localStorage.getItem('token');
+if (token) {
+  axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+}
+
 const ConceptosSalariales = ({ personal }) => {
   const { conceptos, actions } = personal;
   const [showForm, setShowForm] = useState(false);

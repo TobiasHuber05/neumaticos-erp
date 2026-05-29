@@ -127,12 +127,26 @@ export const createProceso = async (req, res) => {
         // Calcular bonificación familiar
         const bonifFamiliar = hijosMenores * (SALARIO_MINIMO * PORCENTAJE_BONIF_FAMILIAR);
 
-        // Calcular IPS (9% sobre ingresos deducibles)
-        // El salario base siempre es deducible; la bonif familiar NO es deducible de IPS
-        const baseIPS = salarioBase; // agregar otros ingresos deducibles si hay más conceptos
+        // ── Conceptos extras pendientes de este funcionario ──────────
+        // Buscamos en la misma tabla `conceptos`: id_funcionario = X, id_sueldo = null
+        const extrasRaw = await tx.conceptos.findMany({
+          where: { id_funcionario: func.id_funcionario, id_sueldo: null }
+        });
+
+        const extraCreditos = extrasRaw.filter(c => c.credito !== null);
+        const extraDebitos  = extrasRaw.filter(c => c.debito  !== null);
+
+        const totalExtraCredito = extraCreditos.reduce((s, c) => s + Number(c.credito ?? 0), 0);
+        const totalExtraDebito  = extraDebitos .reduce((s, c) => s + Number(c.debito  ?? 0), 0);
+
+        // Base IPS: salario base + ingresos extras que afectan IPS
+        const baseIPS = salarioBase + extraCreditos
+          .filter(c => c.afecta_ips)
+          .reduce((s, c) => s + Number(c.credito ?? 0), 0);
+
         const descuentoIPS = baseIPS * PORCENTAJE_IPS;
 
-        const totalSueldo = salarioBase + bonifFamiliar - descuentoIPS;
+        const totalSueldo = salarioBase + bonifFamiliar + totalExtraCredito - descuentoIPS - totalExtraDebito;
         totalProceso += totalSueldo;
 
         // 3. Crear sueldo para este funcionario
@@ -146,7 +160,7 @@ export const createProceso = async (req, res) => {
           }
         });
 
-        // 4. Crear conceptos del sueldo
+        // 4. Crear conceptos del sueldo (fijos + extras)
         const conceptosData = [
           {
             id_sueldo: sueldo.id_sueldo,
@@ -167,16 +181,33 @@ export const createProceso = async (req, res) => {
           {
             id_sueldo: sueldo.id_sueldo,
             nombre: 'Descuento IPS',
-            descripcion: `9% sobre salario base (${salarioBase.toLocaleString('es-PY')} Gs.)`,
+            descripcion: `9% sobre base imponible (${baseIPS.toLocaleString('es-PY')} Gs.)`,
             credito: null,
             debito: descuentoIPS,
             afecta_ips: true
-          }
+          },
+          // Extras del funcionario: se copian al recibo de este sueldo
+          ...extrasRaw.map(c => ({
+            id_sueldo: sueldo.id_sueldo,
+            nombre: c.nombre,
+            descripcion: c.descripcion,
+            credito: c.credito,
+            debito: c.debito,
+            afecta_ips: c.afecta_ips ?? false,
+          }))
         ];
 
         await tx.conceptos.createMany({ data: conceptosData });
 
-        // 5. Vincular sueldo al contrato
+        // 5. Eliminar conceptos de un solo uso (formula != 'recurrente') — ya se aplicaron
+        const idsUnicoUso = extrasRaw
+          .filter(c => c.formula !== 'recurrente')
+          .map(c => c.id_concepto);
+        if (idsUnicoUso.length > 0) {
+          await tx.conceptos.deleteMany({ where: { id_concepto: { in: idsUnicoUso } } });
+        }
+
+        // 6. Vincular sueldo al contrato
         await tx.contrato.update({
           where: { id_contrato: contrato.id_contrato },
           data: { id_sueldo: sueldo.id_sueldo }
