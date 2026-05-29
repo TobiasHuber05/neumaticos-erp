@@ -1,4 +1,8 @@
 import { prisma } from '../../lib/prisma.js'; // Importación centralizada
+import {
+  crearPedidoReposicionSiCorresponde,
+  registrarMovimientoStock,
+} from '../../utils/inventario.utils.js';
 
 // GET /api/productos
 export const getProductos = async (req, res) => {
@@ -45,7 +49,7 @@ export const getProductos = async (req, res) => {
         marcaId: p.id_marca,
         esServicio: !!p.es_servicio,
         stock: stockRow?.cantidad ?? 0,
-        min: 10,
+        min: stockRow?.stock_minimo ?? 10,
         precio: stockRow?.precio ? Number(stockRow.precio) : 0,
         precioCompra: stockRow?.precio_compra ? Number(stockRow.precio_compra) : null,
         idStock: stockRow?.id_stock ?? null,
@@ -85,6 +89,7 @@ export const getProductoById = async (req, res) => {
       marcaId: p.id_marca,
       esServicio: p.es_servicio ?? false,
       stock: stockRow?.cantidad ?? 0,
+      min: stockRow?.stock_minimo ?? 10,
       precio: stockRow?.precio ? Number(stockRow.precio) : 0,
       precioCompra: stockRow?.precio_compra ? Number(stockRow.precio_compra) : null,
       idStock: stockRow?.id_stock ?? null,
@@ -102,7 +107,7 @@ export const getProductoById = async (req, res) => {
 export const createProducto = async (req, res) => {
   // Aceptamos tanto esServicio como es_servicio
   const esServ = req.body.esServicio === true || req.body.es_servicio === true || req.body.es_servicio === 'true';
-  const { nombre, codigo, categoriaId, marcaId, precio, stock, duracion_aprox, estado } = req.body;
+  const { nombre, codigo, categoriaId, marcaId, precio, stock, stockMinimo, duracion_aprox, estado } = req.body;
 
   if (!nombre) return res.status(400).json({ error: 'El nombre es requerido' });
 
@@ -124,10 +129,25 @@ export const createProducto = async (req, res) => {
         data: {
           id_producto: producto.id_producto,
           cantidad: stock ? Number(stock) : 0,
+          stock_minimo: stockMinimo ? Number(stockMinimo) : 10,
           precio: precio ? Number(precio) : 0,
           fecha_modificacion: new Date(),
         }
       });
+
+      if (Number(stockRow.cantidad ?? 0) > 0) {
+        await registrarMovimientoStock(tx, {
+          id_producto: producto.id_producto,
+          tipo_movimiento: 'Entrada',
+          cantidad: Number(stockRow.cantidad),
+          stock_resultante: Number(stockRow.cantidad),
+          origen: 'producto',
+          id_origen: producto.id_producto,
+          descripcion: 'Stock inicial del producto',
+        });
+      }
+
+      await crearPedidoReposicionSiCorresponde(tx, producto.id_producto);
 
       // 3. Crear entrada en producto_servicio (necesario para presupuestos y facturas)
       const serviceRow = await tx.producto_servicio.create({
@@ -149,6 +169,7 @@ export const createProducto = async (req, res) => {
       marcaId: resultado.producto.id_marca,
       esServicio: resultado.producto.es_servicio,
       stock: resultado.stockRow.cantidad,
+      min: resultado.stockRow.stock_minimo ?? 10,
       precio: precio ? Number(precio) : 0,
       idStock: resultado.stockRow.id_stock,
       duracion_aprox: resultado.serviceRow?.duracion_aprox ?? '—',
@@ -167,7 +188,7 @@ export const createProducto = async (req, res) => {
 // PUT /api/productos/:id
 export const updateProducto = async (req, res) => {
   const { id } = req.params;
-  const { nombre, codigo, categoriaId, marcaId, esServicio, precio, idStock, duracion_aprox, estado, id_producto_servicio } = req.body;
+  const { nombre, codigo, categoriaId, marcaId, esServicio, precio, stock, stockMinimo, idStock, duracion_aprox, estado, id_producto_servicio } = req.body;
 
   try {
     await prisma.$transaction(async (tx) => {
@@ -184,15 +205,60 @@ export const updateProducto = async (req, res) => {
       });
 
       // 2. Actualizar stock/precio
-      if (idStock) {
-        await tx.stock.update({
+      const stockAnterior = idStock
+        ? await tx.stock.findUnique({ where: { id_stock: Number(idStock) } })
+        : await tx.stock.findFirst({ where: { id_producto: Number(id), activo: true } });
+
+      if (stockAnterior) {
+        const cantidadAnterior = Number(stockAnterior.cantidad ?? 0);
+        const cantidadNueva = stock == null || stock === '' ? cantidadAnterior : Number(stock);
+        const stockActualizado = await tx.stock.update({
           where: { id_stock: Number(idStock) },
           data: {
             precio: precio ? Number(precio) : 0,
+            cantidad: cantidadNueva,
+            stock_minimo: stockMinimo ? Number(stockMinimo) : stockAnterior.stock_minimo ?? 10,
             fecha_modificacion: new Date(),
-            activo: false,
           }
         });
+
+        const diferencia = cantidadNueva - cantidadAnterior;
+        if (diferencia !== 0) {
+          await registrarMovimientoStock(tx, {
+            id_producto: Number(id),
+            tipo_movimiento: 'Ajuste',
+            cantidad: Math.abs(diferencia),
+            stock_resultante: stockActualizado.cantidad,
+            origen: 'producto',
+            id_origen: Number(id),
+            descripcion: diferencia > 0 ? 'Ajuste positivo de stock' : 'Ajuste negativo de stock',
+          });
+        }
+
+        await crearPedidoReposicionSiCorresponde(tx, Number(id));
+      } else {
+        const stockCreado = await tx.stock.create({
+          data: {
+            id_producto: Number(id),
+            cantidad: stock ? Number(stock) : 0,
+            stock_minimo: stockMinimo ? Number(stockMinimo) : 10,
+            precio: precio ? Number(precio) : 0,
+            fecha_modificacion: new Date(),
+          },
+        });
+
+        if (Number(stockCreado.cantidad ?? 0) > 0) {
+          await registrarMovimientoStock(tx, {
+            id_producto: Number(id),
+            tipo_movimiento: 'Entrada',
+            cantidad: Number(stockCreado.cantidad),
+            stock_resultante: Number(stockCreado.cantidad),
+            origen: 'producto',
+            id_origen: Number(id),
+            descripcion: 'Alta de stock del producto',
+          });
+        }
+        await crearPedidoReposicionSiCorresponde(tx, Number(id));
       }
 
       // 3. Actualizar metadatos de servicio
@@ -292,5 +358,31 @@ export const getMarcas = async (req, res) => {
   } catch (error) {
     console.error('❌ Error en getMarcas:', error);
     return res.status(500).json({ error: 'Error al obtener marcas' });
+  }
+};
+
+// GET /api/productos/:id/movimientos
+export const getMovimientosProducto = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const movimientos = await prisma.movimiento_stock.findMany({
+      where: { id_producto: Number(id) },
+      orderBy: { fecha: 'desc' },
+    });
+
+    return res.json(movimientos.map((m) => ({
+      id: m.id_movimiento_stock,
+      productoId: m.id_producto,
+      fecha: m.fecha?.toISOString() ?? null,
+      tipo: m.tipo_movimiento,
+      cantidad: Number(m.cantidad ?? 0),
+      stockResultante: Number(m.stock_resultante ?? 0),
+      origen: m.origen,
+      idOrigen: m.id_origen,
+      descripcion: m.descripcion,
+    })));
+  } catch (error) {
+    console.error('❌ Error al obtener movimientos de stock:', error);
+    return res.status(500).json({ error: 'Error al obtener movimientos de stock' });
   }
 };

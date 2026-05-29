@@ -6,16 +6,16 @@ import {
   actualizarPrecios,
   adjudicar,
 } from '../controllers/Compras/cotizaciones.controller.js';
-import { verifyToken } from '../middlewares/auth.middleware.js';
+import { requireModulo, verifyToken } from '../middlewares/auth.middleware.js';
 
 const router = express.Router();
 
 router.use(verifyToken);
 
-router.get('/', getCotizaciones);                           // GET  /api/cotizaciones
-router.get('/pedido/:idPedido', getCotizacionesPorPedido); // GET  /api/cotizaciones/pedido/:idPedido
-router.post('/generar', generarCotizaciones);              // POST /api/cotizaciones/generar
-router.put('/:id/precios', actualizarPrecios);             // PUT  /api/cotizaciones/:id/precios
-router.post('/adjudicar', adjudicar);                      // POST /api/cotizaciones/adjudicar
+router.get('/', requireModulo('compras', 'ver'), getCotizaciones);
+router.get('/pedido/:idPedido', requireModulo('compras', 'ver'), getCotizacionesPorPedido);
+router.post('/generar', requireModulo('compras', 'editar'), generarCotizaciones);
+router.put('/:id/precios', requireModulo('compras', 'editar'), actualizarPrecios);
+router.post('/adjudicar', requireModulo('compras', 'editar'), adjudicar);
 
 export default router;

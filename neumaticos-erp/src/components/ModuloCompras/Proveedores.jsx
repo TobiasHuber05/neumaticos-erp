@@ -67,8 +67,25 @@ const Proveedores = () => {
   }
 
   return (
-    <div className="bg-orange-50 overflow-hidden rounded-t-xl">
-      <div className="p-4 border border-gray-500 rounded-t-xl flex justify-between items-center bg-gray-50">
+    <div className="bg-transparent overflow-hidden rounded-t-xl">
+      {errorMsg && (
+        <div className="mb-4 rounded-xl border border-red-200/40 bg-red-500/10 backdrop-blur-md text-red-900 text-sm p-4 flex justify-between items-center shadow-lg animate-in fade-in duration-300">
+          <div className="flex items-center gap-2 font-medium">
+            <AlertTriangle className="text-red-600 shrink-0" size={20} />
+            <span>{errorMsg}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setErrorMsg(null)}
+            className="text-red-700 hover:text-red-900 font-bold hover:bg-red-500/20 p-1.5 rounded-lg transition-colors"
+            aria-label="Cerrar alerta"
+          >
+            <X size={18} />
+          </button>
+        </div>
+      )}
+
+      <div className="p-5 border border-white/40 rounded-t-2xl flex justify-between items-center bg-white/70 backdrop-blur-md shadow-md">
         <div className="flex items-center gap-2">
           <Users className="text-erp-orange" />
           <h2 className="text-xl font-bold text-gray-800">Maestro de proveedores</h2>
@@ -79,14 +96,14 @@ const Proveedores = () => {
               <button
                 type="button"
                 onClick={() => {/* Lógica para abrir modal de gestión de categorías */ }}
-                className="flex items-center gap-2 bg-white text-gray-700 px-4 py-2 rounded-lg font-bold hover:bg-gray-50 transition-all shadow-sm border border-gray-300"
+                className="flex items-center gap-2 bg-white/80 text-gray-700 px-4 py-2 rounded-lg font-bold hover:bg-white hover:text-gray-900 transition-all shadow-sm border border-white/60 backdrop-blur-sm"
               >
                 <Tag size={20} className="text-gray-400" /> Categorías
               </button>
               <button
                 type="button"
                 onClick={() => setMostrarForm(true)}
-                className="flex items-center gap-2 bg-erp-orange text-white px-4 py-2 rounded-lg font-bold hover:bg-orange-600 transition-all shadow-md"
+                className="flex items-center gap-2 bg-erp-orange text-white px-4 py-2 rounded-lg font-bold hover:bg-orange-600 transition-all shadow-md hover:scale-[1.02] active:scale-95 duration-200"
               >
                 <Plus size={20} /> Nuevo proveedor
               </button>
@@ -95,14 +112,14 @@ const Proveedores = () => {
         </div>
       </div>
 
-      <div className="bg-white rounded shadow-md md:p-6 mb-6 mx-0 md:mx-0 border border-gray-500">
+      <div className="bg-white/60 backdrop-blur-md rounded-b-2xl shadow-lg p-6 mb-6 mx-0 md:mx-0 border border-white/45 border-t-0">
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1 min-w-0">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
             <input
               type="text"
               placeholder="Buscar por nombre, RUC o dirección..."
-              className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-erp-orange outline-none"
+              className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-erp-orange outline-none bg-white/80 backdrop-blur-sm focus:bg-white transition-all duration-200"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -112,7 +129,7 @@ const Proveedores = () => {
             <select
               value={filtroCategoria}
               onChange={(e) => setFiltroCategoria(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-erp-orange outline-none bg-white text-sm font-medium text-gray-700"
+              className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-erp-orange outline-none bg-white/80 backdrop-blur-sm focus:bg-white text-sm font-medium text-gray-700 transition-all duration-200"
               aria-label="Filtrar por categoría"
             >
               <option value="todas">Todas las categorías</option>
@@ -129,9 +146,12 @@ const Proveedores = () => {
         )}
       </div>
 
-      <div className="grid rounded shadow grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 bg-orange-50 mt-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
         {proveedoresFiltrados.map((proveedor) => (
-          <div key={proveedor.id} className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow border border-gray-300">
+          <div
+            key={proveedor.id}
+            className="bg-white/75 backdrop-blur-md rounded-2xl shadow-md border border-white/50 hover:border-erp-orange/40 hover:bg-white/85 hover:scale-[1.02] hover:shadow-xl transition-all duration-300"
+          >
             <div className="p-6">
               <div className="flex items-start justify-between mb-4">
                 <div>
@@ -162,7 +182,7 @@ const Proveedores = () => {
               </div>
               <div className="flex flex-wrap gap-1 mb-3">
                 {(proveedor.categorias ?? []).map((c) => (
-                  <span key={c} className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-100 text-orange-900 border border-orange-200">
+                  <span key={c} className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-100/80 text-orange-950 border border-orange-200/50">
                     {c}
                   </span>
                 ))}
@@ -184,9 +204,9 @@ const Proveedores = () => {
 
       {/* Modal de Confirmación de Eliminación */}
       {confirmarEliminarId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-xl shadow-2xl border border-orange-100 max-w-md w-full overflow-hidden animate-in zoom-in duration-200">
-            <div className="bg-orange-50 p-6 flex flex-col items-center text-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/55 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl border border-orange-100 max-w-md w-full overflow-hidden animate-in zoom-in duration-200">
+            <div className="bg-orange-50/60 backdrop-blur-md p-6 flex flex-col items-center text-center">
               <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-4">
                 <AlertTriangle size={32} />
               </div>
@@ -195,7 +215,7 @@ const Proveedores = () => {
                 Esta acción no se puede deshacer. El proveedor y sus relaciones con categorías serán eliminados permanentemente.
               </p>
             </div>
-            <div className="p-4 bg-gray-50 flex gap-3 justify-end">
+            <div className="p-4 bg-gray-50/80 flex gap-3 justify-end">
               <button
                 type="button"
                 onClick={() => setConfirmarEliminarId(null)}
@@ -206,7 +226,12 @@ const Proveedores = () => {
               <button
                 type="button"
                 onClick={async () => {
-                  await eliminarProveedor(confirmarEliminarId);
+                  const res = await eliminarProveedor(confirmarEliminarId);
+                  if (!res.ok) {
+                    setErrorMsg(res.error ?? 'Error al eliminar el proveedor');
+                  } else {
+                    setErrorMsg(null);
+                  }
                   setConfirmarEliminarId(null);
                 }}
                 className="px-6 py-2 bg-red-600 text-white font-bold rounded-lg shadow-md hover:bg-red-700 transition-all active:scale-95"

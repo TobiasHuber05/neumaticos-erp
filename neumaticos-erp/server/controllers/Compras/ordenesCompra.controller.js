@@ -129,6 +129,70 @@ function validarFacturaServidor(ordenLineas, lineas, facturasExistentes) {
   return errores;
 }
 
+async function validarDevolucionServidor(tx, facturaId, lineas) {
+  const factura = await tx.factura_compra.findUnique({
+    where: { id_factura_compra: Number(facturaId) },
+    include: {
+      detalle_factura: { include: { producto: true } },
+      pedido_devolucion: {
+        include: { nota_credito_detalle: true },
+      },
+    },
+  });
+
+  if (!factura) {
+    return { factura: null, errores: ['Factura de compra no encontrada.'] };
+  }
+
+  const yaDevuelto = {};
+  for (const devolucion of factura.pedido_devolucion ?? []) {
+    for (const detalle of devolucion.nota_credito_detalle ?? []) {
+      const productoId = Number(detalle.id_producto);
+      yaDevuelto[productoId] = (yaDevuelto[productoId] ?? 0) + Number(detalle.producto_cantidad ?? 0);
+    }
+  }
+
+  const errores = [];
+  if (!lineas?.length) {
+    errores.push('La devolución debe incluir al menos una línea.');
+  }
+
+  for (const item of lineas ?? []) {
+    const productoId = Number(item.productoId);
+    const cantidad = Number(item.cantidad ?? 0);
+    const detFactura = factura.detalle_factura.find((d) => Number(d.id_producto) === productoId);
+
+    if (!detFactura) {
+      errores.push(`Producto ${productoId} no pertenece a la factura seleccionada.`);
+      continue;
+    }
+
+    if (cantidad <= 0) {
+      errores.push(`${detFactura.producto?.descripcion ?? `Producto ${productoId}`}: la cantidad debe ser mayor a cero.`);
+      continue;
+    }
+
+    const recibida = Number(detFactura.cantidad_recibida ?? 0);
+    const devueltaAntes = yaDevuelto[productoId] ?? 0;
+    const disponibleDevolucion = recibida - devueltaAntes;
+
+    if (cantidad > disponibleDevolucion) {
+      errores.push(
+        `${detFactura.producto?.descripcion ?? `Producto ${productoId}`}: no puede devolverse más de lo recibido (recibido ${recibida}, ya devuelto ${devueltaAntes}, esta devolución ${cantidad}).`,
+      );
+    }
+
+    const stock = await tx.stock.findFirst({ where: { id_producto: productoId } });
+    if (!stock || Number(stock.cantidad ?? 0) < cantidad) {
+      errores.push(
+        `${detFactura.producto?.descripcion ?? `Producto ${productoId}`}: stock insuficiente para devolver. Disponible ${Number(stock?.cantidad ?? 0)}.`,
+      );
+    }
+  }
+
+  return { factura, errores };
+}
+
 // POST /api/ordenes-compra/:id/factura
 export const registrarFactura = async (req, res) => {
   const { id } = req.params;
@@ -183,7 +247,7 @@ export const registrarFactura = async (req, res) => {
           proveedores: { connect: { id_proveedor: oc.id_proveedor } },
           fecha_emision: fecha ? new Date(fecha) : new Date(),
           timbrado: timbrado ?? null,
-          //nro_factura: numero ?? null,
+          nro_factura: numero ?? null,
           total,
           contado_credito: true,
         },
@@ -228,12 +292,7 @@ export const registrarFactura = async (req, res) => {
         }
       }
 
-      // Bloque de ejecución seguro para el asiento contable dentro del pool transaccional
-      try {
-        await ejecutarAsientoContableCompra(tx, factura);
-      } catch (errorAsiento) {
-        console.error('⚠️ El asiento falló, pero se guardan la factura y el stock sin interrumpir:', errorAsiento);
-      }
+      await ejecutarAsientoContableCompra(tx, factura);
 
       return factura;
     });
@@ -316,6 +375,11 @@ export const registrarDevolucionCompra = async (req, res) => {
 
   try {
     const resultado = await prisma.$transaction(async (tx) => {
+      const { errores } = await validarDevolucionServidor(tx, facturaId, lineas);
+      if (errores.length) {
+        throw new Error(errores.join(' | '));
+      }
+
       const devolucion = await tx.pedido_devolucion.create({
         data: {
           id_factura_compra: Number(facturaId),
@@ -350,7 +414,7 @@ export const registrarDevolucionCompra = async (req, res) => {
     res.status(201).json({ ok: true, id: resultado.id_pedido_d, numero: `ND-P-${resultado.id_pedido_d}` });
   } catch (error) {
     console.error('❌ Error en devolución:', error);
-    res.status(500).json({ error: 'Error al registrar devolución' });
+    res.status(400).json({ error: error.message || 'Error al registrar devolución' });
   }
 };
 

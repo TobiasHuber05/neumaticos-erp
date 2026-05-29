@@ -9,19 +9,19 @@ import {
   registrarNotaCreditoCompra,
   getNotasCredito,
 } from '../controllers/Compras/ordenesCompra.controller.js';
-import { verifyToken } from '../middlewares/auth.middleware.js';
+import { requireModulo, verifyToken } from '../middlewares/auth.middleware.js';
 
 const router = express.Router();
 
 router.use(verifyToken);
 
-router.get('/', getOrdenesCompra);                  // GET  /api/ordenes-compra
-router.get('/facturas', getFacturas);               // GET  /api/ordenes-compra/facturas
-router.get('/devoluciones', getDevoluciones);       // GET  /api/ordenes-compra/devoluciones
-router.get('/notas-credito', getNotasCredito);       // GET  /api/ordenes-compra/notas-credito
-router.get('/:id', getOrdenCompraById);             // GET  /api/ordenes-compra/:id
-router.post('/:id/factura', registrarFactura);      // POST /api/ordenes-compra/:id/factura
-router.post('/devolucion', registrarDevolucionCompra); // POST /api/ordenes-compra/devolucion
-router.post('/nota-credito', registrarNotaCreditoCompra); // POST /api/ordenes-compra/nota-credito
+router.get('/', requireModulo('compras', 'ver'), getOrdenesCompra);
+router.get('/facturas', requireModulo('compras', 'ver'), getFacturas);
+router.get('/devoluciones', requireModulo('compras', 'ver'), getDevoluciones);
+router.get('/notas-credito', requireModulo('compras', 'ver'), getNotasCredito);
+router.get('/:id', requireModulo('compras', 'ver'), getOrdenCompraById);
+router.post('/:id/factura', requireModulo('compras', 'editar'), registrarFactura);
+router.post('/devolucion', requireModulo('compras', 'editar'), registrarDevolucionCompra);
+router.post('/nota-credito', requireModulo('compras', 'editar'), registrarNotaCreditoCompra);
 
 export default router;

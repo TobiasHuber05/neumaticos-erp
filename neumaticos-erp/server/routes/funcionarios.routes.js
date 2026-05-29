@@ -2,14 +2,9 @@ import { Router } from 'express';
 import {
     getFuncionarios, getFuncionarioById, createFuncionario,
     updateFuncionario, deleteFuncionario,
-<<<<<<< Updated upstream
-    getFamiliares, addFamiliar, deleteFamiliar
-} from '../controllers/Personal/funcionarios.controller.js';
-=======
     getFamiliares, addFamiliar, deleteFamiliar,
     getConceptosFuncionario, addConceptoFuncionario, deleteConceptoFuncionario
-} from '../controllers/funcionarios.controller.js';
->>>>>>> Stashed changes
+} from '../controllers/Personal/funcionarios.controller.js';
 
 const router = Router();
 // Rutas fijas primero

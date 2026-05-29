@@ -143,17 +143,52 @@ export const updateProveedor = async (req, res) => {
 // DELETE /api/proveedores/:id
 export const deleteProveedor = async (req, res) => {
   const { id } = req.params;
+  const proveedorId = Number(id);
   try {
-    await prisma.proveedor_categorias.deleteMany({
-      where: { id_proveedor: Number(id) }
-    });
-    await prisma.proveedores.delete({
-      where: { id_proveedor: Number(id) }
-    });
+    await prisma.$transaction([
+      // 1. Eliminar relaciones en la tabla intermedia de categorías
+      prisma.proveedor_categorias.deleteMany({
+        where: { id_proveedor: proveedorId }
+      }),
+      // 2. Setear a null id_proveedor en lotes
+      prisma.lotes.updateMany({
+        where: { id_proveedor: proveedorId },
+        data: { id_proveedor: null }
+      }),
+      // 3. Setear a null id_proveedor en cotizaciones
+      prisma.cotizacion.updateMany({
+        where: { id_proveedor: proveedorId },
+        data: { id_proveedor: null }
+      }),
+      // 4. Setear a null id_proveedor en facturas de compra
+      prisma.factura_compra.updateMany({
+        where: { id_proveedor: proveedorId },
+        data: { id_proveedor: null }
+      }),
+      // 5. Setear a null id_proveedor en ordenes de compra
+      prisma.orden_compra.updateMany({
+        where: { id_proveedor: proveedorId },
+        data: { id_proveedor: null }
+      }),
+      // 6. Setear a null id_proveedor en ordenes de pago a proveedores
+      prisma.orden_pago_proveedores.updateMany({
+        where: { id_proveedor: proveedorId },
+        data: { id_proveedor: null }
+      }),
+      // 7. Setear a null id_proveedor en pedidos de proveedores
+      prisma.pedidos_proveedores.updateMany({
+        where: { id_proveedor: proveedorId },
+        data: { id_proveedor: null }
+      }),
+      // 8. Finalmente, eliminar el proveedor
+      prisma.proveedores.delete({
+        where: { id_proveedor: proveedorId }
+      })
+    ]);
     return res.json({ message: 'Proveedor eliminado correctamente' });
   } catch (error) {
     console.error('Error al eliminar proveedor:', error);
-    return res.status(500).json({ error: 'Error al eliminar proveedor' });
+    return res.status(500).json({ error: 'Error al eliminar proveedor: ' + error.message });
   }
 };
 

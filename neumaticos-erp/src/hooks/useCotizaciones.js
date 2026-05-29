@@ -4,6 +4,20 @@ import { useCallback, useEffect, useState } from 'react';
 
 const API = '/api/cotizaciones';
 
+const normalizarCategoria = (valor) =>
+  String(valor ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase();
+
+const categoriasCompatibles = (categoriaProveedor, categoriaPedido) => {
+  const proveedor = normalizarCategoria(categoriaProveedor);
+  const pedido = normalizarCategoria(categoriaPedido);
+  if (!proveedor || !pedido) return false;
+  return proveedor === pedido || proveedor.includes(pedido) || pedido.includes(proveedor);
+};
+
 function getHeaders() {
   return {
     'Content-Type': 'application/json',
@@ -90,9 +104,7 @@ export function useCotizaciones() {
       } else {
         provsFiltrados = proveedores.filter((p) =>
           (p.categorias ?? []).some((c) =>
-            categoriasNecesarias.some(
-              (cn) => cn.toLowerCase().trim() === c.toLowerCase().trim(),
-            ),
+            categoriasNecesarias.some((cn) => categoriasCompatibles(c, cn)),
           ),
         );
       }
@@ -101,9 +113,12 @@ export function useCotizaciones() {
         return { ok: false, error: 'No hay proveedores con las categorías de los productos pedidos.' };
       }
 
-      const advertencia = provsFiltrados.length < 3
-        ? `Solo se encontraron ${provsFiltrados.length} proveedor(es) con las categorías requeridas (objetivo: al menos 3).`
-        : null;
+      if (provsFiltrados.length < 3) {
+        return {
+          ok: false,
+          error: `Se requieren al menos 3 proveedores con categorías compatibles. Actualmente hay ${provsFiltrados.length}.`,
+        };
+      }
 
       const res = await fetch(`${API}/generar`, {
         method: 'POST',
@@ -123,7 +138,7 @@ export function useCotizaciones() {
 
       return {
         ok: true,
-        advertencia,
+        advertencia: null,
         pedidoCot: {
           id: pedido.idDB ?? pedido.id,
           numero: pedido.numero,

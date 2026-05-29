@@ -5,6 +5,34 @@ import {
 } from '../../utils/tesoreriaIntegracion.utils.js';
 
 const redondear = (n) => Math.round(Number(n) * 100) / 100;
+const MEDIO_NOTA_CREDITO = 'Nota de crédito';
+
+const esNotaCredito = (medio) =>
+  String(medio ?? '').trim().toLowerCase() === MEDIO_NOTA_CREDITO.toLowerCase();
+
+async function calcularCreditoDisponibleProveedor(tx, proveedorId) {
+  const notas = await tx.nota_credito.findMany({
+    where: {
+      pedido_devolucion: {
+        is: {
+          factura_compra: { is: { id_proveedor: Number(proveedorId) } },
+        },
+      },
+    },
+  });
+
+  const totalNotas = notas.reduce((acc, nc) => acc + Number(nc.monto_subtotal ?? 0), 0);
+
+  const pagosConNota = await tx.orden_pago_forma_pago.findMany({
+    where: {
+      forma_pago: { metodo_pago: MEDIO_NOTA_CREDITO },
+      orden_pago_proveedores: { is: { id_proveedor: Number(proveedorId) } },
+    },
+  });
+
+  const totalUsado = pagosConNota.reduce((acc, pago) => acc + Number(pago.monto ?? 0), 0);
+  return redondear(totalNotas - totalUsado);
+}
 
 // GET /api/pagos-proveedores
 export const getPagos = async (req, res) => {
@@ -52,11 +80,17 @@ export const getFormasPago = async (req, res) => {
     const formas = await prisma.forma_pago.findMany({
       orderBy: { metodo_pago: 'asc' }
     });
-    return res.json(formas.map((f) => ({
+    const data = formas.map((f) => ({
       id: f.id_forma_pago,
       nombre: f.metodo_pago,
       tipo: f.tipo_metodo,
-    })));
+    }));
+
+    if (!data.some((f) => esNotaCredito(f.nombre))) {
+      data.push({ id: null, nombre: MEDIO_NOTA_CREDITO, tipo: 'nota_credito' });
+    }
+
+    return res.json(data);
   } catch (error) {
     console.error('Error al obtener formas de pago:', error);
     return res.status(500).json({ error: 'Error al obtener formas de pago' });
@@ -153,6 +187,21 @@ export const registrarPago = async (req, res) => {
         );
       }
 
+      const totalNotaCredito = redondear(
+        mediosValidos
+          .filter((m) => esNotaCredito(m.medio))
+          .reduce((acc, m) => acc + m.monto, 0),
+      );
+
+      if (totalNotaCredito > 0) {
+        const creditoDisponible = await calcularCreditoDisponibleProveedor(tx, proveedorId);
+        if (totalNotaCredito > creditoDisponible + 0.009) {
+          throw new Error(
+            `El monto aplicado con nota de crédito (Gs. ${totalNotaCredito.toLocaleString('de-DE')}) supera el crédito disponible del proveedor (Gs. ${creditoDisponible.toLocaleString('de-DE')})`,
+          );
+        }
+      }
+
       const ordenPago = await tx.orden_pago_proveedores.create({
         data: {
           id_proveedor: Number(proveedorId),
@@ -166,7 +215,7 @@ export const registrarPago = async (req, res) => {
         });
         if (!formaPago) {
           formaPago = await tx.forma_pago.create({
-            data: { metodo_pago: medio.medio, tipo_metodo: 'efectivo' },
+            data: { metodo_pago: medio.medio, tipo_metodo: esNotaCredito(medio.medio) ? 'nota_credito' : 'efectivo' },
           });
         }
 
@@ -235,14 +284,9 @@ export const registrarPago = async (req, res) => {
         });
       }
 
-      // Generar asiento contable
-      try {
-        const esParcial = montosPorFactura.some((f) => f.monto < f.saldoOriginal);
-        const { ejecutarAsientoPagoProveedor } = await import('./asientos.controller.js');
-        await ejecutarAsientoPagoProveedor(tx, { ...ordenPago, total: totalMedios }, esParcial);
-      } catch (errorAsiento) {
-        console.error('⚠️ El asiento de pago falló, pero se guarda el pago sin interrumpir:', errorAsiento);
-      }
+      const esParcial = montosPorFactura.some((f) => f.monto < f.saldoOriginal);
+      const { ejecutarAsientoPagoProveedor } = await import('../Contabilidad/asientos.controller.js');
+      await ejecutarAsientoPagoProveedor(tx, { ...ordenPago, total: totalMedios }, esParcial);
 
       return { ordenPago, montosPorFactura, totalMedios };
     });

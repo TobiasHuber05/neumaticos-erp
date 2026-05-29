@@ -12,7 +12,6 @@ const OrdenPagoProveedoresForm = ({
   const [seleccion, setSeleccion] = useState({});
   const [mediosFactura, setMediosFactura] = useState({});
   const [fecha, setFecha] = useState(() => new Date().toISOString().slice(0, 10));
-  const [medios, setMedios] = useState([{ medio: mediosOpciones[0] ?? 'Efectivo', monto: '' }]);
   const [error, setError] = useState('');
 
   const saldoDe = (f) => Number(f.saldoPendiente ?? f.total ?? 0);
@@ -65,16 +64,6 @@ const OrdenPagoProveedoresForm = ({
     }));
   };
 
-  // ── Medios globales ───────────────────────────────────────────
-  const addMedio = () =>
-    setMedios((m) => [...m, { medio: mediosOpciones[0] ?? 'Efectivo', monto: '' }]);
-
-  const updateMedio = (idx, field, val) =>
-    setMedios((m) => m.map((row, i) => (i === idx ? { ...row, [field]: val } : row)));
-
-  const removeMedio = (idx) =>
-    setMedios((m) => (m.length <= 1 ? m : m.filter((_, i) => i !== idx)));
-
   // ── Derived ───────────────────────────────────────────────────
   const facturasSeleccionadas = useMemo(
     () => facturasPendientes.filter((f) => seleccion[f.id]),
@@ -88,10 +77,7 @@ const OrdenPagoProveedoresForm = ({
     }, 0);
   }, [facturasSeleccionadas, mediosFactura]);
 
-  const totalMedios = useMemo(
-    () => medios.reduce((acc, m) => acc + (Number(m.monto) || 0), 0),
-    [medios],
-  );
+  const totalMedios = totalAplicarFacturas;
 
   // ── Guardar ───────────────────────────────────────────────────
   const handleGuardar = () => {
@@ -291,51 +277,6 @@ const OrdenPagoProveedoresForm = ({
           </ul>
         </div>
 
-        {/* Medios globales */}
-        <div>
-          <div className="flex justify-between items-center mb-2">
-            <p className="text-xs font-bold text-gray-600">Medios de pago</p>
-            <button type="button" onClick={addMedio} className="text-xs font-bold text-erp-orange hover:underline">
-              + Medio
-            </button>
-          </div>
-          {medios.map((row, idx) => (
-            <div key={idx} className="flex gap-2 mb-2">
-              <select
-                value={row.medio}
-                onChange={(e) => updateMedio(idx, 'medio', e.target.value)}
-                className="flex-1 p-2 border rounded text-sm"
-              >
-                {mediosOpciones.map((m) => (
-                  <option key={m} value={m}>{m}</option>
-                ))}
-              </select>
-              <input
-                type="number"
-                min={0}
-                placeholder="Monto"
-                value={row.monto}
-                onChange={(e) => updateMedio(idx, 'monto', e.target.value)}
-                className="w-28 p-2 border rounded text-sm text-right"
-              />
-              <button type="button" onClick={() => removeMedio(idx)} className="text-red-500 text-xs px-2">
-                ✕
-              </button>
-            </div>
-          ))}
-          {totalAplicarFacturas > 0 && (
-            <button
-              type="button"
-              className="text-[10px] font-bold text-erp-orange hover:underline mt-1"
-              onClick={() =>
-                setMedios([{ medio: mediosOpciones[0] ?? 'Efectivo', monto: String(totalAplicarFacturas) }])
-              }
-            >
-              Usar un solo medio por Gs. {totalAplicarFacturas.toLocaleString('de-DE')}
-            </button>
-          )}
-        </div>
-
         {/* Totales */}
         <div className="text-sm text-gray-700 space-y-1 bg-gray-50 rounded-lg p-3">
           <p>
@@ -344,14 +285,7 @@ const OrdenPagoProveedoresForm = ({
           </p>
           <p>
             Total medios de pago:{' '}
-            <span
-              className={`font-black ${Math.abs(totalMedios - totalAplicarFacturas) > 0.009 && totalAplicarFacturas > 0
-                ? 'text-red-600'
-                : ''
-                }`}
-            >
-              Gs. {totalMedios.toLocaleString('de-DE')}
-            </span>
+            <span className="font-black">Gs. {totalMedios.toLocaleString('de-DE')}</span>
           </p>
         </div>
       </div>

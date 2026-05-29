@@ -17,9 +17,6 @@ export const login = async (req, res) => {
   const { password } = req.body;
   const identifier = req.body.identifier?.trim();
 
-  console.log("--- INTENTO DE LOGIN ---");
-  console.log("Identificador ingresado:", identifier);
-
   if (!identifier || !password) {
     return res.status(400).json({ error: 'Usuario/Email y contraseña son requeridos' });
   }
@@ -36,30 +33,23 @@ export const login = async (req, res) => {
     });
 
     if (!usuario) {
-      console.log("❌ Resultado: El usuario/email no existe en la base de datos.");
       return res.status(401).json({ error: 'Credenciales incorrectas' });
     }
-
-    console.log("✅ Usuario encontrado en DB:", usuario.username || usuario.email);
 
     // Ajuste a 'passwordd' (con doble d) según el cambio de tu compañero
     const hashAlmacenado = usuario.passwordd || usuario.password;
 
     if (!hashAlmacenado) {
-      console.log("❌ Error: No se encontró hash de contraseña para este usuario.");
       return res.status(500).json({ error: 'Error en la estructura de datos del usuario' });
     }
 
     const passwordValido = await bcrypt.compare(password, hashAlmacenado);
-    console.log("¿La contraseña coincide?:", passwordValido);
 
     if (!passwordValido) {
-      console.log("❌ Resultado: Contraseña incorrecta.");
       return res.status(401).json({ error: 'Credenciales incorrectas' });
     }
 
     // Generar Token
-    console.log("🚀 Login exitoso, generando token...");
     const token = jwt.sign(
       {
         id_usuario: usuario.id_usuario,
@@ -84,7 +74,7 @@ export const login = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Error crítico en el servidor:', error);
+    console.error('Error en login:', error);
     return res.status(500).json({ error: 'Error interno del servidor' });
   }
 };
@@ -149,7 +139,8 @@ export const perfil = async (req, res) => {
         id_usuario: true,
         username: true,
         email: true,
-        rol_empresa: true
+        rol_empresa: true,
+        permisos: true,
       }
     });
 
@@ -157,7 +148,15 @@ export const perfil = async (req, res) => {
       return res.status(404).json({ error: 'Usuario no encontrado' });
     }
 
-    return res.json({ usuario });
+    return res.json({
+      usuario: {
+        id_usuario: usuario.id_usuario,
+        username: usuario.username || '',
+        email: usuario.email,
+        rol: usuario.rol_empresa,
+        permisos: usuario.permisos || {},
+      },
+    });
 
   } catch (error) {
     console.error('❌ Error en perfil:', error);

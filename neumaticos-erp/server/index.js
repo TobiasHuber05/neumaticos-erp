@@ -86,9 +86,10 @@ const initializeAdmin = async () => {
     });
 
     if (!adminExists) {
-      console.log('⚠️ No se encontró administrador. Creando admin por defecto...');
+      const defaultPassword = process.env.DEFAULT_ADMIN_PASSWORD || '123456';
+      console.log('No se encontró administrador. Creando usuario admin inicial.');
       const salt = await bcrypt.genSalt(10);
-      const passwordHash = await bcrypt.hash('123456', salt);
+      const passwordHash = await bcrypt.hash(defaultPassword, salt);
 
       await prisma.usuarios.create({
         data: {
@@ -98,12 +99,12 @@ const initializeAdmin = async () => {
           rol_empresa: 'admin'
         }
       });
-      console.log('✅ Admin creado exitosamente: admin / 123456');
+      console.log('Admin inicial creado. Cambiá la contraseña después del primer ingreso.');
     } else {
-      console.log('✅ Administrador ya existe en la base de datos.');
+      console.log('Administrador ya existe en la base de datos.');
     }
   } catch (error) {
-    console.error('❌ Error al inicializar admin:', error);
+    console.error('Error al inicializar admin:', error);
   }
 };
 

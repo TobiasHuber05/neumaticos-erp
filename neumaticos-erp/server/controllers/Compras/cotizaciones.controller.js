@@ -1,5 +1,21 @@
 import { prisma } from '../../lib/prisma.js';
 
+const MIN_PROVEEDORES_COTIZACION = 3;
+
+const normalizarCategoria = (valor) =>
+  String(valor ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase();
+
+const categoriasCompatibles = (categoriaProveedor, categoriaPedido) => {
+  const proveedor = normalizarCategoria(categoriaProveedor);
+  const pedido = normalizarCategoria(categoriaPedido);
+  if (!proveedor || !pedido) return false;
+  return proveedor === pedido || proveedor.includes(pedido) || pedido.includes(proveedor);
+};
+
 const mapCotizacion = (c) => {
   const tienePrecios = c.detalle_cotizacion?.some((d) => d.precio != null && Number(d.precio) > 0);
   let estado = 'Pendiente';
@@ -76,17 +92,76 @@ export const getCotizacionesPorPedido = async (req, res) => {
 export const generarCotizaciones = async (req, res) => {
   const { idPedidoProducto, proveedorIds } = req.body;
 
-  if (!idPedidoProducto || !proveedorIds?.length) {
-    return res.status(400).json({ error: 'Se requiere idPedidoProducto y al menos un proveedor' });
+  const proveedoresSeleccionados = [...new Set((proveedorIds ?? []).map(Number).filter(Boolean))];
+
+  if (!idPedidoProducto || !proveedoresSeleccionados.length) {
+    return res.status(400).json({ error: 'Se requiere idPedidoProducto y al menos tres proveedores' });
+  }
+
+  if (proveedoresSeleccionados.length < MIN_PROVEEDORES_COTIZACION) {
+    return res.status(400).json({
+      error: `El pedido de cotización debe enviarse a al menos ${MIN_PROVEEDORES_COTIZACION} proveedores.`,
+    });
   }
 
   try {
     const pedido = await prisma.pedidos_productos.findUnique({
       where: { id_pedido_producto: Number(idPedidoProducto) },
-      include: { detalles_pedidos: { include: { producto: true } } },
+      include: {
+        detalles_pedidos: {
+          include: {
+            producto: { include: { categoria: true } },
+          },
+        },
+      },
     });
 
     if (!pedido) return res.status(404).json({ error: 'Pedido no encontrado' });
+
+    const categoriasPedido = pedido.detalles_pedidos
+      .map((det) => ({
+        id: det.producto?.id_categoria,
+        nombre: det.producto?.categoria?.nombre,
+      }))
+      .filter((cat) => cat.id || cat.nombre);
+
+    if (!categoriasPedido.length) {
+      return res.status(400).json({
+        error: 'Los productos del pedido deben tener categoría para generar cotizaciones.',
+      });
+    }
+
+    const proveedores = await prisma.proveedores.findMany({
+      where: { id_proveedor: { in: proveedoresSeleccionados } },
+      include: {
+        proveedor_categorias: {
+          include: { categorias_proveedores: true },
+        },
+      },
+    });
+
+    if (proveedores.length !== proveedoresSeleccionados.length) {
+      return res.status(400).json({ error: 'Uno o más proveedores seleccionados no existen.' });
+    }
+
+    const proveedoresSinCategoria = proveedores.filter((proveedor) => {
+      const categoriasProveedor = proveedor.proveedor_categorias ?? [];
+      return !categoriasProveedor.some((pc) =>
+        categoriasPedido.some((cat) => {
+          const mismoNombre = categoriasCompatibles(pc.categorias_proveedores?.tipo, cat.nombre);
+          const mismaDescripcion = categoriasCompatibles(pc.categorias_proveedores?.descripcion, cat.nombre);
+          return mismoNombre || mismaDescripcion;
+        }),
+      );
+    });
+
+    if (proveedoresSinCategoria.length) {
+      return res.status(400).json({
+        error: `Proveedor(es) sin categoría compatible: ${proveedoresSinCategoria
+          .map((p) => p.nombre)
+          .join(', ')}`,
+      });
+    }
 
     const existentes = await prisma.cotizacion.findMany({
       where: { id_pedido_producto: Number(idPedidoProducto) },
@@ -97,7 +172,7 @@ export const generarCotizaciones = async (req, res) => {
 
     const hoy = new Date();
     const preciosHistoricos = await Promise.all(
-      proveedorIds.map(async (provId) => {
+      proveedoresSeleccionados.map(async (provId) => {
         const precios = {};
         await Promise.all(
           pedido.detalles_pedidos.map(async (det) => {
@@ -118,7 +193,7 @@ export const generarCotizaciones = async (req, res) => {
     );
 
     const cotizaciones = await prisma.$transaction(
-      proveedorIds.map((provId) => {
+      proveedoresSeleccionados.map((provId) => {
         const historico = preciosHistoricos.find((p) => p.provId === provId)?.precios ?? {};
         return prisma.cotizacion.create({
           data: {

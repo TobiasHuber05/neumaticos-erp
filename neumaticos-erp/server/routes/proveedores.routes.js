@@ -7,18 +7,18 @@ import {
   deleteProveedor,
   getCategorias
 } from '../controllers/Compras/proveedores.controller.js';
-import { verifyToken } from '../middlewares/auth.middleware.js';
+import { requireModulo, verifyToken } from '../middlewares/auth.middleware.js';
 
 const router = express.Router();
 
 // Todas las rutas requieren token
 router.use(verifyToken);
 
-router.get('/categorias', getCategorias);   // GET /api/proveedores/categorias
-router.get('/', getProveedores);            // GET /api/proveedores
-router.get('/:id', getProveedorById);       // GET /api/proveedores/:id
-router.post('/', createProveedor);          // POST /api/proveedores
-router.put('/:id', updateProveedor);        // PUT /api/proveedores/:id
-router.delete('/:id', deleteProveedor);     // DELETE /api/proveedores/:id
+router.get('/categorias', requireModulo('compras', 'ver'), getCategorias);
+router.get('/', requireModulo('compras', 'ver'), getProveedores);
+router.get('/:id', requireModulo('compras', 'ver'), getProveedorById);
+router.post('/', requireModulo('compras', 'editar'), createProveedor);
+router.put('/:id', requireModulo('compras', 'editar'), updateProveedor);
+router.delete('/:id', requireModulo('compras', 'editar'), deleteProveedor);
 
 export default router;

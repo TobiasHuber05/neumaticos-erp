@@ -9,7 +9,6 @@ import { puedeEditar } from '../../utils/permisos';
 
 const API = 'http://localhost:3000/api';
 
-<<<<<<< Updated upstream
 const api = axios.create({
   baseURL: API,
 });
@@ -20,9 +19,6 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-const Funcionarios = ({ personal }) => {
-  const { funcionarios, actions } = personal;
-=======
 const token = localStorage.getItem('token');
 if (token) axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
@@ -618,18 +614,11 @@ const ModalEditarFuncionario = ({ funcionario, cargos, onClose, actions }) => {
 // ══════════════════════════════════════════════════════════════
 const Funcionarios = ({ personal }) => {
   const { funcionarios, actions } = personal;
-
->>>>>>> Stashed changes
   const [filtro, setFiltro] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [errorForm, setErrorForm] = useState('');
   const [cargos, setCargos] = useState([]);
-<<<<<<< Updated upstream
-
-  const [modalFamiliar, setModalFamiliar] = useState(null); // guarda el funcionario seleccionado
-  const [modalListaFam, setModalListaFam] = useState(null)
-=======
   const [showModalCargo, setShowModalCargo] = useState(false);
 
   // Modales
@@ -638,7 +627,6 @@ const Funcionarios = ({ personal }) => {
   const [modalEditar, setModalEditar] = useState(null); // editar funcionario
   const [modalFamiliar, setModalFamiliar] = useState(null); // funcionario
   const [modalListaFam, setModalListaFam] = useState(null); // funcionario
->>>>>>> Stashed changes
   const [nuevoFam, setNuevoFam] = useState({ parentesco: '', fecha_nacimiento: '', nombre: '', cedula: '' });
   const [guardandoFam, setGuardandoFam] = useState(false);
 
@@ -648,14 +636,8 @@ const Funcionarios = ({ personal }) => {
     id_cargo: '', fecha_ingreso: '',
   });
 
-<<<<<<< Updated upstream
-  // ── Cargar cargos desde la API ──────────────────────────────
-  useEffect(() => {
-    api.get(`/cargos`)
-=======
   const cargarCargos = () => {
-    axios.get(`${API}/cargos`)
->>>>>>> Stashed changes
+    api.get(`/cargos`)
       .then(res => setCargos(res.data))
       .catch(() => setCargos([]));
   };
@@ -687,10 +669,7 @@ const Funcionarios = ({ personal }) => {
         fecha_nacimiento: form.fecha_nacimiento || null,
         id_cargo: Number(form.id_cargo),
         fecha_ingreso: form.fecha_ingreso || null,
-<<<<<<< Updated upstream
         // El salario base viene del cargo, no del form
-=======
->>>>>>> Stashed changes
         salario_base: cargoSeleccionado?.sueldo_base
           ? Number(cargoSeleccionado.sueldo_base)
           : null,
@@ -710,21 +689,14 @@ const Funcionarios = ({ personal }) => {
       alert('El nombre y parentesco son obligatorios');
       return;
     }
-<<<<<<< Updated upstream
 
-=======
->>>>>>> Stashed changes
     setGuardandoFam(true);
     try {
       await axios.post(`${API}/funcionarios/${modalFamiliar.id}/familiares`, {
         parentesco: nuevoFam.parentesco,
         fecha_nacimiento: nuevoFam.fecha_nacimiento || null,
         nombre: nuevoFam.nombre,
-<<<<<<< Updated upstream
-        cedula: nuevoFam.cedula || null
-=======
         cedula: nuevoFam.cedula || null,
->>>>>>> Stashed changes
       });
       await actions.recargar();
       setNuevoFam({ parentesco: '', fecha_nacimiento: '', nombre: '', cedula: '' });
@@ -825,11 +797,7 @@ const Funcionarios = ({ personal }) => {
                       <Users2 size={14} />
                       Familiares ({f.nucleoFamiliar?.length || 0})
                     </button>
-<<<<<<< Updated upstream
 
-
-=======
->>>>>>> Stashed changes
                     {puedeEditar('personal') && (
                       <button onClick={() => setModalFamiliar(f)}
                         className="p-1.5 bg-orange-50 text-erp-orange rounded-lg font-bold hover:bg-orange-100 transition-colors"
@@ -1044,24 +1012,14 @@ const Funcionarios = ({ personal }) => {
       {modalListaFam && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden border border-gray-100">
-<<<<<<< Updated upstream
 
-=======
->>>>>>> Stashed changes
             <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
               <div>
                 <h2 className="text-xl font-black text-gray-800 uppercase tracking-tighter">Núcleo Familiar</h2>
                 <p className="text-sm text-gray-500 font-medium">{modalListaFam.nombre}</p>
               </div>
-<<<<<<< Updated upstream
-              <button
-                onClick={() => setModalListaFam(null)}
-                className="p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 rounded-full transition-colors"
-              >
-=======
               <button onClick={() => setModalListaFam(null)}
                 className="p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 rounded-full transition-colors">
->>>>>>> Stashed changes
                 <X size={20} />
               </button>
             </div>
