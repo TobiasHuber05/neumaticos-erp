@@ -12,15 +12,17 @@ const Cotizaciones = ({
   pedidosCotizacion = [],
   cotizacionesProveedor = [],
   generarPedidoCotizacion,
+  confirmarCotizacionPocos,
   actualizarCotizacionProveedor,
   adjudicarYGenerarOrdenes,
 }) => {
   const [mensaje, setMensaje] = useState(null);
   const [cotEdit, setCotEdit] = useState(null);
-  const [loadingGenerar, setLoadingGenerar] = useState(null); // id del pedido en proceso
+  const [loadingGenerar, setLoadingGenerar] = useState(null);
   const [loadingAdjudicar, setLoadingAdjudicar] = useState(null);
   const [pedidoDetalle, setPedidoDetalle] = useState(null);
   const [expandedPcs, setExpandedPcs] = useState([]);
+  const [confirmPocos, setConfirmPocos] = useState(null); // { pedido, proveedoresDisponibles }
 
   const nombreProv = (id) => proveedores.find((p) => p.id === id)?.nombre ?? `Proveedor ${id}`;
 
@@ -47,6 +49,11 @@ const Cotizaciones = ({
     const res = await generarPedidoCotizacion(pedido);
     setLoadingGenerar(null);
     if (!res.ok) {
+      if (res.pocoProveedores) {
+        // Menos de 3 proveedores: mostrar modal de confirmación
+        setConfirmPocos({ pedido, proveedoresDisponibles: res.proveedoresDisponibles });
+        return;
+      }
       setMensaje({ tipo: 'err', text: res.error });
     } else {
       setMensaje({
@@ -54,6 +61,22 @@ const Cotizaciones = ({
         text:
           res.advertencia ||
           `Pedido de cotización generado y enviado a ${res.pedidoCot.proveedorIds.length} proveedor(es).`,
+      });
+    }
+  };
+
+  const onConfirmarConPocos = async () => {
+    if (!confirmPocos) return;
+    setLoadingGenerar(confirmPocos.pedido.id);
+    const res = await confirmarCotizacionPocos(confirmPocos.pedido, confirmPocos.proveedoresDisponibles);
+    setLoadingGenerar(null);
+    setConfirmPocos(null);
+    if (!res.ok) {
+      setMensaje({ tipo: 'err', text: res.error });
+    } else {
+      setMensaje({
+        tipo: 'warn',
+        text: `Pedido de cotización generado con solo ${res.pedidoCot.proveedorIds.length} proveedor(es) disponible(s).`,
       });
     }
   };
@@ -377,6 +400,49 @@ const Cotizaciones = ({
                   </table>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Modal confirmar con pocos proveedores */}
+      {confirmPocos && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-xl shadow-2xl border border-amber-200 max-w-md w-full overflow-hidden animate-in zoom-in duration-200">
+            <div className="bg-amber-500 p-4 flex items-center gap-3">
+              <AlertTriangle className="text-white" size={22} />
+              <h3 className="text-white font-bold text-sm">Pocos proveedores disponibles</h3>
+            </div>
+            <div className="p-5">
+              <p className="text-sm text-gray-700 mb-2">
+                Solo se encontraron <span className="font-black text-amber-700">{confirmPocos.proveedoresDisponibles.length}</span> proveedor(es) con categorías compatibles
+                (el reglamento recomienda al menos 3).
+              </p>
+              <p className="text-xs text-gray-500 mb-4">
+                Proveedores disponibles:{' '}
+                <span className="font-semibold">
+                  {confirmPocos.proveedoresDisponibles.map((p) => p.nombre).join(', ')}
+                </span>
+              </p>
+              <p className="text-sm font-medium text-gray-800">
+                ¿Desea enviar el pedido de cotización igualmente a los {confirmPocos.proveedoresDisponibles.length} proveedor(es) disponibles?
+              </p>
+            </div>
+            <div className="p-4 border-t bg-gray-50 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirmPocos(null)}
+                className="px-4 py-2 rounded-lg text-gray-600 font-semibold hover:bg-gray-200 text-sm"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={onConfirmarConPocos}
+                disabled={loadingGenerar === confirmPocos.pedido.id}
+                className="px-4 py-2 rounded-lg bg-amber-500 text-white font-bold text-sm hover:bg-amber-600 transition-colors disabled:opacity-50"
+              >
+                {loadingGenerar === confirmPocos.pedido.id ? 'Enviando...' : 'Sí, enviar igual'}
+              </button>
             </div>
           </div>
         </div>

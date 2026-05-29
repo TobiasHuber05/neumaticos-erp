@@ -116,10 +116,20 @@ export function useCotizaciones() {
       if (provsFiltrados.length < 3) {
         return {
           ok: false,
-          error: `Se requieren al menos 3 proveedores con categorías compatibles. Actualmente hay ${provsFiltrados.length}.`,
+          pocoProveedores: true,
+          proveedoresDisponibles: provsFiltrados,
+          pedido,
         };
       }
 
+      return await _enviarCotizacion(pedido, provsFiltrados);
+    } catch {
+      return { ok: false, error: 'Error al generar cotización' };
+    }
+  }, [fetchCotizaciones]);
+
+  const _enviarCotizacion = useCallback(async (pedido, provsFiltrados) => {
+    try {
       const res = await fetch(`${API}/generar`, {
         method: 'POST',
         headers: getHeaders(),
@@ -149,6 +159,10 @@ export function useCotizaciones() {
       return { ok: false, error: 'Error al generar cotización' };
     }
   }, [fetchCotizaciones]);
+
+  const confirmarCotizacionConPocos = useCallback(async (pedido, provsFiltrados) => {
+    return await _enviarCotizacion(pedido, provsFiltrados);
+  }, [_enviarCotizacion]);
 
   const actualizarCotizacionProveedor = useCallback(async (cotizacionId, lineas, fechaRespuesta) => {
     try {
@@ -206,6 +220,7 @@ export function useCotizaciones() {
     loading,
     error,
     generarCotizacion,
+    confirmarCotizacionConPocos,
     actualizarCotizacionProveedor,
     adjudicarYGenerarOrdenes,
     refetch: fetchCotizaciones,

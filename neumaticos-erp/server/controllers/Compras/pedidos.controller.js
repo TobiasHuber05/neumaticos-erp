@@ -90,3 +90,71 @@ export const createPedido = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+// 3. Actualizar ítems de un pedido (solo si está Pendiente Cotización)
+export const updatePedido = async (req, res) => {
+  const { id } = req.params;
+  const { items } = req.body;
+
+  if (!items || items.length === 0) {
+    return res.status(400).json({ error: 'El pedido debe tener al menos un ítem.' });
+  }
+
+  try {
+    // Verificar que el pedido existe y no tiene cotizaciones
+    const pedido = await prisma.pedidos_productos.findUnique({
+      where: { id_pedido_producto: Number(id) },
+      include: { cotizacion: true },
+    });
+
+    if (!pedido) return res.status(404).json({ error: 'Pedido no encontrado.' });
+    if (pedido.cotizacion.length > 0) {
+      return res.status(409).json({ error: 'No se puede editar un pedido que ya tiene cotizaciones generadas.' });
+    }
+
+    await prisma.$transaction(async (tx) => {
+      // Eliminar detalles anteriores
+      await tx.detalles_pedidos.deleteMany({ where: { id_pedido_producto: Number(id) } });
+      // Crear los nuevos
+      await tx.detalles_pedidos.createMany({
+        data: items.map(item => ({
+          id_pedido_producto: Number(id),
+          id_producto: Number(item.productoId),
+          cantidad: Number(item.cantidad),
+        })),
+      });
+    });
+
+    res.json({ ok: true });
+  } catch (error) {
+    console.error('❌ Error al actualizar pedido:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// 4. Eliminar un pedido (solo si está Pendiente Cotización)
+export const deletePedido = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const pedido = await prisma.pedidos_productos.findUnique({
+      where: { id_pedido_producto: Number(id) },
+      include: { cotizacion: true },
+    });
+
+    if (!pedido) return res.status(404).json({ error: 'Pedido no encontrado.' });
+    if (pedido.cotizacion.length > 0) {
+      return res.status(409).json({ error: 'No se puede eliminar un pedido que ya tiene cotizaciones.' });
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.detalles_pedidos.deleteMany({ where: { id_pedido_producto: Number(id) } });
+      await tx.pedidos_productos.delete({ where: { id_pedido_producto: Number(id) } });
+    });
+
+    res.json({ ok: true });
+  } catch (error) {
+    console.error('❌ Error al eliminar pedido:', error);
+    res.status(500).json({ error: error.message });
+  }
+};

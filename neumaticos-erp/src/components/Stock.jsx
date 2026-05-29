@@ -10,15 +10,44 @@ const Stock = ({ proveedoresMaestro = [] }) => {
   const [confirmEliminar, setConfirmEliminar] = useState(null);
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [confirmPedido, setConfirmPedido] = useState(null); // datos del producto recién creado con stock 0
 
   // ── Crear ────────────────────────────────────────────────────
   const guardarProducto = async (datos) => {
-    const res = await crearProducto(datos);
-    if (res.ok) {
-      setMostrarFormulario(false);
+    const stockNum = datos.stock ? Number(String(datos.stock).replace(/\./g, '')) : 0;
+    // Si stock es 0 (o menor al mínimo), preguntar antes de generar pedido
+    if (stockNum === 0) {
+      // Crear primero sin pedido de reposición
+      const res = await crearProducto({ ...datos, skipReposicion: true });
+      if (res.ok) {
+        setMostrarFormulario(false);
+        setConfirmPedido({ nombre: datos.nombre });
+      } else {
+        alert('Error al guardar: ' + res.error);
+      }
     } else {
-      alert('Error al guardar: ' + res.error);
+      const res = await crearProducto(datos);
+      if (res.ok) {
+        setMostrarFormulario(false);
+      } else {
+        alert('Error al guardar: ' + res.error);
+      }
     }
+  };
+
+  const confirmarPedidoReposicion = async () => {
+    if (!confirmPedido) return;
+    // El pedido no se generó aún (skipReposicion=true), lo generamos ahora
+    // Disparamos un refetch para obtener el producto y luego llamar al endpoint de reposición
+    // Por simplicidad: llamamos al backend con un flag especial
+    try {
+      await fetch('/api/productos/reposicion', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
+        body: JSON.stringify({ nombre: confirmPedido.nombre }),
+      });
+    } catch { /* silencioso */ }
+    setConfirmPedido(null);
   };
 
   // ── Editar ───────────────────────────────────────────────────
@@ -224,6 +253,37 @@ const Stock = ({ proveedoresMaestro = [] }) => {
                 className="px-4 py-2 rounded-lg bg-red-500 text-white text-sm font-bold"
               >
                 Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal confirmar pedido de reposición */}
+      {confirmPedido && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm">
+            <h3 className="text-lg font-bold text-gray-800 mb-2">¿Generar pedido de reposición?</h3>
+            <p className="text-sm text-gray-500 mb-2">
+              El producto <span className="font-semibold">{confirmPedido.nombre}</span> fue creado con stock 0.
+            </p>
+            <p className="text-sm text-gray-500 mb-6">
+              ¿Desea generar automáticamente un pedido de compra de reposición?
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                type="button"
+                onClick={() => setConfirmPedido(null)}
+                className="px-4 py-2 rounded-lg border border-gray-300 text-gray-600 text-sm font-medium"
+              >
+                No, gracias
+              </button>
+              <button
+                type="button"
+                onClick={confirmarPedidoReposicion}
+                className="px-4 py-2 rounded-lg bg-erp-orange text-white text-sm font-bold"
+              >
+                Sí, generar pedido
               </button>
             </div>
           </div>

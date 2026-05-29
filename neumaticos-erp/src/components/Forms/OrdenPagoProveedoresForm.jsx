@@ -35,6 +35,18 @@ const OrdenPagoProveedoresForm = ({
     }
   };
 
+  // ── Seleccionar todas ─────────────────────────────────────────
+  const selectAll = () => {
+    const nuevaSeleccion = {};
+    const nuevosMedios = {};
+    facturasPendientes.forEach((f) => {
+      nuevaSeleccion[f.id] = true;
+      nuevosMedios[f.id] = [{ medio: mediosOpciones[0] ?? 'Efectivo', monto: String(saldoDe(f)), id_cuenta: '' }];
+    });
+    setSeleccion(nuevaSeleccion);
+    setMediosFactura(nuevosMedios);
+  };
+
   // ── Medios por factura ────────────────────────────────────────
   const addMedioFactura = (facturaId) => {
     setMediosFactura((prev) => ({
@@ -164,7 +176,18 @@ const OrdenPagoProveedoresForm = ({
 
         {/* Facturas */}
         <div>
-          <p className="text-xs font-bold text-gray-600 mb-2">Facturas con saldo pendiente</p>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-bold text-gray-600">Facturas con saldo pendiente</p>
+            {facturasPendientes.length > 1 && (
+              <button
+                type="button"
+                onClick={selectAll}
+                className="text-[11px] font-bold text-erp-orange hover:underline bg-orange-50 border border-orange-200 px-2.5 py-1 rounded-lg transition-colors hover:bg-orange-100"
+              >
+                Seleccionar todo
+              </button>
+            )}
+          </div>
           <ul className="space-y-3">
             {facturasPendientes.map((f) => {
               const saldo = saldoDe(f);

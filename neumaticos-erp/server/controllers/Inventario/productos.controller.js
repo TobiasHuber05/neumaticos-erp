@@ -114,7 +114,7 @@ export const getProductoById = async (req, res) => {
 export const createProducto = async (req, res) => {
   // Aceptamos tanto esServicio como es_servicio
   const esServ = req.body.esServicio === true || req.body.es_servicio === true || req.body.es_servicio === 'true';
-  const { nombre, codigo, categoriaId, marcaId, precio, stock, stockMinimo, duracion_aprox, estado } = req.body;
+  const { nombre, codigo, categoriaId, marcaId, precio, stock, stockMinimo, duracion_aprox, estado, skipReposicion } = req.body;
 
   if (!nombre) return res.status(400).json({ error: 'El nombre es requerido' });
 
@@ -154,7 +154,9 @@ export const createProducto = async (req, res) => {
         });
       }
 
-      await crearPedidoReposicionSiCorresponde(tx, producto.id_producto);
+      if (!skipReposicion) {
+        await crearPedidoReposicionSiCorresponde(tx, producto.id_producto);
+      }
 
       // 3. Crear entrada en producto_servicio (necesario para presupuestos y facturas)
       const serviceRow = await tx.producto_servicio.create({
@@ -380,5 +382,29 @@ export const getMovimientosProducto = async (req, res) => {
   } catch (error) {
     console.error('❌ Error al obtener movimientos de stock:', error);
     return res.status(500).json({ error: 'Error al obtener movimientos de stock' });
+  }
+};
+
+// POST /api/productos/reposicion — genera pedido de reposición manual por nombre de producto
+export const crearReposicionManual = async (req, res) => {
+  const { nombre } = req.body;
+  if (!nombre) return res.status(400).json({ error: 'Se requiere el nombre del producto.' });
+
+  try {
+    const producto = await prisma.producto.findFirst({
+      where: { descripcion: nombre },
+      include: { stock: { where: { activo: true } } },
+    });
+
+    if (!producto) return res.status(404).json({ error: 'Producto no encontrado.' });
+
+    await prisma.$transaction(async (tx) => {
+      await crearPedidoReposicionSiCorresponde(tx, producto.id_producto);
+    });
+
+    return res.json({ ok: true });
+  } catch (error) {
+    console.error('❌ Error al crear reposición manual:', error);
+    return res.status(500).json({ error: 'Error al crear reposición manual' });
   }
 };

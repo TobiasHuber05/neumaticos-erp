@@ -80,6 +80,7 @@ function Dashboard() {
     cotizacionesProveedor,
     pedidosCotizacion,
     generarCotizacion,
+    confirmarCotizacionConPocos,
     actualizarCotizacionProveedor,
     adjudicarYGenerarOrdenes,
     refetch: refetchCotizaciones,
@@ -181,6 +182,41 @@ function Dashboard() {
     }
   };
 
+  const editarPedido = async (id, items) => {
+    try {
+      const res = await fetch(`${API_PEDIDOS}/pedidos/${id}`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify({ items }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error ?? 'Error al editar pedido');
+        return;
+      }
+      await fetchPedidos();
+    } catch {
+      alert('Error de conexión al editar el pedido');
+    }
+  };
+
+  const eliminarPedido = async (id) => {
+    try {
+      const res = await fetch(`${API_PEDIDOS}/pedidos/${id}`, {
+        method: 'DELETE',
+        headers: getHeaders(),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error ?? 'Error al eliminar pedido');
+        return;
+      }
+      await fetchPedidos();
+    } catch {
+      alert('Error de conexión al eliminar el pedido');
+    }
+  };
+
   const registrarFacturaConRefetch = async (ordenCompra, payload) => {
     const res = await registrarFacturaYStock(ordenCompra, payload);
     if (res.ok) await refetchProductos();
@@ -189,6 +225,12 @@ function Dashboard() {
 
   const generarPedidoCotizacion = async (pedido) => {
     const res = await generarCotizacion(pedido, proveedores);
+    if (res.ok) await fetchPedidos();
+    return res;
+  };
+
+  const confirmarCotizacionPocos = async (pedido, provsFiltrados) => {
+    const res = await confirmarCotizacionConPocos(pedido, provsFiltrados);
     if (res.ok) await fetchPedidos();
     return res;
   };
@@ -311,12 +353,13 @@ function Dashboard() {
 
       case 'cotizaciones':
         return (
-          <Cotizaciones
+        <Cotizaciones
             pedidos={pedidos}
             proveedores={proveedores}
             pedidosCotizacion={pedidosCotizacion}
             cotizacionesProveedor={cotizacionesProveedor}
             generarPedidoCotizacion={generarPedidoCotizacion}
+            confirmarCotizacionPocos={confirmarCotizacionPocos}
             actualizarCotizacionProveedor={actualizarCotizacionProveedor}
             adjudicarYGenerarOrdenes={adjudicarYGenerarOrdenesConRefetch}
           />
@@ -521,7 +564,13 @@ function Dashboard() {
                 <p className="text-3xl font-black text-erp-yellow mt-1">{alertasStock}</p>
               </div>
             </div>
-            <PedidosCompra onNuevoPedido={() => setMostrarFormulario(true)} pedidos={pedidos} />
+            <PedidosCompra
+              onNuevoPedido={() => setMostrarFormulario(true)}
+              pedidos={pedidos}
+              inventario={inventario}
+              onEditarPedido={editarPedido}
+              onEliminarPedido={eliminarPedido}
+            />
           </>
         );
 
