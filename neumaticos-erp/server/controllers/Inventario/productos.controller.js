@@ -8,6 +8,13 @@ import {
 export const getProductos = async (req, res) => {
   try {
     const productos = await prisma.producto.findMany({
+      where: {
+        stock: {
+          some: {
+            activo: true
+          }
+        }
+      },
       include: {
         categoria: true,
         marcas: true,
@@ -219,6 +226,7 @@ export const updateProducto = async (req, res) => {
             cantidad: cantidadNueva,
             stock_minimo: stockMinimo ? Number(stockMinimo) : stockAnterior.stock_minimo ?? 10,
             fecha_modificacion: new Date(),
+            activo: true,
           }
         });
 
@@ -307,27 +315,15 @@ export const updateProducto = async (req, res) => {
 // DELETE /api/productos/:id
 export const deleteProducto = async (req, res) => {
   const { id } = req.params;
-  console.log(`🗑️ Intentando eliminar Producto ID: ${id}`);
+  console.log(`🗑️ Intentando ocultar Producto ID: ${id}`);
   try {
-    await prisma.$transaction(async (tx) => {
-      // 1. Eliminar de tablas de metadata (hijas directas)
-      await tx.stock.deleteMany({ where: { id_producto: Number(id) } });
-      await tx.producto_servicio.deleteMany({ where: { id_producto: Number(id) } });
-
-      // 2. Intentar eliminar el producto
-      await tx.producto.delete({ where: { id_producto: Number(id) } });
+    await prisma.stock.updateMany({
+      where: { id_producto: Number(id) },
+      data: { activo: false }
     });
     return res.json({ message: 'Eliminado correctamente' });
   } catch (error) {
-    console.error('❌ Error al eliminar producto:', error);
-
-    // Error P2003: Foreign key constraint failed
-    if (error.code === 'P2003') {
-      return res.status(400).json({
-        error: 'No se puede eliminar: este item está siendo usado en facturas, presupuestos o pedidos.'
-      });
-    }
-
+    console.error('❌ Error al ocultar producto:', error);
     return res.status(500).json({ error: 'Error interno del servidor: ' + error.message });
   }
 };

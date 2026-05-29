@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { X, Save, Package } from 'lucide-react';
 
-const StockForm = ({ proveedores = [], categorias = [], marcas = [], onCancelar, onGuardar }) => {
-  const [nombre, setNombre] = useState('');
-  const [categoriaId, setCategoriaId] = useState('');
-  const [marcaId, setMarcaId] = useState('');
-  const [precio, setPrecio] = useState('');
-  const [stock, setStock] = useState('0');
+const StockForm = ({ proveedores = [], categorias = [], marcas = [], initialData = null, onCancelar, onGuardar }) => {
+  const [nombre, setNombre] = useState(initialData?.nombre ?? '');
+  const [categoriaId, setCategoriaId] = useState(initialData?.categoriaId ?? '');
+  const [marcaId, setMarcaId] = useState(initialData?.marcaId ?? '');
+  const [precio, setPrecio] = useState(initialData?.precio ? String(initialData.precio) : '');
+  const [stock, setStock] = useState(initialData?.stock ? String(initialData.stock) : '0');
 
   // Helper para formatear miles con puntos
   const formatNumber = (val) => {
@@ -45,10 +45,11 @@ const StockForm = ({ proveedores = [], categorias = [], marcas = [], onCancelar,
   return (
     <div className="bg-white rounded-xl shadow-2xl border border-orange-200 overflow-hidden">
       <div className="bg-erp-orange p-4 flex justify-between items-center text-white">
-        <h2 className="font-bold flex items-center gap-2"><Package size={20} /> Nuevo Producto</h2>
+        <h2 className="font-bold flex items-center gap-2">
+          <Package size={20} /> {initialData ? 'Editar Producto' : 'Nuevo Producto'}
+        </h2>
         <button onClick={onCancelar}><X size={24} /></button>
       </div>
-
       <div className="p-6 space-y-4">
         <div>
           <label className="block text-sm font-bold text-gray-700">Nombre del Producto</label>

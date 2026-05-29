@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
   UserPlus, Search, Briefcase, Trash2, Edit2, Users2,
-  Plus, X, Settings2, CreditCard, RotateCcw, History
+  Plus, X, Settings2, CreditCard, History
 } from 'lucide-react';
 import { formatGua } from '../../utils/personalLogic';
 import axios from 'axios';
@@ -18,9 +18,6 @@ api.interceptors.request.use((config) => {
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
-
-const token = localStorage.getItem('token');
-if (token) axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
 // ══════════════════════════════════════════════════════════════
 //  MODAL CONCEPTOS EXTRAS
@@ -108,15 +105,11 @@ const ModalConceptos = ({ funcionario, onClose, actions }) => {
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-3xl w-full max-w-xl shadow-2xl overflow-hidden border border-orange-100">
-
-        {/* Header */}
         <div className="p-6 border-b border-orange-50 bg-gradient-to-r from-orange-50 to-white flex justify-between items-start">
           <div>
             <div className="flex items-center gap-2">
               <CreditCard size={18} className="text-erp-orange" />
-              <h2 className="text-lg font-black text-erp-orange uppercase tracking-tighter">
-                Conceptos Extras
-              </h2>
+              <h2 className="text-lg font-black text-erp-orange uppercase tracking-tighter">Conceptos Extras</h2>
             </div>
             <p className="text-xs text-gray-500 font-medium mt-0.5">{funcionario.nombre}</p>
           </div>
@@ -125,15 +118,10 @@ const ModalConceptos = ({ funcionario, onClose, actions }) => {
           </button>
         </div>
 
-        {/* Lista conceptos asignados */}
         <div className="px-6 pt-5 max-h-[30vh] overflow-y-auto space-y-2">
-          {cargando && (
-            <p className="text-center text-gray-400 text-sm py-4">Cargando...</p>
-          )}
+          {cargando && <p className="text-center text-gray-400 text-sm py-4">Cargando...</p>}
           {!cargando && listaConceptos.length === 0 && (
-            <p className="text-center text-gray-400 text-sm py-4 italic">
-              No hay conceptos extras asignados.
-            </p>
+            <p className="text-center text-gray-400 text-sm py-4 italic">No hay conceptos extras asignados.</p>
           )}
           {listaConceptos.map(c => {
             const esIngreso = c.credito !== null;
@@ -141,22 +129,16 @@ const ModalConceptos = ({ funcionario, onClose, actions }) => {
               <div key={c.id_concepto}
                 className="flex items-center justify-between px-4 py-3 rounded-2xl border border-gray-100 bg-gray-50/50 group">
                 <div className="flex items-center gap-3">
-                  <span className={`text-[10px] font-black px-2 py-1 rounded-full
-                    ${esIngreso ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-500'}`}>
+                  <span className={`text-[10px] font-black px-2 py-1 rounded-full ${esIngreso ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-500'}`}>
                     {esIngreso ? 'Ingreso' : 'Egreso'}
                   </span>
                   <div>
                     <p className="font-bold text-gray-800 text-sm">{c.nombre}</p>
                     <div className="flex items-center gap-2 mt-0.5">
                       {c.afecta_ips && (
-                        <span className="text-[9px] font-black text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded-full">
-                          Afecta IPS
-                        </span>
+                        <span className="text-[9px] font-black text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded-full">Afecta IPS</span>
                       )}
-                      <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-full
-                        ${c.formula === 'recurrente'
-                          ? 'text-purple-500 bg-purple-50'
-                          : 'text-gray-400 bg-gray-100'}`}>
+                      <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-full ${c.formula === 'recurrente' ? 'text-purple-500 bg-purple-50' : 'text-gray-400 bg-gray-100'}`}>
                         {c.formula === 'recurrente' ? 'Recurrente' : 'Único uso'}
                       </span>
                     </div>
@@ -167,11 +149,8 @@ const ModalConceptos = ({ funcionario, onClose, actions }) => {
                     {esIngreso ? '+' : '-'}{formatGua(Number(c.credito ?? c.debito ?? 0))}
                   </span>
                   {puedeEditar('personal') && (
-                    <button
-                      onClick={() => handleEliminar(c.id_concepto)}
-                      disabled={eliminando === c.id_concepto}
-                      className="p-1.5 text-red-400 hover:bg-red-50 rounded-xl transition-colors opacity-0 group-hover:opacity-100"
-                    >
+                    <button onClick={() => handleEliminar(c.id_concepto)} disabled={eliminando === c.id_concepto}
+                      className="p-1.5 text-red-400 hover:bg-red-50 rounded-xl transition-colors opacity-0 group-hover:opacity-100">
                       <Trash2 size={14} />
                     </button>
                   )}
@@ -181,23 +160,14 @@ const ModalConceptos = ({ funcionario, onClose, actions }) => {
           })}
         </div>
 
-        {/* Formulario agregar */}
         {puedeEditar('personal') && (
           <div className="p-6 border-t border-gray-100 mt-2 space-y-4">
-            <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider">
-              + Asignar Concepto
-            </p>
-
-            {/* Selector concepto base */}
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider">+ Asignar Concepto</p>
             <div className="space-y-1">
-              <label className="text-[10px] font-black text-gray-400 uppercase ml-1">
-                Concepto <span className="text-red-400">*</span>
-              </label>
-              <select
-                value={form.id_concepto_base}
+              <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Concepto <span className="text-red-400">*</span></label>
+              <select value={form.id_concepto_base}
                 onChange={e => setForm(p => ({ ...p, id_concepto_base: e.target.value, monto: '' }))}
-                className="w-full px-4 py-3 rounded-xl border border-gray-100 focus:ring-2 focus:ring-erp-orange outline-none bg-gray-50/50 text-sm"
-              >
+                className="w-full px-4 py-3 rounded-xl border border-gray-100 focus:ring-2 focus:ring-erp-orange outline-none bg-gray-50/50 text-sm">
                 <option value="">Seleccionar concepto...</option>
                 {conceptosBase.map(c => (
                   <option key={c.id_concepto} value={c.id_concepto}>
@@ -206,74 +176,45 @@ const ModalConceptos = ({ funcionario, onClose, actions }) => {
                 ))}
               </select>
             </div>
-
-            {/* Info del concepto base — solo lectura */}
             {baseSeleccionada && (
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="text-[10px] font-black text-gray-300 uppercase ml-1">Tipo</label>
-                  <div className="px-4 py-3 rounded-xl bg-gray-100 text-gray-400 text-sm font-bold cursor-not-allowed">
-                    {tipoBase}
-                  </div>
+                  <div className="px-4 py-3 rounded-xl bg-gray-100 text-gray-400 text-sm font-bold cursor-not-allowed">{tipoBase}</div>
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-black text-gray-300 uppercase ml-1">Afecta IPS</label>
-                  <div className="px-4 py-3 rounded-xl bg-gray-100 text-gray-400 text-sm font-bold cursor-not-allowed">
-                    {afectaIPS ? 'Sí — suma al 9%' : 'No'}
-                  </div>
+                  <div className="px-4 py-3 rounded-xl bg-gray-100 text-gray-400 text-sm font-bold cursor-not-allowed">{afectaIPS ? 'Sí — suma al 9%' : 'No'}</div>
                 </div>
               </div>
             )}
-
-            {/* Monto */}
             <div className="space-y-1">
-              <label className="text-[10px] font-black text-gray-400 uppercase ml-1">
-                Monto (₲) <span className="text-red-400">*</span>
-              </label>
-              <input
-                type="number"
-                value={form.monto}
+              <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Monto (₲) <span className="text-red-400">*</span></label>
+              <input type="number" value={form.monto}
                 onChange={e => setForm(p => ({ ...p, monto: e.target.value }))}
                 disabled={!baseSeleccionada}
                 placeholder={baseSeleccionada ? 'Ej. 500000' : 'Primero seleccioná un concepto'}
-                className="w-full px-4 py-3 rounded-xl border border-gray-100 focus:ring-2 focus:ring-erp-orange outline-none bg-gray-50/50 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-              />
+                className="w-full px-4 py-3 rounded-xl border border-gray-100 focus:ring-2 focus:ring-erp-orange outline-none bg-gray-50/50 text-sm disabled:opacity-50 disabled:cursor-not-allowed" />
               {form.monto && !isNaN(Number(form.monto)) && Number(form.monto) > 0 && (
-                <p className="text-xs font-black text-erp-orange ml-1 mt-1">
-                  {formatGua(Number(form.monto))}
-                </p>
+                <p className="text-xs font-black text-erp-orange ml-1 mt-1">{formatGua(Number(form.monto))}</p>
               )}
             </div>
-
-            {/* Recurrente */}
             <label className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-colors cursor-pointer
               ${form.recurrente ? 'border-purple-300 bg-purple-50' : 'border-gray-100 bg-gray-50/50 hover:border-gray-200'}
               ${!baseSeleccionada ? 'opacity-50 pointer-events-none' : ''}`}>
-              <input
-                type="checkbox"
-                checked={form.recurrente}
+              <input type="checkbox" checked={form.recurrente}
                 onChange={e => setForm(p => ({ ...p, recurrente: e.target.checked }))}
-                className="w-4 h-4 accent-purple-500"
-              />
+                className="w-4 h-4 accent-purple-500" />
               <div>
                 <p className="text-xs font-black text-gray-700">Recurrente</p>
-                <p className="text-[10px] text-gray-400">
-                  Se aplica todos los meses automáticamente
-                </p>
+                <p className="text-[10px] text-gray-400">Se aplica todos los meses automáticamente</p>
               </div>
             </label>
-
             {error && (
-              <div className="bg-red-50 border border-red-100 text-red-600 text-sm font-medium px-4 py-3 rounded-xl">
-                {error}
-              </div>
+              <div className="bg-red-50 border border-red-100 text-red-600 text-sm font-medium px-4 py-3 rounded-xl">{error}</div>
             )}
-
-            <button
-              onClick={handleAgregar}
-              disabled={guardando || !baseSeleccionada}
-              className="w-full py-3.5 bg-erp-orange text-white rounded-xl font-black uppercase tracking-widest text-xs hover:bg-orange-600 transition-colors shadow-lg shadow-orange-100 disabled:opacity-50"
-            >
+            <button onClick={handleAgregar} disabled={guardando || !baseSeleccionada}
+              className="w-full py-3.5 bg-erp-orange text-white rounded-xl font-black uppercase tracking-widest text-xs hover:bg-orange-600 transition-colors shadow-lg shadow-orange-100 disabled:opacity-50">
               {guardando ? 'Guardando...' : 'Agregar Concepto'}
             </button>
           </div>
@@ -331,30 +272,22 @@ const ModalCrearCargo = ({ onClose, onCreado }) => {
         </div>
         <div className="p-6 space-y-4">
           <div className="space-y-1">
-            <label className="text-[10px] font-black text-gray-400 uppercase ml-1">
-              Nombre del Cargo <span className="text-red-400">*</span>
-            </label>
+            <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Nombre del Cargo <span className="text-red-400">*</span></label>
             <input name="nombre_cargo" value={form.nombre_cargo} onChange={handleChange}
               placeholder="Ej. Vendedor, Contador, Gerente..."
               className="w-full px-4 py-3 rounded-xl border border-gray-100 focus:ring-2 focus:ring-erp-orange outline-none bg-gray-50/50" />
           </div>
           <div className="space-y-1">
-            <label className="text-[10px] font-black text-gray-400 uppercase ml-1">
-              Sueldo Base (₲) <span className="text-red-400">*</span>
-            </label>
+            <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Sueldo Base (₲) <span className="text-red-400">*</span></label>
             <input name="sueldo_base" type="number" value={form.sueldo_base} onChange={handleChange}
               placeholder="Ej. 2550000"
               className="w-full px-4 py-3 rounded-xl border border-gray-100 focus:ring-2 focus:ring-erp-orange outline-none bg-gray-50/50" />
             {form.sueldo_base && !isNaN(Number(form.sueldo_base)) && Number(form.sueldo_base) > 0 && (
-              <p className="text-xs font-black text-erp-orange ml-1 mt-1">
-                {formatGua(Number(form.sueldo_base))}
-              </p>
+              <p className="text-xs font-black text-erp-orange ml-1 mt-1">{formatGua(Number(form.sueldo_base))}</p>
             )}
           </div>
           <div className="space-y-1">
-            <label className="text-[10px] font-black text-gray-400 uppercase ml-1">
-              Área / Departamento
-            </label>
+            <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Área / Departamento</label>
             <input name="area_superior" value={form.area_superior} onChange={handleChange}
               placeholder="Ej. Ventas, RRHH..."
               className="w-full px-4 py-3 rounded-xl border border-gray-100 focus:ring-2 focus:ring-erp-orange outline-none bg-gray-50/50" />
@@ -366,16 +299,12 @@ const ModalCrearCargo = ({ onClose, onCreado }) => {
               className="w-full px-4 py-3 rounded-xl border border-gray-100 focus:ring-2 focus:ring-erp-orange outline-none bg-gray-50/50 resize-none" />
           </div>
           {error && (
-            <div className="bg-red-50 border border-red-100 text-red-600 text-sm font-medium px-4 py-3 rounded-xl">
-              {error}
-            </div>
+            <div className="bg-red-50 border border-red-100 text-red-600 text-sm font-medium px-4 py-3 rounded-xl">{error}</div>
           )}
         </div>
         <div className="px-6 pb-6 flex justify-end gap-3">
           <button onClick={onClose} disabled={guardando}
-            className="px-6 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-100 transition-colors">
-            Cancelar
-          </button>
+            className="px-6 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-100 transition-colors">Cancelar</button>
           <button onClick={handleGuardar} disabled={guardando}
             className="px-8 py-3 bg-erp-orange text-white rounded-xl font-black uppercase tracking-widest text-xs hover:bg-orange-600 transition-colors shadow-lg shadow-orange-200 disabled:opacity-60">
             {guardando ? 'Guardando...' : 'Crear Cargo'}
@@ -386,7 +315,6 @@ const ModalCrearCargo = ({ onClose, onCreado }) => {
   );
 };
 
-
 // ══════════════════════════════════════════════════════════════
 //  MODAL HISTORIAL DE CARGOS
 // ══════════════════════════════════════════════════════════════
@@ -396,14 +324,11 @@ const ModalHistorial = ({ funcionario, onClose }) => {
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden border border-orange-100">
-
         <div className="p-6 border-b border-orange-50 bg-gradient-to-r from-orange-50 to-white flex justify-between items-start">
           <div>
             <div className="flex items-center gap-2">
               <Briefcase size={18} className="text-erp-orange" />
-              <h2 className="text-lg font-black text-erp-orange uppercase tracking-tighter">
-                Historial de Cargos
-              </h2>
+              <h2 className="text-lg font-black text-erp-orange uppercase tracking-tighter">Historial de Cargos</h2>
             </div>
             <p className="text-xs text-gray-500 font-medium mt-0.5">{funcionario.nombre}</p>
           </div>
@@ -411,58 +336,33 @@ const ModalHistorial = ({ funcionario, onClose }) => {
             <X size={18} className="text-gray-400" />
           </button>
         </div>
-
         <div className="p-6 max-h-[60vh] overflow-y-auto">
           {historial.length === 0 ? (
-            <p className="text-center text-gray-400 text-sm py-8 italic">
-              Sin historial registrado.
-            </p>
+            <p className="text-center text-gray-400 text-sm py-8 italic">Sin historial registrado.</p>
           ) : (
             <div className="relative">
-              {/* Línea vertical */}
               <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-orange-100" />
-
               <div className="space-y-4">
                 {historial.map((h, idx) => {
-                  const esActual = idx === 0; // ordenado desc, el primero es el actual
+                  const esActual = idx === 0;
                   return (
                     <div key={idx} className="flex gap-4 items-start pl-2">
-                      {/* Punto en la línea */}
                       <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 mt-0.5 z-10
-                        ${esActual
-                          ? 'bg-erp-orange border-erp-orange'
-                          : 'bg-white border-orange-300'}`}
-                      />
-                      {/* Contenido */}
+                        ${esActual ? 'bg-erp-orange border-erp-orange' : 'bg-white border-orange-300'}`} />
                       <div className={`flex-1 px-4 py-3 rounded-2xl border
-                        ${esActual
-                          ? 'bg-orange-50 border-orange-200'
-                          : 'bg-gray-50 border-gray-100'}`}>
+                        ${esActual ? 'bg-orange-50 border-orange-200' : 'bg-gray-50 border-gray-100'}`}>
                         <div className="flex items-center justify-between">
-                          <span className={`font-black text-sm
-                            ${esActual ? 'text-erp-orange' : 'text-gray-700'}`}>
+                          <span className={`font-black text-sm ${esActual ? 'text-erp-orange' : 'text-gray-700'}`}>
                             {h.cargo}
                           </span>
                           {esActual && (
-                            <span className="text-[9px] font-black px-2 py-1 bg-erp-orange text-white rounded-full uppercase">
-                              Actual
-                            </span>
+                            <span className="text-[9px] font-black px-2 py-1 bg-erp-orange text-white rounded-full uppercase">Actual</span>
                           )}
                         </div>
                         <div className="flex items-center gap-1 mt-1 text-xs text-gray-400 font-medium">
                           <span>Desde: {h.fecha ?? '—'}</span>
-                          {h.fechaSalida && (
-                            <>
-                              <span>→</span>
-                              <span>Hasta: {h.fechaSalida}</span>
-                            </>
-                          )}
-                          {esActual && !h.fechaSalida && (
-                            <>
-                              <span>→</span>
-                              <span className="text-erp-orange font-bold">Presente</span>
-                            </>
-                          )}
+                          {h.fechaSalida && <><span>→</span><span>Hasta: {h.fechaSalida}</span></>}
+                          {esActual && !h.fechaSalida && <><span>→</span><span className="text-erp-orange font-bold">Presente</span></>}
                         </div>
                       </div>
                     </div>
@@ -472,7 +372,6 @@ const ModalHistorial = ({ funcionario, onClose }) => {
             </div>
           )}
         </div>
-
       </div>
     </div>
   );
@@ -493,16 +392,10 @@ const ModalEditarFuncionario = ({ funcionario, cargos, onClose, actions }) => {
   const [error, setError] = useState('');
 
   const handleChange = (e) => setForm(p => ({ ...p, [e.target.name]: e.target.value }));
-
-  const cargoActualObj = cargos.find(
-    c => c.nombre_cargo === funcionario.cargoActual
-  );
+  const cargoActualObj = cargos.find(c => c.nombre_cargo === funcionario.cargoActual);
 
   const handleGuardar = async () => {
-    if (!form.nombre || !form.apellido) {
-      setError('Nombre y apellido son obligatorios.');
-      return;
-    }
+    if (!form.nombre || !form.apellido) { setError('Nombre y apellido son obligatorios.'); return; }
     setError('');
     setGuardando(true);
     try {
@@ -523,14 +416,11 @@ const ModalEditarFuncionario = ({ funcionario, cargos, onClose, actions }) => {
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden border border-orange-100">
-
         <div className="p-6 border-b border-orange-50 bg-gradient-to-r from-orange-50 to-white flex justify-between items-start">
           <div>
             <div className="flex items-center gap-2">
               <Edit2 size={18} className="text-erp-orange" />
-              <h2 className="text-lg font-black text-erp-orange uppercase tracking-tighter">
-                Editar Funcionario
-              </h2>
+              <h2 className="text-lg font-black text-erp-orange uppercase tracking-tighter">Editar Funcionario</h2>
             </div>
             <p className="text-xs text-gray-500 font-medium mt-0.5">{funcionario.nombre}</p>
           </div>
@@ -538,10 +428,7 @@ const ModalEditarFuncionario = ({ funcionario, cargos, onClose, actions }) => {
             <X size={18} className="text-gray-400" />
           </button>
         </div>
-
         <div className="p-6 space-y-4">
-
-          {/* Cargo actual — informativo */}
           <div className="flex items-center gap-3 px-4 py-3 bg-orange-50 rounded-xl border border-orange-100">
             <Briefcase size={16} className="text-erp-orange" />
             <div>
@@ -549,24 +436,16 @@ const ModalEditarFuncionario = ({ funcionario, cargos, onClose, actions }) => {
               <p className="text-sm font-black text-erp-orange">{funcionario.cargoActual}</p>
             </div>
           </div>
-
-          {/* Cambiar cargo */}
           <div className="space-y-1">
-            <label className="text-[10px] font-black text-gray-400 uppercase ml-1">
-              Cambiar a cargo
-            </label>
+            <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Cambiar a cargo</label>
             <select name="id_cargo" value={form.id_cargo} onChange={handleChange}
               className="w-full px-4 py-3 rounded-xl border border-gray-100 focus:ring-2 focus:ring-erp-orange outline-none bg-gray-50/50">
               <option value="">— Mantener cargo actual —</option>
-              {cargos
-                .filter(c => c.nombre_cargo !== funcionario.cargoActual)
-                .map(c => (
-                  <option key={c.id_cargo} value={c.id_cargo}>
-                    {c.nombre_cargo} — {new Intl.NumberFormat('es-PY', {
-                      style: 'currency', currency: 'PYG'
-                    }).format(c.sueldo_base ?? 0)}
-                  </option>
-                ))}
+              {cargos.filter(c => c.nombre_cargo !== funcionario.cargoActual).map(c => (
+                <option key={c.id_cargo} value={c.id_cargo}>
+                  {c.nombre_cargo} — {new Intl.NumberFormat('es-PY', { style: 'currency', currency: 'PYG' }).format(c.sueldo_base ?? 0)}
+                </option>
+              ))}
             </select>
             {form.id_cargo && (
               <p className="text-[10px] text-orange-500 font-bold ml-1 mt-1">
@@ -574,31 +453,20 @@ const ModalEditarFuncionario = ({ funcionario, cargos, onClose, actions }) => {
               </p>
             )}
           </div>
-
-          {/* Fecha de inicio del nuevo cargo */}
           {form.id_cargo && (
             <div className="space-y-1">
-              <label className="text-[10px] font-black text-gray-400 uppercase ml-1">
-                Fecha inicio nuevo cargo <span className="text-red-400">*</span>
-              </label>
-              <input type="date" name="fecha_ingreso" value={form.fecha_ingreso}
-                onChange={handleChange}
+              <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Fecha inicio nuevo cargo <span className="text-red-400">*</span></label>
+              <input type="date" name="fecha_ingreso" value={form.fecha_ingreso} onChange={handleChange}
                 className="w-full px-4 py-3 rounded-xl border border-gray-100 focus:ring-2 focus:ring-erp-orange outline-none bg-gray-50/50" />
             </div>
           )}
-
           {error && (
-            <div className="bg-red-50 border border-red-100 text-red-600 text-sm font-medium px-4 py-3 rounded-xl">
-              {error}
-            </div>
+            <div className="bg-red-50 border border-red-100 text-red-600 text-sm font-medium px-4 py-3 rounded-xl">{error}</div>
           )}
         </div>
-
         <div className="px-6 pb-6 flex justify-end gap-3">
           <button onClick={onClose} disabled={guardando}
-            className="px-6 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-100 transition-colors">
-            Cancelar
-          </button>
+            className="px-6 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-100 transition-colors">Cancelar</button>
           <button onClick={handleGuardar} disabled={guardando}
             className="px-8 py-3 bg-erp-orange text-white rounded-xl font-black uppercase tracking-widest text-xs hover:bg-orange-600 transition-colors shadow-lg shadow-orange-200 disabled:opacity-60">
             {guardando ? 'Guardando...' : 'Guardar Cambios'}
@@ -652,20 +520,13 @@ const Funcionarios = ({ personal }) => {
       setErrorForm('Nombre, apellido y CI son obligatorios.');
       return;
     }
-    if (!form.id_cargo) {
-      setErrorForm('Debés seleccionar un cargo.');
-      return;
-    }
+    if (!form.id_cargo) { setErrorForm('Debés seleccionar un cargo.'); return; }
     setErrorForm('');
     setGuardando(true);
     try {
       await actions.agregarFuncionario({
-        nombre: form.nombre,
-        apellido: form.apellido,
-        ci: form.ci,
-        ruc: form.ruc,
-        estado_civil: form.estado_civil,
-        sexo: form.sexo,
+        nombre: form.nombre, apellido: form.apellido, ci: form.ci, ruc: form.ruc,
+        estado_civil: form.estado_civil, sexo: form.sexo,
         fecha_nacimiento: form.fecha_nacimiento || null,
         id_cargo: Number(form.id_cargo),
         fecha_ingreso: form.fecha_ingreso || null,
@@ -685,11 +546,7 @@ const Funcionarios = ({ personal }) => {
   };
 
   const handleGuardarFamiliar = async () => {
-    if (!nuevoFam.parentesco || !nuevoFam.nombre) {
-      alert('El nombre y parentesco son obligatorios');
-      return;
-    }
-
+    if (!nuevoFam.parentesco || !nuevoFam.nombre) { alert('El nombre y parentesco son obligatorios'); return; }
     setGuardandoFam(true);
     try {
       await axios.post(`${API}/funcionarios/${modalFamiliar.id}/familiares`, {
@@ -720,8 +577,7 @@ const Funcionarios = ({ personal }) => {
   };
 
   const funcionariosFiltrados = funcionarios.filter(f =>
-    f.nombre.toLowerCase().includes(filtro.toLowerCase()) ||
-    f.documento.includes(filtro)
+    f.nombre.toLowerCase().includes(filtro.toLowerCase()) || f.documento.includes(filtro)
   );
 
   return (
@@ -763,9 +619,7 @@ const Funcionarios = ({ personal }) => {
           <tbody className="divide-y divide-orange-50">
             {funcionariosFiltrados.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-6 py-10 text-center text-gray-400 text-sm">
-                  No hay funcionarios registrados.
-                </td>
+                <td colSpan={4} className="px-6 py-10 text-center text-gray-400 text-sm">No hay funcionarios registrados.</td>
               </tr>
             )}
             {funcionariosFiltrados.map((f) => (
@@ -786,18 +640,14 @@ const Funcionarios = ({ personal }) => {
                     <Briefcase size={14} className="text-erp-orange" />
                     <span className="font-bold text-gray-700">{f.cargoActual}</span>
                   </div>
-                  <div className="text-xs font-black text-erp-orange mt-1">
-                    {formatGua(f.salarioBase)}
-                  </div>
+                  <div className="text-xs font-black text-erp-orange mt-1">{formatGua(f.salarioBase)}</div>
                 </td>
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-2 flex-wrap">
                     <button onClick={() => setModalListaFam(f)}
                       className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold hover:bg-blue-100 transition-colors">
-                      <Users2 size={14} />
-                      Familiares ({f.nucleoFamiliar?.length || 0})
+                      <Users2 size={14} /> Familiares ({f.nucleoFamiliar?.length || 0})
                     </button>
-
                     {puedeEditar('personal') && (
                       <button onClick={() => setModalFamiliar(f)}
                         className="p-1.5 bg-orange-50 text-erp-orange rounded-lg font-bold hover:bg-orange-100 transition-colors"
@@ -815,18 +665,12 @@ const Funcionarios = ({ personal }) => {
                   <div className="flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     {puedeEditar('personal') && (
                       <>
-                        <button
-                          onClick={() => setModalHistorial(f)}
-                          className="p-2 text-purple-500 hover:bg-purple-50 rounded-lg transition-colors"
-                          title="Ver historial de cargos"
-                        >
+                        <button onClick={() => setModalHistorial(f)}
+                          className="p-2 text-purple-500 hover:bg-purple-50 rounded-lg transition-colors" title="Ver historial">
                           <History size={16} />
                         </button>
-                        <button
-                          onClick={() => setModalEditar(f)}
-                          className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
-                          title="Editar funcionario"
-                        >
+                        <button onClick={() => setModalEditar(f)}
+                          className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors" title="Editar funcionario">
                           <Edit2 size={16} />
                         </button>
                         <button onClick={() => handleEliminar(f.id)}
@@ -843,7 +687,7 @@ const Funcionarios = ({ personal }) => {
         </table>
       </div>
 
-      {/* ── Modal Registrar Funcionario ── */}
+      {/* Modal Registrar Funcionario */}
       {showForm && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl w-full max-w-4xl shadow-2xl overflow-hidden border border-orange-100">
@@ -852,26 +696,20 @@ const Funcionarios = ({ personal }) => {
               <p className="text-sm text-gray-500 font-medium">Complete los datos del nuevo personal</p>
             </div>
             <div className="p-8 grid grid-cols-3 gap-5 max-h-[65vh] overflow-y-auto">
-              <div className="space-y-1">
-                <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Nombre <span className="text-red-400">*</span></label>
-                <input name="nombre" value={form.nombre} onChange={handleChange}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-100 focus:ring-2 focus:ring-erp-orange outline-none bg-gray-50/50" placeholder="Ej. Juan" />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Apellido <span className="text-red-400">*</span></label>
-                <input name="apellido" value={form.apellido} onChange={handleChange}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-100 focus:ring-2 focus:ring-erp-orange outline-none bg-gray-50/50" placeholder="Ej. Pérez" />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-black text-gray-400 uppercase ml-1">CI <span className="text-red-400">*</span></label>
-                <input name="ci" value={form.ci} onChange={handleChange}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-100 focus:ring-2 focus:ring-erp-orange outline-none bg-gray-50/50" placeholder="Ej. 1234567" />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-black text-gray-400 uppercase ml-1">RUC</label>
-                <input name="ruc" value={form.ruc} onChange={handleChange}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-100 focus:ring-2 focus:ring-erp-orange outline-none bg-gray-50/50" placeholder="Ej. 1234567-0" />
-              </div>
+              {[
+                { name: 'nombre', label: 'Nombre', required: true, placeholder: 'Ej. Juan' },
+                { name: 'apellido', label: 'Apellido', required: true, placeholder: 'Ej. Pérez' },
+                { name: 'ci', label: 'CI', required: true, placeholder: 'Ej. 1234567' },
+                { name: 'ruc', label: 'RUC', placeholder: 'Ej. 1234567-0' },
+              ].map(f => (
+                <div key={f.name} className="space-y-1">
+                  <label className="text-[10px] font-black text-gray-400 uppercase ml-1">
+                    {f.label} {f.required && <span className="text-red-400">*</span>}
+                  </label>
+                  <input name={f.name} value={form[f.name]} onChange={handleChange} placeholder={f.placeholder}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-100 focus:ring-2 focus:ring-erp-orange outline-none bg-gray-50/50" />
+                </div>
+              ))}
               <div className="space-y-1">
                 <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Sexo</label>
                 <select name="sexo" value={form.sexo} onChange={handleChange}
@@ -904,9 +742,7 @@ const Funcionarios = ({ personal }) => {
               </div>
               <div className="col-span-2 space-y-1">
                 <div className="flex justify-between items-center ml-1 mb-1">
-                  <label className="text-[10px] font-black text-gray-400 uppercase">
-                    Cargo <span className="text-red-400">*</span>
-                  </label>
+                  <label className="text-[10px] font-black text-gray-400 uppercase">Cargo <span className="text-red-400">*</span></label>
                   <button type="button" onClick={() => setShowModalCargo(true)}
                     className="text-[10px] font-black text-erp-orange hover:underline flex items-center gap-1 uppercase">
                     <Plus size={11} /> Crear cargo nuevo
@@ -915,9 +751,7 @@ const Funcionarios = ({ personal }) => {
                 <select name="id_cargo" value={form.id_cargo} onChange={handleChange}
                   className="w-full px-4 py-3 rounded-xl border border-gray-100 focus:ring-2 focus:ring-erp-orange outline-none bg-gray-50/50">
                   <option value="">Seleccionar cargo...</option>
-                  {cargos.map(c => (
-                    <option key={c.id_cargo} value={c.id_cargo}>{c.nombre_cargo}</option>
-                  ))}
+                  {cargos.map(c => <option key={c.id_cargo} value={c.id_cargo}>{c.nombre_cargo}</option>)}
                 </select>
               </div>
               {cargoSeleccionado && (
@@ -930,16 +764,12 @@ const Funcionarios = ({ personal }) => {
                 </div>
               )}
               {errorForm && (
-                <div className="col-span-3 bg-red-50 border border-red-100 text-red-600 text-sm font-medium px-4 py-3 rounded-xl">
-                  {errorForm}
-                </div>
+                <div className="col-span-3 bg-red-50 border border-red-100 text-red-600 text-sm font-medium px-4 py-3 rounded-xl">{errorForm}</div>
               )}
             </div>
             <div className="p-8 bg-gray-50 border-t border-orange-50 flex justify-end gap-3">
               <button onClick={() => { setShowForm(false); setErrorForm(''); }} disabled={guardando}
-                className="px-6 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-100 transition-colors">
-                Cancelar
-              </button>
+                className="px-6 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-100 transition-colors">Cancelar</button>
               <button onClick={handleGuardar} disabled={guardando}
                 className="px-8 py-3 bg-erp-orange text-white rounded-xl font-black uppercase tracking-widest text-xs hover:bg-orange-600 transition-colors shadow-lg shadow-orange-200 disabled:opacity-60">
                 {guardando ? 'Guardando...' : 'Guardar Registro'}
@@ -949,7 +779,7 @@ const Funcionarios = ({ personal }) => {
         </div>
       )}
 
-      {/* ── Modal Agregar Familiar ── */}
+      {/* Modal Agregar Familiar */}
       {modalFamiliar && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden border border-orange-100">
@@ -995,9 +825,7 @@ const Funcionarios = ({ personal }) => {
             <div className="p-6 bg-gray-50 border-t border-orange-50 flex justify-end gap-3">
               <button onClick={() => { setModalFamiliar(null); setNuevoFam({ parentesco: '', fecha_nacimiento: '', nombre: '', cedula: '' }); }}
                 disabled={guardandoFam}
-                className="px-6 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-100 transition-colors">
-                Cancelar
-              </button>
+                className="px-6 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-100 transition-colors">Cancelar</button>
               <button onClick={handleGuardarFamiliar}
                 disabled={guardandoFam || !nuevoFam.parentesco || !nuevoFam.nombre}
                 className="px-6 py-3 bg-erp-orange text-white rounded-xl font-black uppercase tracking-widest text-xs hover:bg-orange-600 transition-colors shadow-lg shadow-orange-200 disabled:opacity-60">
@@ -1008,11 +836,10 @@ const Funcionarios = ({ personal }) => {
         </div>
       )}
 
-      {/* ── Modal Listar Familiares ── */}
+      {/* Modal Listar Familiares */}
       {modalListaFam && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden border border-gray-100">
-
             <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
               <div>
                 <h2 className="text-xl font-black text-gray-800 uppercase tracking-tighter">Núcleo Familiar</h2>
@@ -1051,40 +878,10 @@ const Funcionarios = ({ personal }) => {
         </div>
       )}
 
-      {/* ── Modal Conceptos Extras ── */}
-      {modalConceptos && (
-        <ModalConceptos
-          funcionario={modalConceptos}
-          onClose={() => setModalConceptos(null)}
-          actions={actions}
-        />
-      )}
-
-      {/* ── Modal Historial de Cargos ── */}
-      {modalHistorial && (
-        <ModalHistorial
-          funcionario={modalHistorial}
-          onClose={() => setModalHistorial(null)}
-        />
-      )}
-
-      {/* ── Modal Editar Funcionario ── */}
-      {modalEditar && (
-        <ModalEditarFuncionario
-          funcionario={modalEditar}
-          cargos={cargos}
-          onClose={() => setModalEditar(null)}
-          actions={actions}
-        />
-      )}
-
-      {/* ── Modal Crear Cargo ── */}
-      {showModalCargo && (
-        <ModalCrearCargo
-          onClose={() => setShowModalCargo(false)}
-          onCreado={handleCargoCreado}
-        />
-      )}
+      {modalConceptos && <ModalConceptos funcionario={modalConceptos} onClose={() => setModalConceptos(null)} actions={actions} />}
+      {modalHistorial && <ModalHistorial funcionario={modalHistorial} onClose={() => setModalHistorial(null)} />}
+      {modalEditar && <ModalEditarFuncionario funcionario={modalEditar} cargos={cargos} onClose={() => setModalEditar(null)} actions={actions} />}
+      {showModalCargo && <ModalCrearCargo onClose={() => setShowModalCargo(false)} onCreado={handleCargoCreado} />}
 
     </div>
   );
