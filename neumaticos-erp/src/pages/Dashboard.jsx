@@ -15,7 +15,6 @@ import Stock from '../components/Stock';
 import Services from '../components/Services';
 
 // Imports tesoreria
-import Tesoreria from '../components/Tesoreria';
 import GestionCuentas from '../components/ModuloTesoreria/GestionCuentas';
 import MovimientosBancarios from '../components/ModuloTesoreria/MovimientosBancarios';
 import ConciliacionBancaria from '../components/ModuloTesoreria/ConciliacionBancaria';
@@ -40,6 +39,7 @@ import ReportesContables from '../components/ModuloContabilidad/ReportesContable
 
 // Imports Reportes
 import ReportesCompras from '../components/ModuloReportes/ReportesCompras';
+import ReportesStock from '../components/ModuloReportes/ReportesStock';
 
 // Imports Seguridad
 import UsuariosModulo from '../components/Usuarios/UsuariosModulo';
@@ -269,6 +269,7 @@ function Dashboard() {
       'asiento ventas': 'Asientos de Ventas',
       tesoreria: 'Tesorería',
       reportes_compras: 'Reportes — Compras',
+      reportes_stock: 'Reportes — Historial de Stock',
       gestion_cuentas: 'Cuentas bancarias',
       'movimientos bancarios': 'Movimientos bancarios',
       'conciliacion bancaria': 'Conciliaciones bancarias',
@@ -338,7 +339,7 @@ function Dashboard() {
                     ${puedeVer('tesoreria')
                       ? 'hover:translate-y-[-10px] cursor-pointer'
                       : 'opacity-80 cursor-not-allowed'}`}
-                  onClick={() => puedeVer('tesoreria') && setModuloActual('tesoreria')}
+                  onClick={() => puedeVer('tesoreria') && setModuloActual('gestion_cuentas')}
                 >
                   <h3 className="text-green-500 font-black text-5xl mb-2 group-hover:scale-110 transition-transform">{cuentas.length}</h3>
                   <p className="text-gray-500 font-black text-[10px] uppercase tracking-widest">Cuentas Bancarias</p>
@@ -576,6 +577,8 @@ function Dashboard() {
 
       case 'reportes_compras':
         return <ReportesCompras />;
+      case 'reportes_stock':
+        return <ReportesStock />;
       case 'usuarios':
         return <UsuariosModulo />;
 

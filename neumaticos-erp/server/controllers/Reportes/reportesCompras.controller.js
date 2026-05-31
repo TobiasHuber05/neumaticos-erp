@@ -88,10 +88,19 @@ export const getReporteOrdenes = async (req, res) => {
                     numero: f.nro_factura ?? `FAC-P-${String(f.id_factura_compra).padStart(4, '0')}`,
                     timbrado: f.timbrado ?? '—',
                     fecha: f.fecha_emision?.toISOString().split('T')[0] ?? '—',
+                    contadoCredito: f.contado_credito ? 'Contado' : 'Crédito',
                     total,
                     totalPagado,
                     saldoPendiente,
                     estadoPago: epago,
+                    detalles: (f.detalle_factura ?? []).map(d => ({
+                        productoId: d.id_producto,
+                        nombreProducto: d.producto?.descripcion ?? '—',
+                        cantidad: Number(d.cantidad_recibida ?? 0),
+                        precioUnitario: Number(d.precio_unitario ?? 0),
+                        iva: Number(d.iva ?? 0),
+                        subtotal: Number(d.subtotal ?? 0),
+                    })),
                 };
             });
 

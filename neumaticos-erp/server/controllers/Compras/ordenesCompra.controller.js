@@ -1,5 +1,6 @@
 import { prisma } from '../../lib/prisma.js';
 import { ejecutarAsientoContableCompra, ejecutarAsientoNotaCreditoCompra } from '../Contabilidad/asientos.controller.js';
+import { registrarMovimientoStock } from '../../utils/inventario.utils.js';
 
 function buildLineasOC(oc) {
   const detallesSeleccionados = oc.cotizacion?.detalle_cotizacion ?? [];
@@ -270,24 +271,40 @@ export const registrarFactura = async (req, res) => {
 
       for (const linea of lineas) {
         const stockExistente = await tx.stock.findFirst({ where: { id_producto: Number(linea.productoId) } });
+        const cantidadEntrada = Number(linea.cantidad || 0);
+        let stockResultante;
         if (stockExistente) {
+          stockResultante = (stockExistente.cantidad ?? 0) + cantidadEntrada;
           await tx.stock.update({
             where: { id_stock: stockExistente.id_stock },
             data: {
-              cantidad: (stockExistente.cantidad ?? 0) + Number(linea.cantidad || 0),
+              cantidad: stockResultante,
               fecha_modificacion: new Date(),
               precio_compra: Number(linea.precioUnitario || 0),
             },
           });
         } else {
+          stockResultante = cantidadEntrada;
           await tx.stock.create({
             data: {
               id_producto: Number(linea.productoId),
-              cantidad: Number(linea.cantidad || 0),
+              cantidad: stockResultante,
               fecha_modificacion: new Date(),
               precio: Number(linea.precioUnitario || 0),
               precio_compra: Number(linea.precioUnitario || 0),
             },
+          });
+        }
+
+        if (cantidadEntrada > 0) {
+          await registrarMovimientoStock(tx, {
+            id_producto: Number(linea.productoId),
+            tipo_movimiento: 'Entrada',
+            cantidad: cantidadEntrada,
+            stock_resultante: stockResultante,
+            origen: 'factura_compra',
+            id_origen: factura.id_factura_compra,
+            descripcion: `Compra - Factura Nro: ${numero ?? factura.id_factura_compra}`,
           });
         }
       }
@@ -399,12 +416,24 @@ export const registrarDevolucionCompra = async (req, res) => {
 
         const stock = await tx.stock.findFirst({ where: { id_producto: Number(item.productoId) } });
         if (stock) {
+          const cantidadSalida = Number(item.cantidad);
+          const stockResultante = Math.max(0, (stock.cantidad ?? 0) - cantidadSalida);
           await tx.stock.update({
             where: { id_stock: stock.id_stock },
             data: {
-              cantidad: Math.max(0, (stock.cantidad ?? 0) - Number(item.cantidad)),
+              cantidad: stockResultante,
               fecha_modificacion: new Date(),
             },
+          });
+
+          await registrarMovimientoStock(tx, {
+            id_producto: Number(item.productoId),
+            tipo_movimiento: 'Salida',
+            cantidad: cantidadSalida,
+            stock_resultante: stockResultante,
+            origen: 'devolucion_compra',
+            id_origen: devolucion.id_pedido_d,
+            descripcion: `Devolución a proveedor - ND-P-${devolucion.id_pedido_d}`,
           });
         }
       }

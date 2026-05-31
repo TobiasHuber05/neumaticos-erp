@@ -85,7 +85,7 @@ const StockForm = ({ proveedores = [], categorias = [], marcas = [], initialData
             />
           </div>
           <div>
-            <label className="block text-sm font-bold text-gray-700">Precio Inicial (Gs.)</label>
+            <label className="block text-sm font-bold text-gray-700">Precio (Gs.)</label>
             <input
               type="text" value={precio} onChange={handlePrecioChange}
               className="w-full p-2 border rounded outline-none focus:ring-2 focus:ring-erp-orange"

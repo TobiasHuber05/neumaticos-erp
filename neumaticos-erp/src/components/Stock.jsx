@@ -3,6 +3,7 @@ import { Package, Search, Plus, Pencil, Trash2 } from 'lucide-react';
 import StockForm from './Forms/StockForm';
 import { useProductos } from '../hooks/useProductos';
 import { puedeEditar } from '../utils/permisos';
+import Pagination, { usePagination } from './ModuloCompras/Pagination';
 
 const Stock = ({ proveedoresMaestro = [] }) => {
   const { inventario, categorias, marcas, crearProducto, eliminarProducto, loading, refetch } = useProductos();
@@ -84,6 +85,13 @@ const Stock = ({ proveedoresMaestro = [] }) => {
     );
   });
 
+  const {
+    currentPage,
+    totalPages,
+    currentItems: paginatedInventario,
+    setCurrentPage
+  } = usePagination(inventarioFiltrado);
+
   // ── Formulario (crear o editar) ──────────────────────────────
   if (mostrarFormulario) {
     return (
@@ -135,6 +143,12 @@ const Stock = ({ proveedoresMaestro = [] }) => {
         </div>
       </div>
 
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+      />
+
       {/* Tabla */}
       <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-500">
         <div className="overflow-x-auto">
@@ -149,20 +163,20 @@ const Stock = ({ proveedoresMaestro = [] }) => {
                   <th className="px-6 py-4 text-center">Stock actual</th>
                   <th className="px-6 py-4 text-center">Stock mín.</th>
                   <th className="px-6 py-4 text-right">Precio unitario</th>
-                  <th className="px-6 py-4 text-right">Precio de compra</th>
+                  <th className="px-6 py-4 text-right">Costo</th>
                   <th className="px-6 py-4 text-center">Estado</th>
                   <th className="px-6 py-4 text-center">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {inventarioFiltrado.length === 0 ? (
+                {paginatedInventario.length === 0 ? (
                   <tr>
                     <td colSpan="8" className="px-6 py-10 text-center text-gray-400">
                       No se encontraron productos.
                     </td>
                   </tr>
                 ) : (
-                  inventarioFiltrado.map((item) => (
+                  paginatedInventario.map((item) => (
                     <tr key={item.id} className="hover:bg-orange-50/50 transition-colors text-sm">
                       <td className="px-6 py-4 font-bold text-gray-700">{item.nombre}</td>
                       <td className="px-6 py-4 text-gray-600">{item.categoria}</td>
@@ -227,6 +241,12 @@ const Stock = ({ proveedoresMaestro = [] }) => {
           )}
         </div>
       </div>
+
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+      />
 
       {/* Modal confirmar eliminación */}
       {confirmEliminar && (

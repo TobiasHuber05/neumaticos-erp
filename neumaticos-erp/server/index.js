@@ -18,6 +18,7 @@ import tesoreraRoutes from './routes/tesoreria.routes.js';
 import movimientosRoutes from './routes/movimientos.routes.js';
 import planCuentasRoutes from './routes/planCuentas.routes.js';
 import reportesComprasRoutes from './routes/reportesCompras.routes.js';
+import reportesStockRoutes from './routes/reportesStock.routes.js';
 import asientosContablesRoutes from './routes/asientosContables.routes.js';
 import periodosContablesRoutes from './routes/periodosContables.routes.js';
 import reportesContablesRoutes from './routes/reportesContables.routes.js';
@@ -56,6 +57,7 @@ app.use('/api/contabilidad', planCuentasRoutes);
 app.use('/api/asientos-contables', asientosContablesRoutes);
 app.use('/api/periodos-contables', periodosContablesRoutes);
 app.use('/api/reportes-contables', reportesContablesRoutes);
+app.use('/api/reportes-stock', reportesStockRoutes);
 app.use('/api/reportes-compras', reportesComprasRoutes);
 
 // --- MÓDULO DE CONTABILIDAD COMPLETADO ---

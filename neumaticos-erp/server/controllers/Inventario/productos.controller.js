@@ -222,7 +222,7 @@ export const updateProducto = async (req, res) => {
         const cantidadAnterior = Number(stockAnterior.cantidad ?? 0);
         const cantidadNueva = stock == null || stock === '' ? cantidadAnterior : Number(stock);
         const stockActualizado = await tx.stock.update({
-          where: { id_stock: Number(idStock) },
+          where: { id_stock: stockAnterior.id_stock },
           data: {
             precio: precio ? Number(precio) : 0,
             cantidad: cantidadNueva,

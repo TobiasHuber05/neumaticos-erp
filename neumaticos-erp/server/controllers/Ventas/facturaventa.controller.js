@@ -1,4 +1,5 @@
 import { prisma } from '../../lib/prisma.js';
+import { registrarMovimientoStock } from '../../utils/inventario.utils.js';
 
 export const generarFactura = async (req, res) => {
   const { id_presupuesto, nro_factura, timbrado, contado_credito } = req.body;
@@ -62,20 +63,40 @@ export const generarFactura = async (req, res) => {
         include: { detalle_factura_venta: true }
       });
 
-      // 3. Descontar del stock correspondiente 
+      // 3. Descontar del stock correspondiente y registrar movimiento
       for (const item of factura.detalle_factura_venta) {
         const prodServ = await tx.producto_servicio.findUnique({
           where: { id_producto_servicio: item.id_producto_servicio }
         });
 
         if (prodServ && prodServ.id_producto) {
+          const stockActual = await tx.stock.findFirst({
+            where: { id_producto: prodServ.id_producto, activo: true },
+          });
+
+          const cantidadSalida = Number(item.cantidad ?? 0);
+          const stockAnterior = Number(stockActual?.cantidad ?? 0);
+          const stockResultante = Math.max(0, stockAnterior - cantidadSalida);
+
           await tx.stock.updateMany({
             where: { id_producto: prodServ.id_producto },
             data: {
-              cantidad: { decrement: item.cantidad },
+              cantidad: stockResultante,
               fecha_modificacion: new Date()
             }
           });
+
+          if (cantidadSalida > 0) {
+            await registrarMovimientoStock(tx, {
+              id_producto: prodServ.id_producto,
+              tipo_movimiento: 'Salida',
+              cantidad: cantidadSalida,
+              stock_resultante: stockResultante,
+              origen: 'factura_venta',
+              id_origen: factura.id_factura_venta,
+              descripcion: `Venta - Factura Nro: ${nro_factura ?? factura.id_factura_venta}`,
+            });
+          }
         }
       }
 

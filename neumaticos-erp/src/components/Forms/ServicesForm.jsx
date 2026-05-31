@@ -9,10 +9,10 @@ const formatPrecioGs = (valor) => {
     return n.toLocaleString('de-DE');
 };
 
-const ServicesForm = ({ onCancelar, onGuardar }) => {
-    const [nombre, setNombre] = useState('');
-    const [precio, setPrecio] = useState('');   
-    const [duracion_aprox, setDuracion] = useState('');
+const ServicesForm = ({ initialData, onCancelar, onGuardar }) => {
+    const [nombre, setNombre] = useState(initialData?.nombre || '');
+    const [precio, setPrecio] = useState(initialData?.precio ? formatPrecioGs(initialData.precio) : '');   
+    const [duracion_aprox, setDuracion] = useState(initialData?.duracion_aprox && initialData.duracion_aprox !== '—' ? initialData.duracion_aprox : '');
 
     const handleGuardar = () => {
         const nombreTrim = nombre.trim();
@@ -31,7 +31,7 @@ const ServicesForm = ({ onCancelar, onGuardar }) => {
         <div className="bg-erp-orange p-4 flex justify-between items-center">
             <h2 className="text-white font-bold text-lg uppercase tracking-wider flex items-center gap-2">
                 <Package size={20} />
-                Nuevo servicio disponible
+                {initialData ? 'Editar servicio' : 'Nuevo servicio disponible'}
             </h2>
             <button
                 type="button"

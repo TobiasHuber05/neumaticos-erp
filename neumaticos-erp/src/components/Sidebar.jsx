@@ -268,7 +268,7 @@ const Sidebar = ({ setModulo, moduloActual }) => {
             </button>
 
             {reportesAbierto && (
-              <div className="mt-1 mb-2">
+              <div className="mt-1 mb-2 space-y-1">
                 <button
                   type="button"
                   onClick={() => setModulo('reportes_compras')}
@@ -279,6 +279,17 @@ const Sidebar = ({ setModulo, moduloActual }) => {
                 >
                   <FileText size={18} />
                   <span>Compras</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setModulo('reportes_stock')}
+                  className={`w-full flex items-center gap-3 px-8 py-2 rounded-lg transition-all font-medium text-sm
+                    ${moduloActual === 'reportes_stock'
+                      ? 'bg-erp-orange text-white shadow-inner'
+                      : 'text-orange-800 hover:bg-orange-200'}`}
+                >
+                  <Package size={18} />
+                  <span>Stock</span>
                 </button>
               </div>
             )}
