@@ -9,7 +9,7 @@ function getHeaders() {
     };
 }
 
-export function useMovimientosBancarios() {
+export function useMovimientosBancarios(enabled = true) {
     const [movimientos, setMovimientos] = useState([]);
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -39,6 +39,7 @@ export function useMovimientosBancarios() {
     }, []);
 
     useEffect(() => {
+        if (!enabled) return;
         fetchMovimientos();
         fetchStats();
     }, [fetchMovimientos, fetchStats]);

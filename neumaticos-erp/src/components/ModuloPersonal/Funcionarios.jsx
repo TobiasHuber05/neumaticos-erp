@@ -483,6 +483,8 @@ const ModalEditarFuncionario = ({ funcionario, cargos, onClose, actions }) => {
 const Funcionarios = ({ personal }) => {
   const { funcionarios, actions } = personal;
   const [filtro, setFiltro] = useState('');
+  const [pagina, setPagina] = useState(1);
+  const POR_PAGINA = 10;
   const [showForm, setShowForm] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [errorForm, setErrorForm] = useState('');
@@ -579,6 +581,9 @@ const Funcionarios = ({ personal }) => {
   const funcionariosFiltrados = funcionarios.filter(f =>
     f.nombre.toLowerCase().includes(filtro.toLowerCase()) || f.documento.includes(filtro)
   );
+  const totalPaginas = Math.max(1, Math.ceil(funcionariosFiltrados.length / POR_PAGINA));
+  const paginaSegura = Math.min(pagina, totalPaginas);
+  const funcionariosPagina = funcionariosFiltrados.slice((paginaSegura - 1) * POR_PAGINA, paginaSegura * POR_PAGINA);
 
   return (
     <div className="space-y-6">
@@ -589,7 +594,7 @@ const Funcionarios = ({ personal }) => {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
           <input type="text" placeholder="Buscar funcionario por nombre o CI..."
             className="w-full pl-10 pr-4 py-2 rounded-xl border border-orange-100 focus:ring-2 focus:ring-erp-orange outline-none bg-white transition-all"
-            value={filtro} onChange={(e) => setFiltro(e.target.value)} />
+            value={filtro} onChange={(e) => { setFiltro(e.target.value); setPagina(1); }} />
         </div>
         {puedeEditar('personal') && (
           <div className="flex gap-2">
@@ -617,12 +622,14 @@ const Funcionarios = ({ personal }) => {
             </tr>
           </thead>
           <tbody className="divide-y divide-orange-50">
-            {funcionariosFiltrados.length === 0 && (
+            {funcionariosPagina.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-6 py-10 text-center text-gray-400 text-sm">No hay funcionarios registrados.</td>
+                <td colSpan={4} className="px-6 py-10 text-center text-gray-400 text-sm">
+                  {filtro ? 'No se encontraron funcionarios con esa búsqueda.' : 'No hay funcionarios registrados.'}
+                </td>
               </tr>
             )}
-            {funcionariosFiltrados.map((f) => (
+            {funcionariosPagina.map((f) => (
               <tr key={f.id} className="hover:bg-orange-50/30 transition-colors group">
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-3">
@@ -685,6 +692,40 @@ const Funcionarios = ({ personal }) => {
             ))}
           </tbody>
         </table>
+
+        {/* Paginación */}
+        {totalPaginas > 1 && (
+          <div className="border-t border-orange-50 px-6 py-3 flex items-center justify-between bg-orange-50/30">
+            <span className="text-xs text-gray-500 font-medium">
+              Mostrando {(paginaSegura - 1) * POR_PAGINA + 1}–{Math.min(paginaSegura * POR_PAGINA, funcionariosFiltrados.length)} de {funcionariosFiltrados.length} funcionarios
+            </span>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setPagina(p => Math.max(1, p - 1))}
+                disabled={paginaSegura === 1}
+                className="px-3 py-1.5 rounded-lg text-xs font-bold text-gray-600 hover:bg-orange-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                ← Anterior
+              </button>
+              {Array.from({ length: totalPaginas }, (_, i) => i + 1).map(n => (
+                <button
+                  key={n}
+                  onClick={() => setPagina(n)}
+                  className={`w-8 h-8 rounded-lg text-xs font-bold transition-colors ${n === paginaSegura ? 'bg-erp-orange text-white shadow-sm' : 'text-gray-600 hover:bg-orange-100'}`}
+                >
+                  {n}
+                </button>
+              ))}
+              <button
+                onClick={() => setPagina(p => Math.min(totalPaginas, p + 1))}
+                disabled={paginaSegura === totalPaginas}
+                className="px-3 py-1.5 rounded-lg text-xs font-bold text-gray-600 hover:bg-orange-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                Siguiente →
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Modal Registrar Funcionario */}

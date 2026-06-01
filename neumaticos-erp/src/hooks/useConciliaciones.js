@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 
 const API = '/api/conciliaciones';
 
-export function useConciliaciones() {
+export function useConciliaciones(enabled = true) {
     const [conciliaciones, setConciliaciones] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -35,7 +35,7 @@ export function useConciliaciones() {
             });
             const data = await res.json();
             if (!res.ok) return { ok: false, error: data.error };
-            
+
             await fetchConciliaciones();
             return { ok: true, data };
         } catch (err) {
@@ -83,6 +83,7 @@ export function useConciliaciones() {
     };
 
     useEffect(() => {
+        if (!enabled) return;
         fetchConciliaciones();
     }, []);
 

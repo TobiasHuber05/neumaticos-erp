@@ -12,7 +12,7 @@ function getHeaders() {
   };
 }
 
-export function useOrdenesCompra() {
+export function useOrdenesCompra(enabled = true) {
   const [ordenesCompra, setOrdenesCompra] = useState([]);
   const [facturasProveedor, setFacturasProveedor] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -44,6 +44,7 @@ export function useOrdenesCompra() {
   }, []);
 
   useEffect(() => {
+    if (!enabled) return;
     fetchOrdenes();
     fetchFacturas();
   }, [fetchOrdenes, fetchFacturas]);

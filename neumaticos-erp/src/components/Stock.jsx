@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Package, Search, Plus, Pencil, Trash2 } from 'lucide-react';
 import StockForm from './Forms/StockForm';
 import { useProductos } from '../hooks/useProductos';
-import { puedeEditar } from '../utils/permisos';
+import { puedeEditar, puedeVerPreciosCompra } from '../utils/permisos';
 import Pagination, { usePagination } from './ModuloCompras/Pagination';
 
 const Stock = ({ proveedoresMaestro = [] }) => {
@@ -12,6 +12,7 @@ const Stock = ({ proveedoresMaestro = [] }) => {
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [confirmPedido, setConfirmPedido] = useState(null); // datos del producto recién creado con stock 0
+  const verCosto = puedeVerPreciosCompra();
 
   // ── Crear ────────────────────────────────────────────────────
   const guardarProducto = async (datos) => {
@@ -163,7 +164,7 @@ const Stock = ({ proveedoresMaestro = [] }) => {
                   <th className="px-6 py-4 text-center">Stock actual</th>
                   <th className="px-6 py-4 text-center">Stock mín.</th>
                   <th className="px-6 py-4 text-right">Precio unitario</th>
-                  <th className="px-6 py-4 text-right">Costo</th>
+                  {verCosto && <th className="px-6 py-4 text-right">Costo</th>}
                   <th className="px-6 py-4 text-center">Estado</th>
                   <th className="px-6 py-4 text-center">Acciones</th>
                 </tr>
@@ -193,13 +194,15 @@ const Stock = ({ proveedoresMaestro = [] }) => {
                           <>Gs. {Number(String(item.precio).replace(/\./g, '')).toLocaleString('de-DE')}</>
                         )}
                       </td>
-                      <td className="px-6 py-4 text-right font-bold text-gray-700">
-                        {item.precioCompra == null ? (
-                          <span className="text-gray-400 font-medium">—</span>
-                        ) : (
-                          <>Gs. {Number(String(item.precioCompra).replace(/\./g, '')).toLocaleString('de-DE')}</>
-                        )}
-                      </td>
+                      {verCosto && (
+                        <td className="px-6 py-4 text-right font-bold text-gray-700">
+                          {item.precioCompra == null ? (
+                            <span className="text-gray-400 font-medium">—</span>
+                          ) : (
+                            <>Gs. {Number(String(item.precioCompra).replace(/\./g, '')).toLocaleString('de-DE')}</>
+                          )}
+                        </td>
+                      )}
                       <td className="px-6 py-4 text-center">
                         {Number(item.stock) <= Number(item.min) ? (
                           <span className="inline-flex items-center px-2 py-1 rounded bg-red-100 text-red-600 text-[10px] font-black uppercase border border-red-200">

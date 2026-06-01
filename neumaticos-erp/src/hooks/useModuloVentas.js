@@ -16,7 +16,7 @@ function getHeaders() {
   };
 }
 
-export const useModuloVentas = () => {
+export const useModuloVentas = (enabled = true) => {
   const [clientes, setClientes] = useState([]);
   const [presupuestos, setPresupuestos] = useState([]);
   const [facturasVentas, setFacturasVentas] = useState([]);
@@ -78,7 +78,7 @@ export const useModuloVentas = () => {
         // Calcular historial de devoluciones para esta factura
         const devoluciones = f.devolucion_cliente || [];
         const devueltosPorProd = {};
-        
+
         devoluciones.forEach(dev => {
           (dev.detalle_devolucion || []).forEach(dDev => {
             devueltosPorProd[dDev.id_producto_servicio] = (devueltosPorProd[dDev.id_producto_servicio] || 0) + Number(dDev.cantidad || 0);
@@ -155,9 +155,9 @@ export const useModuloVentas = () => {
         const cuentasNombres = (a.asiento_detalle || [])
           .map(det => det.plan_cuentas?.nombre)
           .filter(Boolean);
-        
-        const cuentaResumen = cuentasNombres.length > 2 
-          ? 'Varias cuentas' 
+
+        const cuentaResumen = cuentasNombres.length > 2
+          ? 'Varias cuentas'
           : cuentasNombres.join(' / ') || 'Varias cuentas';
 
         return {
@@ -182,6 +182,7 @@ export const useModuloVentas = () => {
   }, []);
 
   useEffect(() => {
+    if (!enabled) return;
     fetchDatos();
   }, [fetchDatos]);
 

@@ -11,7 +11,7 @@ function getHeaders() {
   };
 }
 
-export function usePagosProveedores() {
+export function usePagosProveedores(enabled = true) {
   const [ordenesPagoProveedores, setOrdenesPagoProveedores] = useState([]);
   const [mediosPago, setMediosPago] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -41,6 +41,7 @@ export function usePagosProveedores() {
   }, []);
 
   useEffect(() => {
+    if (!enabled) return;
     fetchPagos();
     fetchFormasPago();
   }, [fetchPagos, fetchFormasPago]);

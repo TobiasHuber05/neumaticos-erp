@@ -25,7 +25,7 @@ function getHeaders() {
   };
 }
 
-export function useCotizaciones() {
+export function useCotizaciones(enabled = true) {
   const [cotizacionesProveedor, setCotizacionesProveedor] = useState([]);
   const [pedidosCotizacion, setPedidosCotizacion] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -85,6 +85,7 @@ export function useCotizaciones() {
   }, []);
 
   useEffect(() => {
+    if (!enabled) return;
     fetchCotizaciones();
   }, [fetchCotizaciones]);
 

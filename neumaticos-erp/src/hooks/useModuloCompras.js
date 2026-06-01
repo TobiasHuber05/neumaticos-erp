@@ -10,7 +10,7 @@ function getHeaders() {
   };
 }
 
-export function useModuloCompras() {
+export function useModuloCompras(enabled = true) {
   const [notasDevolucion, setNotasDevolucion] = useState([]);
   const [notasCreditoProveedor, setNotasCreditoProveedor] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -34,6 +34,7 @@ export function useModuloCompras() {
   }, []);
 
   useEffect(() => {
+    if (!enabled) return;
     fetchDevoluciones();
   }, [fetchDevoluciones]);
 

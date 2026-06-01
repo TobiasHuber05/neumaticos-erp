@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Shield, Plus, Edit, Trash2, X, Save, KeyRound } from 'lucide-react';
+import { Shield, Plus, Edit, Trash2, X, Save, KeyRound, Search } from 'lucide-react';
+
 import {
   getModulosAdicionalesDisponibles,
   describirModulosCargo,
@@ -10,6 +11,9 @@ export default function UsuariosModulo() {
   const [usuarios, setUsuarios] = useState([]);
   const [cargos, setCargos] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [busqueda, setBusqueda] = useState('');
+  const [pagina, setPagina] = useState(1);
+  const POR_PAGINA = 10;
   const [modalOpen, setModalOpen] = useState(false);
   const [resetModal, setResetModal] = useState({ open: false, usuario: null });
   const [newPassword, setNewPassword] = useState('');
@@ -19,7 +23,6 @@ export default function UsuariosModulo() {
     username: '',
     email: '',
     telefono: '',
-    direccion: '',
     id_cargo: '',
     password: '',
     permisos: {},
@@ -68,10 +71,9 @@ export default function UsuariosModulo() {
         username: usuario.username || '',
         email: usuario.email || '',
         telefono: usuario.telefono || '',
-        direccion: usuario.direccion || '',
-        id_cargo: usuario.id_cargo || '',
+        id_cargo: usuario.cargos?.id_cargo || usuario.id_cargo || '',
         password: '',
-        permisos: filtrarPermisosExtra(usuario.permisos || {}, cargoNombre),
+        permisos: usuario.permisos || {},
       });
     } else {
       setFormData({
@@ -79,7 +81,6 @@ export default function UsuariosModulo() {
         username: '',
         email: '',
         telefono: '',
-        direccion: '',
         id_cargo: '',
         password: '',
         permisos: {},
@@ -158,14 +159,12 @@ export default function UsuariosModulo() {
     }
   };
 
-  // Abrir modal de reset contraseña
   const handleOpenReset = (usuario) => {
     setResetModal({ open: true, usuario });
     setNewPassword('');
     setResetMsg(null);
   };
 
-  // Resetear contraseña desde el panel admin
   const handleResetPassword = async () => {
     if (!newPassword || newPassword.length < 6) {
       setResetMsg({ tipo: 'err', text: 'La contraseña debe tener al menos 6 caracteres' });
@@ -198,6 +197,15 @@ export default function UsuariosModulo() {
 
   if (loading) return <div className="p-8 text-center text-gray-500 font-bold">Cargando usuarios...</div>;
 
+  const usuariosFiltrados = usuarios.filter(u =>
+    u.username?.toLowerCase().includes(busqueda.toLowerCase()) ||
+    u.email?.toLowerCase().includes(busqueda.toLowerCase()) ||
+    (u.cargos?.nombre_cargo || u.rol_empresa || '').toLowerCase().includes(busqueda.toLowerCase())
+  );
+  const totalPaginas = Math.max(1, Math.ceil(usuariosFiltrados.length / POR_PAGINA));
+  const paginaSegura = Math.min(pagina, totalPaginas);
+  const usuariosPagina = usuariosFiltrados.slice((paginaSegura - 1) * POR_PAGINA, paginaSegura * POR_PAGINA);
+
   return (
     <div className="p-6 h-full flex flex-col">
       <div className="flex justify-between items-center mb-6">
@@ -210,6 +218,18 @@ export default function UsuariosModulo() {
         >
           <Plus size={20} /> Nuevo Usuario
         </button>
+      </div>
+
+      {/* Barra de búsqueda */}
+      <div className="mb-4 relative w-80">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+        <input
+          type="text"
+          placeholder="Buscar por nombre, correo o cargo..."
+          value={busqueda}
+          onChange={(e) => { setBusqueda(e.target.value); setPagina(1); }}
+          className="w-full pl-9 pr-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-erp-orange outline-none text-sm"
+        />
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 flex-1 overflow-hidden flex flex-col">
@@ -225,7 +245,7 @@ export default function UsuariosModulo() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {usuarios.map(u => (
+              {usuariosPagina.map(u => (
                 <tr key={u.id_usuario} className="hover:bg-orange-50/50 transition-colors group">
                   <td className="px-6 py-4 font-bold text-gray-800">{u.username}</td>
                   <td className="px-6 py-4 text-gray-600 font-medium">{u.email}</td>
@@ -260,16 +280,50 @@ export default function UsuariosModulo() {
                   </td>
                 </tr>
               ))}
-              {usuarios.length === 0 && (
+              {usuariosPagina.length === 0 && (
                 <tr>
                   <td colSpan="5" className="px-6 py-12 text-center text-gray-400 font-medium">
-                    No hay usuarios registrados.
+                    {busqueda ? 'No se encontraron usuarios con esa búsqueda.' : 'No hay usuarios registrados.'}
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
+
+        {/* Paginación */}
+        {totalPaginas > 1 && (
+          <div className="border-t border-gray-100 px-6 py-3 flex items-center justify-between bg-gray-50/50">
+            <span className="text-xs text-gray-500 font-medium">
+              Mostrando {(paginaSegura - 1) * POR_PAGINA + 1}–{Math.min(paginaSegura * POR_PAGINA, usuariosFiltrados.length)} de {usuariosFiltrados.length} usuarios
+            </span>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setPagina(p => Math.max(1, p - 1))}
+                disabled={paginaSegura === 1}
+                className="px-3 py-1.5 rounded-lg text-xs font-bold text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                ← Anterior
+              </button>
+              {Array.from({ length: totalPaginas }, (_, i) => i + 1).map(n => (
+                <button
+                  key={n}
+                  onClick={() => setPagina(n)}
+                  className={`w-8 h-8 rounded-lg text-xs font-bold transition-colors ${n === paginaSegura ? 'bg-erp-orange text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100'}`}
+                >
+                  {n}
+                </button>
+              ))}
+              <button
+                onClick={() => setPagina(p => Math.min(totalPaginas, p + 1))}
+                disabled={paginaSegura === totalPaginas}
+                className="px-3 py-1.5 rounded-lg text-xs font-bold text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                Siguiente →
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Modal resetear contraseña */}
@@ -291,11 +345,10 @@ export default function UsuariosModulo() {
 
             <div className="p-6 space-y-4">
               {resetMsg && (
-                <div className={`p-3 rounded-lg text-sm font-semibold ${
-                  resetMsg.tipo === 'ok'
-                    ? 'bg-green-50 border border-green-200 text-green-700'
-                    : 'bg-red-50 border border-red-200 text-red-700'
-                }`}>
+                <div className={`p-3 rounded-lg text-sm font-semibold ${resetMsg.tipo === 'ok'
+                  ? 'bg-green-50 border border-green-200 text-green-700'
+                  : 'bg-red-50 border border-red-200 text-red-700'
+                  }`}>
                   {resetMsg.text}
                 </div>
               )}
@@ -364,10 +417,6 @@ export default function UsuariosModulo() {
                 <div>
                   <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-2">Teléfono</label>
                   <input type="text" value={formData.telefono} onChange={e => setFormData({ ...formData, telefono: e.target.value })} className="w-full bg-gray-50 border-transparent rounded-xl px-4 py-3 focus:bg-white focus:border-erp-orange focus:ring-2 focus:ring-orange-200 outline-none transition-all font-medium text-gray-800" placeholder="09XX XXX XXX" />
-                </div>
-                <div>
-                  <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-2">Dirección</label>
-                  <input type="text" value={formData.direccion} onChange={e => setFormData({ ...formData, direccion: e.target.value })} className="w-full bg-gray-50 border-transparent rounded-xl px-4 py-3 focus:bg-white focus:border-erp-orange focus:ring-2 focus:ring-orange-200 outline-none transition-all font-medium text-gray-800" placeholder="Ciudad, Calle" />
                 </div>
                 <div>
                   <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-2">Cargo *</label>

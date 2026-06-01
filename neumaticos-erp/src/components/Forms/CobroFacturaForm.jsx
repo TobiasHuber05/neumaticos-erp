@@ -77,14 +77,14 @@ const CobroFacturaForm = ({
 
   return (
     <div className="bg-white rounded-xl shadow-2xl border border-orange-100 max-w-lg w-full">
-      <div className="bg-green-600 p-4 flex justify-between items-center rounded-t-xl">
+      <div className="bg-orange-600 p-4 flex justify-between items-center rounded-t-xl">
         <div>
           <h3 className="text-white font-bold">Registrar cobro</h3>
           <p className="text-white/90 text-xs">
             {clienteNombre} — Factura {factura.numero}
           </p>
         </div>
-        <button type="button" onClick={onCancelar} className="text-white hover:bg-green-700 rounded-full p-1">
+        <button type="button" onClick={onCancelar} className="text-white hover:bg-orange-600 rounded-full p-1">
           <X size={22} />
         </button>
       </div>
@@ -97,7 +97,7 @@ const CobroFacturaForm = ({
         <div className="bg-gray-50 rounded-lg p-3 border border-gray-200 text-sm">
           <p className="flex justify-between">
             <span>Saldo a cobrar:</span>
-            <span className="font-black text-green-700">Gs. {saldo.toLocaleString('de-DE')}</span>
+            <span className="font-black text-orange-700">Gs. {saldo.toLocaleString('de-DE')}</span>
           </p>
         </div>
 
@@ -131,7 +131,7 @@ const CobroFacturaForm = ({
               onClick={() =>
                 setMedios((prev) => [...prev, { medio: mediosOpciones[0] ?? 'Efectivo', monto: '', id_cuenta: '' }])
               }
-              className="text-[10px] font-bold text-green-700 hover:underline"
+              className="text-[10px] font-bold text-orange-700 hover:underline"
             >
               + Agregar medio
             </button>
@@ -206,7 +206,7 @@ const CobroFacturaForm = ({
         <button
           type="button"
           onClick={handleGuardar}
-          className="px-4 py-2 rounded-lg bg-green-600 text-white font-bold flex items-center gap-2"
+          className="px-4 py-2 rounded-lg bg-orange-600 text-white font-bold flex items-center gap-2"
         >
           <Banknote size={18} /> Confirmar cobro
         </button>

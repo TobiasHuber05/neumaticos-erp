@@ -11,7 +11,7 @@ function getHeaders() {
     };
 }
 
-export function useTesoreria() {
+export function useTesoreria(enabled = true) {
     const [cuentas, setCuentas] = useState([]);
     const [bancos, setBancos] = useState([]);
     const [monedas, setMonedas] = useState([]);
@@ -53,6 +53,7 @@ export function useTesoreria() {
     }, []);
 
     useEffect(() => {
+        if (!enabled) return;
         fetchBancos();
         fetchMonedas();
         fetchCuentas();

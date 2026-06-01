@@ -7,7 +7,7 @@ const getHeaders = () => ({
   Authorization: `Bearer ${localStorage.getItem('token')}`,
 });
 
-export const useServicios = () => {
+export const useServicios = (enabled = true) => {
   const [servicios, setServicios] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -28,6 +28,7 @@ export const useServicios = () => {
   }, []);
 
   useEffect(() => {
+    if (!enabled) return;
     fetchServicios();
   }, [fetchServicios]);
 

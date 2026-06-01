@@ -16,7 +16,7 @@ function headers() {
   };
 }
 
-export function useProveedores() {
+export function useProveedores(enabled = true) {
   const [proveedores, setProveedores] = useState([]);
   const [categorias, setCategorias] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -48,6 +48,7 @@ export function useProveedores() {
   }, []);
 
   useEffect(() => {
+    if (!enabled) return;
     fetchProveedores();
     fetchCategorias();
   }, [fetchProveedores, fetchCategorias]);

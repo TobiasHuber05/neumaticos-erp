@@ -12,6 +12,32 @@ export const MODULOS_SISTEMA = [
   { id: 'personal', label: 'Funcionarios / Personal' },
 ];
 
+/**
+ * Permisos especiales (no son módulos, son capacidades dentro de módulos).
+ * Se almacenan en usuario.permisos bajo una clave especial.
+ */
+export const PERMISOS_ESPECIALES = [
+  { id: 'verPreciosCompra', label: 'Ver precios de compra de productos' },
+];
+
+/**
+ * Cargos que tienen acceso a precios de compra por defecto.
+ * Admin, Gerente General, Contador, y roles de Compras lo ven siempre.
+ */
+export const tienePreciosCompraBaseCargo = (cargoNombre) => {
+  const c = normalizarCargo(cargoNombre);
+  if (!c) return false;
+  if (c === 'ADMIN' || (c.includes('GERENTE') && c.includes('GENERAL'))) return true;
+  if (c.includes('CONTADOR')) return true;
+  if (
+    c.includes('COMPRAS') ||
+    (c.includes('JEFE') && c.includes('COMPRA')) ||
+    c === 'ENCARGADO' ||
+    (c.includes('ENCARGADO') && c.includes('COMPRA'))
+  ) return true;
+  return false;
+};
+
 const IDS_MODULOS = MODULOS_SISTEMA.map((m) => m.id);
 
 export const normalizarCargo = (nombre) =>
@@ -83,11 +109,18 @@ export const getModulosAdicionalesDisponibles = (cargoNombre) => {
 export const esModuloDelCargo = (cargoNombre, moduloId) =>
   Boolean(getPermisosBaseCargo(cargoNombre)[moduloId]);
 
-/** Solo guarda permisos de módulos que no son del cargo. */
+/** Solo guarda permisos de módulos que no son del cargo, y permisos especiales booleanos. */
 export const filtrarPermisosExtra = (permisos, cargoNombre) => {
   const base = getPermisosBaseCargo(cargoNombre);
+  const idsEspeciales = new Set(PERMISOS_ESPECIALES.map((p) => p.id));
   const extra = {};
   for (const [moduloId, regla] of Object.entries(permisos || {})) {
+    // Permisos especiales (booleanos): preservar si están activos
+    if (idsEspeciales.has(moduloId)) {
+      if (regla) extra[moduloId] = true;
+      continue;
+    }
+    // Módulos: omitir los que ya vienen del cargo
     if (base[moduloId]) continue;
     if (regla?.ver || regla?.editar) {
       extra[moduloId] = {

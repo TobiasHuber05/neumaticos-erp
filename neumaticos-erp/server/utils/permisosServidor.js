@@ -1,5 +1,29 @@
 export const MODULOS_SISTEMA = ['compras', 'ventas', 'tesoreria', 'contabilidad', 'stock', 'personal'];
 
+/**
+ * Cargos que pueden ver precios de compra por defecto (sin permiso extra).
+ */
+const tienePreciosCompraBaseCargo = (cargoNombre) => {
+  const c = normalizarCargo(cargoNombre);
+  if (!c) return false;
+  if (c === 'ADMIN' || (c.includes('GERENTE') && c.includes('GENERAL'))) return true;
+  if (c.includes('CONTADOR')) return true;
+  if (
+    c.includes('COMPRAS') ||
+    (c.includes('JEFE') && c.includes('COMPRA')) ||
+    c === 'ENCARGADO' ||
+    (c.includes('ENCARGADO') && c.includes('COMPRA'))
+  ) return true;
+  return false;
+};
+
+export const puedeVerPreciosCompra = (usuario) => {
+  const rol = usuario?.rol_empresa || usuario?.rol || '';
+  if (esAdminOGerente(rol)) return true;
+  if (tienePreciosCompraBaseCargo(rol)) return true;
+  return Boolean(usuario?.permisos?.verPreciosCompra);
+};
+
 export const normalizarCargo = (nombre) =>
   (nombre || '')
     .normalize('NFD')

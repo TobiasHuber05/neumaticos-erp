@@ -19,7 +19,7 @@ function formatPrecioGs(valor) {
   return n.toLocaleString('de-DE');
 }
 
-export function useProductos() {
+export function useProductos(enabled = true) {
   const [inventario, setInventario] = useState([]);
   const [categorias, setCategorias] = useState([]);
   const [marcas, setMarcas] = useState([]);
@@ -67,6 +67,7 @@ export function useProductos() {
   }, []);
 
   useEffect(() => {
+    if (!enabled) return;
     fetchData();
   }, [fetchData]);
 

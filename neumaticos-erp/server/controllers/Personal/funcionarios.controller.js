@@ -129,7 +129,6 @@ export const createFuncionario = async (req, res) => {
 
             // 5. Crear familiares
             for (const fam of familiares) {
-                // Crear persona del familiar
                 const personaFam = await tx.personas.create({
                     data: {
                         nombre: fam.nombre || null,
@@ -138,7 +137,6 @@ export const createFuncionario = async (req, res) => {
                         tipo_persona: 'FAMILIAR'
                     }
                 });
-                // Crear familiar vinculado
                 await tx.familiares.create({
                     data: {
                         id_funcionario: funcionario.id_funcionario,
@@ -149,6 +147,13 @@ export const createFuncionario = async (req, res) => {
                 });
             }
 
+            // 6. Crear usuario vinculado automáticamente
+            await tx.usuarios.create({
+                data: {
+                    id_funcionario: funcionario.id_funcionario,
+                    username: `${nombre} ${apellido}`.trim(),
+                }
+            });
             return funcionario;
         });
 
@@ -348,7 +353,7 @@ export const addConceptoFuncionario = async (req, res) => {
                 nombre,
                 descripcion: descripcion || null,
                 credito: tipo === 'Ingreso' ? Number(monto) : null,
-                debito:  tipo === 'Egreso'  ? Number(monto) : null,
+                debito: tipo === 'Egreso' ? Number(monto) : null,
                 afecta_ips: Boolean(afecta_ips),
                 formula: recurrente ? 'recurrente' : null,
             }

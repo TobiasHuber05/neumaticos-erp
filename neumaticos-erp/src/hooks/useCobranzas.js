@@ -10,7 +10,7 @@ function getHeaders() {
   };
 }
 
-export function useCobranzas() {
+export function useCobranzas(enabled = true) {
   const [cobranzas, setCobranzas] = useState([]);
   const [mediosCobro, setMediosCobro] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -42,6 +42,7 @@ export function useCobranzas() {
   }, []);
 
   useEffect(() => {
+    if (!enabled) return;
     fetchCobranzas();
     fetchFormasCobro();
   }, [fetchCobranzas, fetchFormasCobro]);

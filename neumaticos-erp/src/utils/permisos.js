@@ -4,9 +4,10 @@ import {
   esAdminOGerente,
   getPermisosBaseCargo,
   normalizarCargo,
+  tienePreciosCompraBaseCargo,
 } from './permisosCargos.js';
 
-export { MODULOS_SISTEMA, getPermisosBaseCargo, getModulosAdicionalesDisponibles, describirModulosCargo, filtrarPermisosExtra, esModuloDelCargo } from './permisosCargos.js';
+export { MODULOS_SISTEMA, PERMISOS_ESPECIALES, getPermisosBaseCargo, getModulosAdicionalesDisponibles, describirModulosCargo, filtrarPermisosExtra, esModuloDelCargo } from './permisosCargos.js';
 
 export const getUserPermisos = () => {
   const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -34,6 +35,14 @@ export const puedeVer = (moduloId) => {
   if (extra?.ver || extra?.editar) return true;
 
   return false;
+};
+
+/** ¿Puede ver los precios de compra de los productos? */
+export const puedeVerPreciosCompra = () => {
+  const { rol, permisos } = getUserPermisos();
+  if (esAdminOGerente(rol) || normalizarCargo(rol) === 'ADMIN') return true;
+  if (tienePreciosCompraBaseCargo(rol)) return true;
+  return Boolean(permisos?.verPreciosCompra);
 };
 
 /** ¿Puede crear / modificar / eliminar? (cargo fijo + extra con editar) */

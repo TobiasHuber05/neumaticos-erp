@@ -71,8 +71,8 @@ function getHeaders() {
 
 function Dashboard() {
   // ── Hooks de API ─────────────────────────────────────────
-  const { proveedores } = useProveedores();
-  const { inventario, categorias, marcas, eliminarProducto, refetch: refetchProductos } = useProductos();
+  const { proveedores } = useProveedores(puedeVer('compras'));
+  const { inventario, categorias, marcas, eliminarProducto, refetch: refetchProductos } = useProductos(puedeVer('stock') || puedeVer('compras') || puedeVer('ventas'));
   const productosBajoMinimo = () =>
     inventario.filter((p) => !p.esServicio && Number(p.stock) <= Number(p.min));
 
@@ -84,7 +84,7 @@ function Dashboard() {
     actualizarCotizacionProveedor,
     adjudicarYGenerarOrdenes,
     refetch: refetchCotizaciones,
-  } = useCotizaciones();
+  } = useCotizaciones(puedeVer('compras'));
 
   const {
     ordenesCompra,
@@ -92,13 +92,13 @@ function Dashboard() {
     registrarFacturaYStock,
     refetch: refetchOrdenes,
     refetchFacturas,
-  } = useOrdenesCompra();
+  } = useOrdenesCompra(puedeVer('compras'));
 
   const {
     ordenesPagoProveedores,
     mediosPago,
     registrarOrdenPago,
-  } = usePagosProveedores();
+  } = usePagosProveedores(puedeVer('compras'));
 
   const {
     cuentas,
@@ -106,7 +106,7 @@ function Dashboard() {
     monedas,
     registrarCuenta,
     refetchCuentas
-  } = useTesoreria();
+  } = useTesoreria(puedeVer('tesoreria'));
 
   const {
     movimientos,
@@ -114,7 +114,7 @@ function Dashboard() {
     registrarMovimiento,
     getEstadisticasTesoreria,
     confirmarMovimientos
-  } = useMovimientosBancarios();
+  } = useMovimientosBancarios(puedeVer('tesoreria'));
 
   const {
     conciliaciones,
@@ -123,9 +123,9 @@ function Dashboard() {
     finalizarConciliacion,
     getConciliacionById,
     refetch: refetchConciliaciones
-  } = useConciliaciones();
+  } = useConciliaciones(puedeVer('tesoreria'));
 
-  const { mediosCobro, registrarCobro } = useCobranzas();
+  const { mediosCobro, registrarCobro } = useCobranzas(puedeVer('ventas'));
 
   // ── Estado local de pedidos (con API) ────────────────────
   const [pedidos, setPedidos] = useState([]);
@@ -135,10 +135,12 @@ function Dashboard() {
   const [mostrarFormCuenta, setMostrarFormCuenta] = useState(false);
 
   const fetchPedidos = async () => {
+    if (!puedeVer('compras')) return;
     try {
       const res = await fetch(`${API_PEDIDOS}/pedidos`, { headers: getHeaders() });
+      if (!res.ok) return;
       const data = await res.json();
-      setPedidos(data);
+      setPedidos(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Error al cargar pedidos:', err);
     }
@@ -146,7 +148,7 @@ function Dashboard() {
 
   useEffect(() => { fetchPedidos(); }, []);
 
-  const compras = useModuloCompras();
+  const compras = useModuloCompras(puedeVer('compras'));
   const {
     notasDevolucion,
     notasCreditoProveedor,
@@ -154,8 +156,8 @@ function Dashboard() {
     registrarNotaCreditoProveedor,
   } = compras;
 
-  const moduloVentas = useModuloVentas();
-  const { servicios, actions: actionsServicios } = useServicios();
+  const moduloVentas = useModuloVentas(puedeVer('ventas'));
+  const { servicios, actions: actionsServicios } = useServicios(puedeVer('stock') || puedeVer('ventas'));
 
   const proveedoresMaestro = useMemo(
     () => proveedores.map((p) => ({ id: p.id, nombre: p.nombre })),
@@ -354,7 +356,7 @@ function Dashboard() {
 
       case 'cotizaciones':
         return (
-        <Cotizaciones
+          <Cotizaciones
             pedidos={pedidos}
             proveedores={proveedores}
             pedidosCotizacion={pedidosCotizacion}
