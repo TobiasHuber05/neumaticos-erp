@@ -186,10 +186,12 @@ const ModalRecibo = ({ liq, proceso, onClose }) => {
 };
 
 // ── Componente principal ─────────────────────────────────────────
-const NominaProceso = ({ personal }) => {
+const NominaProceso = ({ personal, cuentas = [] }) => {
   const { procesosPago, actions, config } = personal;
   const [showConfirm, setShowConfirm]   = useState(false);
   const [reciboLiq,   setReciboLiq]     = useState(null);
+  const [cuentaId,    setCuentaId]      = useState('');
+  const [saldoError,  setSaldoError]    = useState('');
 
   const mesActual        = new Date().toISOString().slice(0, 7);
   const procesoMesActual = procesosPago.find(p => p.periodo === mesActual);
@@ -327,24 +329,62 @@ const NominaProceso = ({ personal }) => {
               </div>
               <h2 className="text-2xl font-black text-gray-800 uppercase tracking-tighter">¿Cerrar Nómina?</h2>
               <p className="text-gray-500 font-medium">
-                Al cerrar el proceso se generará el asiento contable de "Pago de Salarios" y los
-                recibos quedarán disponibles para impresión.
+                Al cerrar el proceso se generará el asiento contable de “Pago de Salarios” y se
+                registrará el egreso en la cuenta bancaria seleccionada.
                 <span className="block mt-2 font-bold text-erp-orange underline">Esta acción no se puede deshacer.</span>
               </p>
+
+               {/* Selector de cuenta bancaria */}
+               <div className="text-left space-y-2">
+                 <label className="block text-xs font-black text-gray-500 uppercase tracking-wider">
+                   Cuenta bancaria para el pago <span className="text-red-500">*</span>
+                 </label>
+                 <select
+                   value={cuentaId}
+                   onChange={(e) => setCuentaId(e.target.value)}
+                   className="w-full p-3 border-2 border-gray-100 rounded-xl focus:border-erp-orange outline-none text-sm font-medium bg-white"
+                 >
+                   <option value="">Seleccionar cuenta...</option>
+                   {cuentas.map((cta) => (
+                     <option key={cta.id_cuenta} value={cta.id_cuenta}>
+                       {cta.banco} — Cta. Nº {cta.numero_cuenta}
+                       {cta.saldo != null ? ` (Gs. ${Number(cta.saldo).toLocaleString('de-DE')})` : ''}
+                     </option>
+                   ))}
+                 </select>
+                 {!cuentaId && (
+                   <p className="text-[10px] text-amber-600 font-bold">⚠️ Debes seleccionar una cuenta para continuar.</p>
+                 )}
+                 {saldoError && (
+                   <p className="text-[10px] text-red-600 font-bold mt-1">❌ {saldoError}</p>
+                 )}
+               </div>
             </div>
             <div className="p-6 bg-gray-50 flex gap-3">
-              <button onClick={() => setShowConfirm(false)}
+              <button onClick={() => { setShowConfirm(false); setCuentaId(''); }}
                 className="flex-1 py-4 rounded-2xl font-bold text-gray-500 hover:bg-gray-100 transition-colors">
                 Volver
               </button>
-              <button
-                onClick={async () => {
-                  await actions.cerrarProcesoPago(currentProceso.id);
-                  setShowConfirm(false);
-                }}
-                className="flex-1 py-4 bg-erp-orange text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-orange-600 transition-colors shadow-lg shadow-orange-200">
-                Confirmar Cierre
-              </button>
+<button
+  disabled={!cuentaId}
+  onClick={async () => {
+    try {
+      await actions.cerrarProcesoPago(currentProceso.id, Number(cuentaId));
+      setShowConfirm(false);
+      setCuentaId('');
+      setSaldoError('');
+    } catch (err) {
+      const errorMsg = err?.response?.data?.error || 'Error al cerrar proceso';
+      if (errorMsg.includes('Saldo insuficiente')) {
+        setSaldoError(errorMsg);
+      } else {
+        alert(errorMsg);
+      }
+    }
+  }}
+  className="flex-1 py-4 bg-erp-orange text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-orange-600 transition-colors shadow-lg shadow-orange-200 disabled:opacity-40 disabled:cursor-not-allowed">
+  Confirmar Cierre
+</button>
             </div>
           </div>
         </div>

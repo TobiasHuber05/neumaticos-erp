@@ -266,7 +266,19 @@ export const getProcesoById = async (req, res) => {
 // POST /api/salarios/procesos/:id/cerrar  — cierra el proceso de pago
 export const cerrarProceso = async (req, res) => {
   const { id } = req.params;
+  const { id_cuenta } = req.body; // cuenta bancaria desde donde se paga la nómina
+  if (!id_cuenta) {
+    return res.status(400).json({ error: 'Debes seleccionar la cuenta bancaria desde la cual se realiza el pago de nómina' });
+  }
+
   try {
+    const cuenta = await prisma.cuenta_bancaria.findUnique({
+      where: { id_cuenta: Number(id_cuenta) }
+    });
+    if (!cuenta) {
+      return res.status(404).json({ error: 'La cuenta bancaria seleccionada no existe' });
+    }
+
     const proceso = await prisma.cabecera_pago.findUnique({
       where: { id_pago: Number(id) }
     });
@@ -275,10 +287,71 @@ export const cerrarProceso = async (req, res) => {
       return res.status(400).json({ error: 'El proceso ya está cerrado' });
     }
 
+    // NUEVO: Obtener proceso completo para cálculos
+    const procesoFull = await prisma.cabecera_pago.findUnique({
+      where: { id_pago: Number(id) },
+      include: { sueldos: { include: { conceptos: true } } }
+    });
+
+    // NUEVO: Calcular total neto a pagar (estilo tesorería)
+    let totalNetoPago = 0;
+    procesoFull.sueldos.forEach(sueldo => {
+      const ingresos = sueldo.conceptos
+        .filter(c => c.credito !== null)
+        .reduce((s, c) => s + Number(c.credito ?? 0), 0);
+      const egresos = sueldo.conceptos
+        .filter(c => c.debito !== null)
+        .reduce((s, c) => s + Number(c.debito ?? 0), 0);
+      totalNetoPago += (ingresos - egresos);
+    });
+
+    // NUEVO: Verificar saldo disponible en la cuenta
+    if (cuenta.saldo_disponible === null || cuenta.saldo_disponible < totalNetoPago) {
+      return res.status(400).json({ 
+        error: 'Saldo insuficiente en la cuenta', 
+        detalle: `Saldo disponible: ${cuenta.saldo_disponible ?? 0}, Requerido: ${totalNetoPago}` 
+    });
+    }
+
     const actualizado = await prisma.cabecera_pago.update({
       where: { id_pago: Number(id) },
-      data: { estado: 'pagado' }
+      data: { estado: 'pagado', id_movimiento: null } // se actualizará con el movimiento
     });
+
+    // --- INTEGRACIÓN CON TESORERÍA: crear movimiento bancario de egreso ---
+    let movimientoCreado = null;
+    try {
+      // Usar procesoFull y totalNetoPago ya calculados
+      // Crear el movimiento bancario de débito (egreso) por el total neto
+      const movimiento = await prisma.movimiento_bancario.create({
+        data: {
+          id_cuenta: Number(id_cuenta),
+          monto_ingreso: 0,
+          monto_egreso: Math.abs(totalNetoPago),
+          fecha_movimiento: new Date(),
+          fecha_confirmacion: new Date(), // pago de nómina se confirma inmediatamente
+          tipo_movimiento: 'Débito',
+          concepto: `Pago Nómina - Periodo ${procesoFull.periodo}`,
+          tipo_deposito: 'Transferencia',
+        }
+      });
+
+      // Vincular el movimiento a la cabecera de pago
+      await prisma.cabecera_pago.update({
+        where: { id_pago: Number(id) },
+        data: { id_movimiento: movimiento.id_movimiento }
+      });
+
+      movimientoCreado = {
+        id: movimiento.id_movimiento,
+        concepto: movimiento.concepto,
+        montoEgreso: movimiento.monto_egreso
+      };
+    } catch (tesoreriaErr) {
+      console.error('Error al crear movimiento bancario de nómina:', tesoreriaErr);
+      // Continuamos con el proceso aunque falle el movimiento bancario
+      // pero anotamos que no se pudo crear
+    }
 
     // --- INTEGRACIÓN CONTABLE ---
     try {
@@ -302,6 +375,9 @@ export const cerrarProceso = async (req, res) => {
       });
       totalNeto = (totalSueldos + totalBonif) - totalIPS;
 
+      // Generar código contable para la cuenta bancaria si no existe
+      const cuentaContableCodigo = `BCTA_${cuenta.numero_cuenta?.replace(/\s+/g, '_') || cuenta.id_cuenta}`;
+      
       await registrarAsientoAutomatico({
         fecha: new Date(),
         descripcion: `Pago de Haberes - Periodo ${procesoFull.periodo}`,
@@ -311,14 +387,18 @@ export const cerrarProceso = async (req, res) => {
           { cuenta_codigo: 'SYS-NOM-SUELDOS', monto: totalSueldos, debe_haber: true, glosa: 'Sueldos y Jornales' },
           ...(totalBonif > 0 ? [{ cuenta_codigo: 'SYS-NOM-BONIF', monto: totalBonif, debe_haber: true, glosa: 'Bonificación Familiar' }] : []),
           { cuenta_codigo: 'SYS-NOM-IPS', monto: totalIPS, debe_haber: false, glosa: 'Aportes IPS a Pagar' },
-          { cuenta_codigo: 'SYS-NOM-CAJA', monto: totalNeto, debe_haber: false, glosa: 'Pago Neto de Salarios' }
+          { cuenta_codigo: cuentaContableCodigo, monto: totalNeto, debe_haber: false, glosa: `Pago Neto de Salarios - ${cuenta.banco} Cta. Nº ${cuenta.numero_cuenta}` }
         ]
       });
     } catch (err) {
       console.error('Error en integración contable de nómina:', err);
     }
 
-    res.json({ ok: true, estado: actualizado.estado });
+    res.json({ 
+      ok: true, 
+      estado: actualizado.estado,
+      movimientoCreado 
+    });
   } catch (error) {
     res.status(500).json({ error: 'Error al cerrar proceso' });
   }

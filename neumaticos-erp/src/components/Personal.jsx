@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Users, ClipboardList, TrendingUp, CreditCard, UserPlus, Calculator, Banknote } from 'lucide-react';
 import { useModuloPersonal } from '../hooks/useModuloPersonal';
 
@@ -14,6 +14,17 @@ const Personal = ({ defaultTab }) => {
   const { kpis } = personal;
 
   const [tab, setTab] = useState(defaultTab || 'funcionarios');
+  const [cuentas, setCuentas] = useState([]);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    fetch('http://localhost:3000/api/tesoreria/cuentas', {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(r => r.ok ? r.json() : [])
+      .then(data => setCuentas(Array.isArray(data) ? data : []))
+      .catch(() => {});
+  }, []);
 
   const tabs = [
     { id: 'funcionarios', label: 'Funcionarios', icon: Users, count: personal.funcionarios.length },
@@ -25,7 +36,7 @@ const Personal = ({ defaultTab }) => {
   const renderContent = () => {
     switch (tab) {
       case 'funcionarios': return <FuncionariosMaestro personal={personal} />;
-      case 'nomina': return <NominaProceso personal={personal} />;
+      case 'nomina': return <NominaProceso personal={personal} cuentas={cuentas} />;
       case 'asientos': return <AsientosPersonal personal={personal} />;
       case 'conceptos': return <ConceptosSalariales personal={personal} />;
       default: return <FuncionariosMaestro personal={personal} />;

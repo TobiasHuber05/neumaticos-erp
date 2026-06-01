@@ -182,10 +182,10 @@ export const useModuloPersonal = () => {
     }
   }, [cargarDatos]);
 
-  const cerrarProcesoPago = useCallback(async (procesoId) => {
+  const cerrarProcesoPago = useCallback(async (procesoId, id_cuenta) => {
     try {
-      // 1. Cerrar el proceso en la BD
-      await axios.post(`${API}/salarios/procesos/${procesoId}/cerrar`);
+      // 1. Cerrar el proceso en la BD (enviando la cuenta bancaria)
+      await axios.post(`${API}/salarios/procesos/${procesoId}/cerrar`, { id_cuenta });
 
       // 2. Tomar los datos del proceso para construir el asiento
       const proceso = procesosPago.find(p => p.id === procesoId);

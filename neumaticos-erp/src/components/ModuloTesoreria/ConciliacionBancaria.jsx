@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { CheckCircle, Info, ArrowLeft } from 'lucide-react';
+import { CheckCircle, Info, ArrowLeft, Landmark } from 'lucide-react';
 import { calcularSaldosDeCuenta } from '../../utils/tesoreriasLogis';
 import { puedeEditar } from '../../utils/permisos';
 
@@ -43,9 +43,12 @@ const ConciliacionBancaria = ({
     return movimientos.filter((m) => m.id_cuenta === Number(cuentaId));
   }, [movimientos, cuentaId]);
 
-  /** Movimientos sin confirmar: cheques emitidos, depósitos pendientes, etc. */
+  // Helper para identificar cheques
+  const esCheque = (m) => m.tipo_deposito?.toLowerCase().includes('cheque');
+
+  /** Cheques sin confirmar (pendientes de conciliación) */
   const movimientosPendientes = useMemo(
-    () => movimientosCuenta.filter((m) => !m.fecha_confirmacion),
+    () => movimientosCuenta.filter((m) => !m.fecha_confirmacion && esCheque(m)),
     [movimientosCuenta],
   );
 
@@ -158,6 +161,16 @@ const ConciliacionBancaria = ({
     setConciliacionActiva(c);
   };
 
+  const obtenerChequesPendientesCuenta = (idCuenta) => {
+    return movimientos.filter(
+      (m) => m.id_cuenta === idCuenta && !m.fecha_confirmacion && esCheque(m)
+    );
+  };
+
+  const obtenerConciliacionPendiente = (idCuenta) => {
+    return conciliaciones.find((c) => c.id_cuenta === idCuenta && c.estado === 'Pendiente');
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
@@ -179,10 +192,95 @@ const ConciliacionBancaria = ({
       </div>
 
       {!conciliacionActiva ? (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100 bg-gray-50">
-            <span className="font-bold text-gray-700">Últimas conciliaciones</span>
+        <div className="space-y-8">
+          {/* Cuentas con cheques pendientes */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-100 bg-gray-50">
+              <span className="font-bold text-gray-700">Cuentas con cheques pendientes de conciliar</span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 text-gray-500 text-xs uppercase font-black">
+                  <tr>
+                    <th className="px-6 py-4 text-left">Banco / Cuenta</th>
+                    <th className="px-6 py-4 text-center">Cheques Pendientes</th>
+                    <th className="px-6 py-4 text-center">Estado Conciliación</th>
+                    <th className="px-6 py-4 text-right">Acción</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {cuentas
+                    .map((cta) => {
+                      const chequesPendientes = obtenerChequesPendientesCuenta(cta.id_cuenta);
+                      const concPendiente = obtenerConciliacionPendiente(cta.id_cuenta);
+                      return { cta, chequesPendientes, concPendiente };
+                    })
+                    .filter(({ chequesPendientes, concPendiente }) => chequesPendientes.length > 0 || concPendiente)
+                    .map(({ cta, chequesPendientes, concPendiente }) => (
+                      <tr key={cta.id_cuenta} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-6 py-4">
+                          <div className="font-bold text-gray-800">{nombreBancoCuenta(cta)}</div>
+                          <div className="text-xs text-gray-500">Cta. Nº {cta.numero_cuenta}</div>
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <span className="px-3 py-1 bg-amber-100 text-amber-700 border border-amber-200 rounded-full font-black text-xs">
+                            {chequesPendientes.length} pendientes
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          {concPendiente ? (
+                            <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-orange-100 text-orange-700 border border-orange-200">
+                              Borrador pendiente
+                            </span>
+                          ) : (
+                            <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-gray-100 text-gray-600 border border-gray-200">
+                              Sin iniciar
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          {concPendiente ? (
+                            <button
+                              type="button"
+                              onClick={() => reanudarConciliacion(concPendiente)}
+                              className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-xs font-black rounded-xl shadow-md transition-all uppercase tracking-wider"
+                            >
+                              Reanudar
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setCuentaId(String(cta.id_cuenta));
+                                setSaldoBanco('');
+                                setDescripcion(`Conciliación ${new Date().toLocaleDateString()}`);
+                                setShowModalNueva(true);
+                              }}
+                              className="px-4 py-2 bg-erp-orange hover:bg-orange-600 text-white text-xs font-black rounded-xl shadow-md transition-all uppercase tracking-wider"
+                            >
+                              Conciliar
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  {!cuentas.some((cta) => obtenerChequesPendientesCuenta(cta.id_cuenta).length > 0 || obtenerConciliacionPendiente(cta.id_cuenta)) && (
+                    <tr>
+                      <td colSpan={4} className="px-6 py-12 text-center text-gray-400 italic">
+                        No hay cuentas con cheques pendientes de conciliar. Todas las cuentas están al día.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
+
+          {/* Historial de Conciliaciones */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-100 bg-gray-50">
+              <span className="font-bold text-gray-700">Historial de conciliaciones</span>
+            </div>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50 text-gray-500 text-xs uppercase font-black">
@@ -239,6 +337,7 @@ const ConciliacionBancaria = ({
             </table>
           </div>
         </div>
+      </div>
       ) : (
         <div className="space-y-6">
           <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 text-sm text-blue-900">
@@ -320,7 +419,7 @@ const ConciliacionBancaria = ({
                   <ArrowLeft size={18} />
                 </button>
                 <span className="font-bold text-gray-700 uppercase text-xs">
-                  Movimientos pendientes de confirmación ({movimientosPendientes.length})
+                  Cheques pendientes de conciliación ({movimientosPendientes.length})
                 </span>
               </div>
               <div className="flex gap-2">
@@ -343,7 +442,20 @@ const ConciliacionBancaria = ({
               <table className="w-full">
                 <thead className="bg-gray-50 text-gray-400 text-[10px] uppercase font-black">
                   <tr>
-                    <th className="px-6 py-4 w-10" />
+                    <th className="px-6 py-4 w-10 text-center">
+                      <input
+                        type="checkbox"
+                        checked={movimientosPendientes.length > 0 && seleccionados.length === movimientosPendientes.length}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSeleccionados(movimientosPendientes.map((m) => m.id_movimiento));
+                          } else {
+                            setSeleccionados([]);
+                          }
+                        }}
+                        className="rounded border-gray-300 text-erp-orange focus:ring-erp-orange cursor-pointer w-4 h-4"
+                      />
+                    </th>
                     <th className="px-6 py-4 text-left">Fecha</th>
                     <th className="px-6 py-4 text-left">Concepto / Tipo</th>
                     <th className="px-6 py-4 text-right">Monto</th>
@@ -396,9 +508,7 @@ const ConciliacionBancaria = ({
                   {!movimientosPendientes.length && (
                     <tr>
                       <td colSpan={4} className="px-6 py-12 text-center text-gray-400">
-                        No hay movimientos pendientes en esta cuenta. Los ingresos por transferencia y
-                        efectivo ya están confirmados. Podés finalizar si el saldo de cierre coincide con
-                        los libros.
+                        No hay cheques pendientes de conciliación en esta cuenta. Podés finalizar la conciliación si el saldo coincide con los libros.
                       </td>
                     </tr>
                   )}
