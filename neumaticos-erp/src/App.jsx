@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { useEffect, useState } from 'react';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import ChangePassword from './pages/ChangePassword';
 
 const limpiarSesion = () => {
   localStorage.removeItem('token');
@@ -71,6 +72,12 @@ function App() {
         <Route 
           path="/login" 
           element={!authState.authenticated ? <Login /> : <Navigate to="/" />} 
+        />
+
+        {/* Ruta protegida para cambiar contraseña */}
+        <Route 
+          path="/change-password" 
+          element={authState.authenticated ? <ChangePassword /> : <Navigate to="/login" />} 
         />
 
         {/* Ruta Raíz (Protegida): 

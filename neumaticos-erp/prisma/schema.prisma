@@ -758,6 +758,20 @@ model usuarios {
   permisos       Json?
   funcionarios   funcionarios? @relation(fields: [id_funcionario], references: [id_funcionario], onDelete: NoAction, onUpdate: NoAction, map: "fk_usuariopermiso")
   cargos         cargos?       @relation(fields: [id_cargo], references: [id_cargo], onDelete: NoAction, onUpdate: NoAction, map: "fk_usuario_cargo")
+  resetTokens    reset_token[]
+}
+
+model reset_token {
+  id              Int       @id @default(autoincrement())
+  usuario_id      Int
+  token           String    @unique @db.VarChar(255)
+  expira_en       DateTime
+  usado           Boolean   @default(false)
+  creado_en       DateTime  @default(now())
+  usuario         usuarios  @relation(fields: [usuario_id], references: [id_usuario], onDelete: Cascade)
+
+  @@unique([usuario_id, token])
+  @@index([token])
 }
 
 model cheques_emitidos {

@@ -3,16 +3,14 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  
   "scripts": {
-  "server": "tsx watch server/index.js", 
-  "frontend": "vite",
-  "dev": "concurrently \"tsx watch server/index.js\" \"vite\"",
-  "build": "vite build",
-  "lint": "eslint .",
-  "preview": "vite preview"
-},
-
+    "server": "tsx watch server/index.js",
+    "frontend": "vite",
+    "dev": "concurrently \"tsx watch server/index.js\" \"vite\"",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
   "dependencies": {
     "@prisma/adapter-pg": "^7.7.0",
     "@tailwindcss/postcss": "^4.2.2",
@@ -25,6 +23,7 @@
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.7",
     "lucide-react": "^1.7.0",
+    "nodemailer": "^8.0.10",
     "pg": "^8.20.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",

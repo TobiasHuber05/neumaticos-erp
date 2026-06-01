@@ -19,8 +19,10 @@ import {
   BarChart2,
   FileText,
   Home,
+  Lock,
 } from 'lucide-react';
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { puedeVer, puedeAdministrarUsuarios } from '../utils/permisos';
 
 const Sidebar = ({ setModulo, moduloActual }) => {
@@ -356,7 +358,14 @@ const Sidebar = ({ setModulo, moduloActual }) => {
       </nav>
 
       {/* Salida */}
-      <div className="p-4 border-t border-orange-300">
+      <div className="p-4 border-t border-orange-300 space-y-2">
+        <Link
+          to="/change-password"
+          className="w-full flex items-center gap-4 px-6 py-3 text-orange-900 font-bold bg-blue-100 rounded-lg hover:bg-blue-400 hover:text-white transition-all text-xs uppercase"
+        >
+          <Lock size={18} />
+          Cambiar Contraseña
+        </Link>
         <button
           onClick={handleLogout}
           className="w-full flex items-center gap-4 px-6 py-3 text-orange-900 font-bold bg-orange-200 rounded-lg hover:bg-red-400 hover:text-white transition-all text-xs uppercase"
