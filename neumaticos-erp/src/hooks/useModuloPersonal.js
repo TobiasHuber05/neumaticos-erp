@@ -1,12 +1,17 @@
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { configuracionNominaInicial } from '../data/erpInitialPersonal.js';
 import * as personalLogic from '../utils/personalLogic.js';
 
 const API = 'http://localhost:3000/api';
 const api = axios.create({
   baseURL: API,
 });
+
+const configuracionNominaInicial = {
+  salarioMinimo: 2680373,
+  porcentajeIPS: 9,
+  porcentajeBonificacion: 5,
+};
 
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');

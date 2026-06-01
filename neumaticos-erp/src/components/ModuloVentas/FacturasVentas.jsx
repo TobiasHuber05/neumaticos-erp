@@ -50,7 +50,7 @@ const FacturasVentas = ({
   return (
     <div className="space-y-8">
       {msg && (
-        <div className="rounded-lg border border-green-200 bg-green-50 text-green-800 text-sm p-3 flex justify-between items-center">
+        <div className="rounded-lg border border-orange-200 bg-orange-50 text-orange-800 text-sm p-3 flex justify-between items-center">
           {msg}
           <button type="button" className="text-xs underline" onClick={() => setMsg(null)}>
             Cerrar
@@ -126,14 +126,14 @@ const FacturasVentas = ({
                   <p className="text-sm text-gray-500">Emitida el {facturaDetalle.fechaFactura}</p>
                 </div>
               </div>
-              <button 
+              <button
                 onClick={() => setFacturaDetalle(null)}
                 className="text-gray-400 hover:text-red-500 transition-colors"
               >
                 <X size={24} />
               </button>
             </div>
-            
+
             <div className="p-6 overflow-y-auto">
               <div className="mb-6 p-4 bg-orange-50 rounded-lg border border-orange-100 flex items-center gap-3">
                 <User className="text-erp-orange" />
@@ -161,7 +161,7 @@ const FacturasVentas = ({
                       const nombreProducto = (inventario.find(p => p.id_producto_servicio === linea.productoId) ||
                         servicios.find(s => s.id_producto_servicio === linea.productoId) ||
                         inventario.find(p => p.id === linea.productoId))?.nombre || 'Producto Desconocido';
-                      
+
                       return (
                         <tr key={idx} className="hover:bg-gray-50">
                           <td className="px-4 py-3 font-medium text-gray-800">{nombreProducto}</td>
@@ -181,7 +181,7 @@ const FacturasVentas = ({
                 </table>
               </div>
             </div>
-            
+
             <div className="p-6 border-t bg-gray-50 flex justify-end">
               <button
                 onClick={() => setFacturaDetalle(null)}
@@ -235,8 +235,8 @@ const FacturasVentas = ({
                     </td>
                     <td className="px-6 py-4 text-center">
                       <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase border ${f.estado === 'Emitida'
-                          ? 'bg-yellow-100 text-yellow-800 border-yellow-200'
-                          : 'bg-blue-100 text-blue-800 border-blue-200'
+                        ? 'bg-yellow-100 text-yellow-800 border-yellow-200'
+                        : 'bg-blue-100 text-blue-800 border-blue-200'
                         }`}>
                         {f.estado}
                       </span>
@@ -258,7 +258,7 @@ const FacturasVentas = ({
                             e.stopPropagation();
                             setCobrandoFactura(f);
                           }}
-                          className="bg-green-50 text-green-700 hover:bg-green-100 px-3 py-2 rounded-lg transition-all text-xs font-bold flex items-center gap-2 mx-auto whitespace-nowrap border border-green-200"
+                          className="bg-orange-50 text-orange-700 hover:bg-orange-100 px-3 py-2 rounded-lg transition-all text-xs font-bold flex items-center gap-2 mx-auto whitespace-nowrap border border-orange-200"
                         >
                           <Banknote size={14} />
                           Registrar cobro
@@ -266,17 +266,17 @@ const FacturasVentas = ({
                       )}
                       {puedeEditar('ventas') &&
                         (dentro48h && (f.estado === 'Emitida' || f.estado === 'Con NC Parcial')) && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDevolver(f);
-                          }}
-                          className="bg-red-50 text-red-600 hover:bg-red-100 px-3 py-2 rounded-lg transition-all text-xs font-bold flex items-center gap-2 mx-auto whitespace-nowrap border border-red-200"
-                        >
-                          <RotateCcw size={14} />
-                          Nota de devolución
-                        </button>
-                      )}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDevolver(f);
+                            }}
+                            className="bg-red-50 text-red-600 hover:bg-red-100 px-3 py-2 rounded-lg transition-all text-xs font-bold flex items-center gap-2 mx-auto whitespace-nowrap border border-red-200"
+                          >
+                            <RotateCcw size={14} />
+                            Nota de devolución
+                          </button>
+                        )}
                     </td>
                   </tr>
                 );
@@ -306,12 +306,12 @@ const FacturasVentas = ({
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-green-50">
+              <thead className="bg-orange-50">
                 <tr>
-                  <th className="px-6 py-4 text-left font-bold text-green-800 uppercase text-xs">Factura</th>
-                  <th className="px-6 py-4 text-left font-bold text-green-800 uppercase text-xs">Cliente</th>
-                  <th className="px-6 py-4 text-right font-bold text-green-800 uppercase text-xs">Total</th>
-                  <th className="px-6 py-4 text-center font-bold text-green-800 uppercase text-xs">Fecha</th>
+                  <th className="px-6 py-4 text-left font-bold text-orange-600 uppercase text-xs">Factura</th>
+                  <th className="px-6 py-4 text-left font-bold text-orange-600 uppercase text-xs">Cliente</th>
+                  <th className="px-6 py-4 text-right font-bold text-orange-600 uppercase text-xs">Total</th>
+                  <th className="px-6 py-4 text-center font-bold text-orange-600 uppercase text-xs">Fecha</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -322,14 +322,14 @@ const FacturasVentas = ({
                       <td className="px-6 py-4 font-mono font-bold">{f.numero}</td>
                       <td className="px-6 py-4 font-medium">{cliente?.nombre} {cliente?.apellido}</td>
                       <td className="px-6 py-4 text-right font-black">Gs. {f.total.toLocaleString()}</td>
-                      <td className="px-6 py-4 text-center text-sm text-green-600">{f.fechaFactura}</td>
+                      <td className="px-6 py-4 text-center text-sm text-orange-600">{f.fechaFactura}</td>
                       <td className="px-6 py-4 text-center">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             setFacturaDetalle(f);
                           }}
-                          className="text-blue-500 hover:bg-blue-50 p-2 rounded-lg transition-colors"
+                          className="text-orange-500  p-2 rounded-lg transition-colors"
                           title="Ver detalle"
                         >
                           <Eye size={18} />

@@ -40,6 +40,7 @@ import ReportesContables from '../components/ModuloContabilidad/ReportesContable
 // Imports Reportes
 import ReportesCompras from '../components/ModuloReportes/ReportesCompras';
 import ReportesStock from '../components/ModuloReportes/ReportesStock';
+import ReportesVentas from '../components/ModuloReportes/ReportesVentas';
 
 // Imports Seguridad
 import UsuariosModulo from '../components/Usuarios/UsuariosModulo';
@@ -272,6 +273,7 @@ function Dashboard() {
       tesoreria: 'Tesorería',
       reportes_compras: 'Reportes — Compras',
       reportes_stock: 'Reportes — Historial de Stock',
+      reportes_ventas: 'Reportes — Ventas',
       gestion_cuentas: 'Cuentas bancarias',
       'movimientos bancarios': 'Movimientos bancarios',
       'conciliacion bancaria': 'Conciliaciones bancarias',
@@ -581,6 +583,8 @@ function Dashboard() {
         return <ReportesCompras />;
       case 'reportes_stock':
         return <ReportesStock />;
+      case 'reportes_ventas':
+        return <ReportesVentas />;
       case 'usuarios':
         return <UsuariosModulo />;
 

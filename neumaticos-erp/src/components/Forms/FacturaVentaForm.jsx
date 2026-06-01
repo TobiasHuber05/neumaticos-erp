@@ -192,7 +192,7 @@ const FacturaVentaForm = ({ presupuesto, clientes, inventario, servicios = [], s
             type="button"
             onClick={handleConfirmar}
             disabled={!vigente || procesando || !nroFactura}
-            className="flex-1 bg-green-500 hover:bg-green-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-black py-3 rounded-xl shadow-lg hover:shadow-xl transition-all uppercase text-xs tracking-wide flex items-center justify-center gap-2"
+            className="flex-1 bg-green-500 hover:bg-orange-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-black py-3 rounded-xl shadow-lg hover:shadow-xl transition-all uppercase text-xs tracking-wide flex items-center justify-center gap-2"
           >
             {procesando ? (
               <>

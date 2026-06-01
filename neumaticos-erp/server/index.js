@@ -22,6 +22,7 @@ import reportesStockRoutes from './routes/reportesStock.routes.js';
 import asientosContablesRoutes from './routes/asientosContables.routes.js';
 import periodosContablesRoutes from './routes/periodosContables.routes.js';
 import reportesContablesRoutes from './routes/reportesContables.routes.js';
+import reportesVentasRoutes from './routes/reportesVentas.routes.js';
 
 //Funcionarios y Salarios
 import cargosRouter from './routes/cargos.routes.js';
@@ -59,7 +60,7 @@ app.use('/api/periodos-contables', periodosContablesRoutes);
 app.use('/api/reportes-contables', reportesContablesRoutes);
 app.use('/api/reportes-stock', reportesStockRoutes);
 app.use('/api/reportes-compras', reportesComprasRoutes);
-
+app.use('/api/reportes-ventas', reportesVentasRoutes);
 // --- MÓDULO DE CONTABILIDAD COMPLETADO ---
 
 

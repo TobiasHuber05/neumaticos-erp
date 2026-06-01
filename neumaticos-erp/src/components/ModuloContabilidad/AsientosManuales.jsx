@@ -181,8 +181,8 @@ const AsientosManuales = () => {
                         {asiento.asiento_detalle?.length || 0} movimientos
                       </div>
                     </td>
-                    <td className="p-5 text-right font-black text-gray-800">{Number(asiento.total_debe).toLocaleString()}</td>
-                    <td className="p-5 text-right font-black text-gray-800">{Number(asiento.total_haber).toLocaleString()}</td>
+                    <td className="p-5 text-right font-black text-gray-800">{Number(asiento.total_debe).toLocaleString('de-DE')}</td>
+                    <td className="p-5 text-right font-black text-gray-800">{Number(asiento.total_haber).toLocaleString('de-DE')}</td>
                     <td className="p-5 text-center">
                       <span className="px-3 py-1 rounded-full bg-orange-100 text-erp-orange text-[10px] font-black uppercase">
                         {asiento.estado}
@@ -323,16 +323,16 @@ const AsientosManuales = () => {
                 <div className="flex gap-8">
                   <div className="text-right">
                     <p className="text-[9px] font-black text-gray-400 uppercase">Total Debe</p>
-                    <p className="text-xl font-black text-gray-700">{totalDebe.toLocaleString()}</p>
+                    <p className="text-xl font-black text-gray-700">{totalDebe.toLocaleString('de-DE')}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-[9px] font-black text-gray-400 uppercase">Total Haber</p>
-                    <p className="text-xl font-black text-gray-700">{totalHaber.toLocaleString()}</p>
+                    <p className="text-xl font-black text-gray-700">{totalHaber.toLocaleString('de-DE')}</p>
                   </div>
                   <div className="text-right border-l border-orange-200 pl-8">
                     <p className="text-[9px] font-black text-gray-400 uppercase">Diferencia</p>
                     <p className={`text-xl font-black ${Math.abs(totalDebe - totalHaber) < 0.01 ? 'text-green-600' : 'text-red-600'}`}>
-                      {(totalDebe - totalHaber).toLocaleString()}
+                      {(totalDebe - totalHaber).toLocaleString('de-DE')}
                     </p>
                   </div>
                 </div>
@@ -397,9 +397,8 @@ const AsientosManuales = () => {
                             <td className="p-3 text-right">Gs. {Number(item.total_factura).toLocaleString('de-DE')}</td>
                             <td className="p-3 text-right font-bold text-erp-orange">Gs. {Number(item.monto_pagado).toLocaleString('de-DE')}</td>
                             <td className="p-3 text-center">
-                              <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider ${
-                                item.es_parcial ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-green-100 text-green-800 border border-green-200'
-                              }`}>
+                              <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider ${item.es_parcial ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-green-100 text-green-800 border border-green-200'
+                                }`}>
                                 {item.es_parcial ? 'Pago Parcial' : 'Pago Total'}
                               </span>
                             </td>
@@ -430,8 +429,8 @@ const AsientosManuales = () => {
                           <tr key={idx} className="text-gray-700">
                             <td className="p-3 font-medium">{item.producto}</td>
                             <td className="p-3 text-center font-bold">{item.cantidad}</td>
-                            <td className="p-3 text-right">{Number(item.precio_unitario).toLocaleString()}</td>
-                            <td className="p-3 text-right font-bold">{Number(item.subtotal || (item.cantidad * item.precio_unitario)).toLocaleString()}</td>
+                            <td className="p-3 text-right">{Number(item.precio_unitario).toLocaleString('de-DE')}</td>
+                            <td className="p-3 text-right font-bold">{Number(item.subtotal || (item.cantidad * item.precio_unitario)).toLocaleString('de-DE')}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -460,10 +459,10 @@ const AsientosManuales = () => {
                         </td>
                         <td className="p-4 text-gray-500">{det.glosa || '—'}</td>
                         <td className="p-4 text-right font-bold">
-                          {det.debe_haber ? Number(det.monto).toLocaleString() : ''}
+                          {det.debe_haber ? Number(det.monto).toLocaleString('de-DE') : ''}
                         </td>
                         <td className="p-4 text-right font-bold">
-                          {!det.debe_haber ? Number(det.monto).toLocaleString() : ''}
+                          {!det.debe_haber ? Number(det.monto).toLocaleString('de-DE') : ''}
                         </td>
                       </tr>
                     ))}
@@ -471,8 +470,8 @@ const AsientosManuales = () => {
                   <tfoot className="bg-gray-50/50 font-black">
                     <tr>
                       <td colSpan="2" className="p-4 text-right uppercase text-[10px] text-gray-400">Totales</td>
-                      <td className="p-4 text-right text-lg">{Number(asientoSeleccionado.total_debe).toLocaleString()}</td>
-                      <td className="p-4 text-right text-lg">{Number(asientoSeleccionado.total_haber).toLocaleString()}</td>
+                      <td className="p-4 text-right text-lg">{Number(asientoSeleccionado.total_debe).toLocaleString('de-DE')}</td>
+                      <td className="p-4 text-right text-lg">{Number(asientoSeleccionado.total_haber).toLocaleString('de-DE')}</td>
                     </tr>
                   </tfoot>
                 </table>

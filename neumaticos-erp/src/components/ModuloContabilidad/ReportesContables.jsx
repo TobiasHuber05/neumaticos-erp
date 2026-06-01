@@ -43,7 +43,7 @@ const ReportesContables = () => {
     cargarDatos();
   }, [tabActiva, periodoSeleccionado, cuentaSeleccionada]);
 
-  const formatMonto = (monto) => new Intl.NumberFormat('es-PY').format(monto);
+  const formatMonto = (monto) => Number(monto).toLocaleString('de-DE');
 
   const handleExportarPDF = () => {
     const doc = new jsPDF();
@@ -111,8 +111,8 @@ const ReportesContables = () => {
         <Filter size={18} className="text-erp-orange" />
         <span className="font-bold text-gray-700 text-sm">Filtros:</span>
       </div>
-      
-      <select 
+
+      <select
         className="p-2 border rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-orange-200"
         value={periodoSeleccionado}
         onChange={(e) => setPeriodoSeleccionado(e.target.value)}
@@ -126,7 +126,7 @@ const ReportesContables = () => {
       </select>
 
       {tabActiva === 'mayor' && (
-        <select 
+        <select
           className="p-2 border rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-orange-200 max-w-xs"
           value={cuentaSeleccionada}
           onChange={(e) => setCuentaSeleccionada(e.target.value)}
@@ -141,7 +141,7 @@ const ReportesContables = () => {
       )}
 
       <div className="ml-auto flex gap-2">
-        <button 
+        <button
           onClick={handleExportarPDF}
           className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg font-black hover:bg-red-100 transition-all border border-red-200"
           title="Descargar PDF"
@@ -220,7 +220,7 @@ const ReportesContables = () => {
           {Array.isArray(datos) && datos.reduce((acc, mov, idx) => {
             const debe = mov.debe_haber ? Number(mov.monto) : 0;
             const haber = !mov.debe_haber ? Number(mov.monto) : 0;
-            const saldoAnterior = idx > 0 ? acc[idx-1].saldo : 0;
+            const saldoAnterior = idx > 0 ? acc[idx - 1].saldo : 0;
             const saldo = saldoAnterior + debe - haber;
             acc.push({ ...mov, saldo });
             return acc;
@@ -313,29 +313,26 @@ const ReportesContables = () => {
           </h2>
           <p className="text-gray-500 font-bold text-sm uppercase tracking-widest">Contabilidad Analítica</p>
         </div>
-        
+
         <div className="flex bg-gray-100 p-1 rounded-xl gap-1">
           <button
             onClick={() => setTabActiva('diario')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-black transition-all ${
-              tabActiva === 'diario' ? 'bg-white text-erp-orange shadow-sm' : 'text-gray-500 hover:text-gray-700'
-            }`}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-black transition-all ${tabActiva === 'diario' ? 'bg-white text-erp-orange shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              }`}
           >
             <BookOpen size={18} /> Diario
           </button>
           <button
             onClick={() => setTabActiva('mayor')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-black transition-all ${
-              tabActiva === 'mayor' ? 'bg-white text-erp-orange shadow-sm' : 'text-gray-500 hover:text-gray-700'
-            }`}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-black transition-all ${tabActiva === 'mayor' ? 'bg-white text-erp-orange shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              }`}
           >
             <FileText size={18} /> Mayor
           </button>
           <button
             onClick={() => setTabActiva('balance')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-black transition-all ${
-              tabActiva === 'balance' ? 'bg-white text-erp-orange shadow-sm' : 'text-gray-500 hover:text-gray-700'
-            }`}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-black transition-all ${tabActiva === 'balance' ? 'bg-white text-erp-orange shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              }`}
           >
             <BarChart3 size={18} /> Balance
           </button>

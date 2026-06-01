@@ -20,6 +20,7 @@ import {
   FileText,
   Home,
   Lock,
+  ShoppingBag,
 } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -292,6 +293,17 @@ const Sidebar = ({ setModulo, moduloActual }) => {
                 >
                   <Package size={18} />
                   <span>Stock</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setModulo('reportes_ventas')}
+                  className={`w-full flex items-center gap-3 px-8 py-2 rounded-lg transition-all font-medium text-sm
+                    ${moduloActual === 'reportes_ventas'
+                      ? 'bg-erp-orange text-white shadow-inner'
+                      : 'text-orange-800 hover:bg-orange-200'}`}
+                >
+                  <ShoppingBag size={18} />
+                  <span>Ventas</span>
                 </button>
               </div>
             )}

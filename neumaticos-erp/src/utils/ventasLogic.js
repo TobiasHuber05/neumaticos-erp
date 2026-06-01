@@ -1,7 +1,5 @@
 // src/utils/ventasLogic.js - Lógica de negocio Ventas y Facturación
 
-import { CATEGORIAS_PRODUCTO } from '../data/erpInitialData.js'; // Existing
-
 const addDiasHabiles = (fecha, dias) => {
   let fechaNueva = new Date(fecha);
   let diasRestantes = dias;

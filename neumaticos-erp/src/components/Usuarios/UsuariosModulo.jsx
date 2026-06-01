@@ -197,19 +197,21 @@ export default function UsuariosModulo() {
 
   if (loading) return <div className="p-8 text-center text-gray-500 font-bold">Cargando usuarios...</div>;
 
-  const usuariosFiltrados = usuarios.filter(u =>
-    u.username?.toLowerCase().includes(busqueda.toLowerCase()) ||
-    u.email?.toLowerCase().includes(busqueda.toLowerCase()) ||
-    (u.cargos?.nombre_cargo || u.rol_empresa || '').toLowerCase().includes(busqueda.toLowerCase())
-  );
+  const usuariosFiltrados = usuarios
+    .filter(u =>
+      u.username?.toLowerCase().includes(busqueda.toLowerCase()) ||
+      u.email?.toLowerCase().includes(busqueda.toLowerCase()) ||
+      (u.cargos?.nombre_cargo || u.rol_empresa || '').toLowerCase().includes(busqueda.toLowerCase())
+    )
+    .sort((a, b) => (b.id_usuario || 0) - (a.id_usuario || 0));
   const totalPaginas = Math.max(1, Math.ceil(usuariosFiltrados.length / POR_PAGINA));
   const paginaSegura = Math.min(pagina, totalPaginas);
   const usuariosPagina = usuariosFiltrados.slice((paginaSegura - 1) * POR_PAGINA, paginaSegura * POR_PAGINA);
 
   return (
-    <div className="p-6 h-full flex flex-col">
+    <div className="p-2 h-full flex flex-col">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-black text-gray-800 flex items-center gap-2 tracking-tight">
+        <h2 className="text-2xl font-black text-gray-800 flex items-center tracking-tight">
           <Shield className="text-erp-orange" size={28} /> Gestión de Usuarios y Permisos
         </h2>
         <button
@@ -228,7 +230,7 @@ export default function UsuariosModulo() {
           placeholder="Buscar por nombre, correo o cargo..."
           value={busqueda}
           onChange={(e) => { setBusqueda(e.target.value); setPagina(1); }}
-          className="w-full pl-9 pr-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-erp-orange outline-none text-sm"
+          className="w-full pl-9 pr-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-erp-orange outline-none text-sm bg-orange-50"
         />
       </div>
 
