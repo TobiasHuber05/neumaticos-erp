@@ -5,11 +5,19 @@ import { prisma } from '../../lib/prisma.js';
 export const getFuncionarios = async (req, res) => {
     try {
         const funcionarios = await prisma.funcionarios.findMany({
+            where: {
+                contrato: {
+                    some: { fecha_salida: null }
+                }
+            },
             include: {
                 personas: true,
                 cargos: true,
                 familiares: { include: { personas: true } },
-                contrato: { include: { sueldos: true } },
+                contrato: {
+                    where: { fecha_salida: null },
+                    include: { sueldos: true }
+                },
                 historial: { include: { cargos: true }, orderBy: { fecha_ingreso: 'desc' } }
             },
             orderBy: { id_funcionario: 'asc' }
@@ -221,10 +229,17 @@ export const updateFuncionario = async (req, res) => {
 export const deleteFuncionario = async (req, res) => {
     const { id } = req.params;
     try {
-        // Soft delete: solo cierra el contrato activo
-        await prisma.historial.updateMany({
-            where: { id_funcionario: Number(id), fecha_salida: null },
-            data: { fecha_salida: new Date() }
+        await prisma.$transaction(async (tx) => {
+            // Cerrar contrato activo
+            await tx.contrato.updateMany({
+                where: { id_funcionario: Number(id), fecha_salida: null },
+                data: { fecha_salida: new Date() }
+            });
+            // Cerrar historial activo
+            await tx.historial.updateMany({
+                where: { id_funcionario: Number(id), fecha_salida: null },
+                data: { fecha_salida: new Date() }
+            });
         });
         res.json({ ok: true, message: 'Funcionario dado de baja' });
     } catch (error) {

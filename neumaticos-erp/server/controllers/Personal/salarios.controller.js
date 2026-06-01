@@ -235,6 +235,176 @@ export const createProceso = async (req, res) => {
   }
 };
 
+// POST /api/salarios/adelantos  — Pago por Concepto (adelanto/anticipo)
+export const createAdelanto = async (req, res) => {
+  const { periodo, fecha_pago, id_cuenta, funcionarios } = req.body;
+  if (!funcionarios || !Array.isArray(funcionarios) || funcionarios.length === 0) {
+    return res.status(400).json({ error: 'Debes seleccionar al menos un funcionario' });
+  }
+  if (!id_cuenta) {
+    return res.status(400).json({ error: 'Debes seleccionar la cuenta bancaria desde la cual se realiza el pago' });
+  }
+
+  try {
+    // Validar cuenta y saldo disponible
+    const cuenta = await prisma.cuenta_bancaria.findUnique({
+      where: { id_cuenta: Number(id_cuenta) }
+    });
+    if (!cuenta) {
+      return res.status(404).json({ error: 'La cuenta bancaria seleccionada no existe' });
+    }
+
+    // Calcular total del adelanto antes de la transacción
+    let totalAdelanto = 0;
+    for (const item of funcionarios) {
+      if (!item.conceptos || !Array.isArray(item.conceptos)) continue;
+      for (const c of item.conceptos) {
+        const monto = Number(c.monto ?? 0);
+        if (monto <= 0) continue;
+        totalAdelanto += c.tipo === 'Ingreso' ? monto : -monto;
+      }
+    }
+
+    if (totalAdelanto <= 0) {
+      return res.status(400).json({ error: 'El total a pagar debe ser mayor a cero' });
+    }
+
+    // Verificar saldo disponible
+    if (cuenta.saldo_disponible === null || cuenta.saldo_disponible < totalAdelanto) {
+      return res.status(400).json({
+        error: 'Saldo insuficiente en la cuenta',
+        detalle: `Saldo disponible: ${cuenta.saldo_disponible ?? 0}, Requerido: ${totalAdelanto}`
+      });
+    }
+
+    const proceso = await prisma.$transaction(async (tx) => {
+      const cabecera = await tx.cabecera_pago.create({
+        data: {
+          fecha_emision: fecha_pago ? new Date(fecha_pago) : new Date(),
+          periodo: periodo || new Date().toISOString().slice(0, 7),
+          tipo_pago: 'ADELANTO',
+          estado: 'pagado',
+          total: 0
+        }
+      });
+
+      let totalProceso = 0;
+
+      for (const item of funcionarios) {
+        const { id_funcionario, conceptos } = item;
+        if (!id_funcionario || !conceptos || !Array.isArray(conceptos)) continue;
+
+        const func = await tx.funcionarios.findUnique({
+          where: { id_funcionario: Number(id_funcionario) },
+          include: { personas: true, cargos: true, contrato: { take: 1, orderBy: { fecha_ingreso: 'desc' } } }
+        });
+        if (!func) continue;
+
+        let totalSueldo = 0;
+        const sueldo = await tx.sueldos.create({
+          data: {
+            id_pago: cabecera.id_pago,
+            nombre_categoria: `${func.personas?.nombre ?? ''} ${func.personas?.apellido ?? ''}`.trim(),
+            monto: 0,
+            fecha_vigencia: fecha_pago ? new Date(fecha_pago) : new Date(),
+            tipo_sueldo: 'ADELANTO'
+          }
+        });
+
+        for (const c of conceptos) {
+          const monto = Number(c.monto ?? 0);
+          if (monto <= 0) continue;
+          const esCredito = c.tipo === 'Ingreso';
+          totalSueldo += esCredito ? monto : -monto;
+
+          const conceptoRecibido = c.nombre || 'Concepto sin nombre';
+
+          await tx.conceptos.create({
+            data: {
+              id_sueldo: sueldo.id_sueldo,
+              nombre: conceptoRecibido,
+              descripcion: c.descripcion || `Adelanto - ${conceptoRecibido}`,
+              credito: esCredito ? monto : null,
+              debito: !esCredito ? monto : null,
+              afecta_ips: c.afecta_ips ?? false,
+            }
+          });
+
+          // También registrar el concepto extra en el funcionario para tracking
+          await tx.conceptos.create({
+            data: {
+              id_funcionario: Number(id_funcionario),
+              nombre: conceptoRecibido,
+              descripcion: `Adelanto pagado - ${fecha_pago || new Date().toISOString().slice(0, 10)}`,
+              credito: esCredito ? monto : null,
+              debito: !esCredito ? monto : null,
+              afecta_ips: c.afecta_ips ?? false,
+              formula: null // único uso
+            }
+          });
+        }
+
+        await tx.sueldos.update({
+          where: { id_sueldo: sueldo.id_sueldo },
+          data: { monto: totalSueldo }
+        });
+
+        const contrato = func.contrato[0];
+        if (contrato) {
+          await tx.contrato.update({
+            where: { id_contrato: contrato.id_contrato },
+            data: { id_sueldo: sueldo.id_sueldo }
+          });
+        }
+
+        totalProceso += totalSueldo;
+      }
+
+      await tx.cabecera_pago.update({
+        where: { id_pago: cabecera.id_pago },
+        data: { total: totalProceso }
+      });
+
+      // Crear movimiento bancario de egreso
+      try {
+        const movimiento = await tx.movimiento_bancario.create({
+          data: {
+            id_cuenta: Number(id_cuenta),
+            monto_ingreso: 0,
+            monto_egreso: Math.abs(totalProceso),
+            fecha_movimiento: fecha_pago ? new Date(fecha_pago) : new Date(),
+            fecha_confirmacion: new Date(),
+            tipo_movimiento: 'Débito',
+            concepto: `Adelanto Nómina - ${periodo || new Date().toISOString().slice(0, 7)}`,
+            tipo_deposito: 'Transferencia',
+          }
+        });
+
+        await tx.cabecera_pago.update({
+          where: { id_pago: cabecera.id_pago },
+          data: { id_movimiento: movimiento.id_movimiento }
+        });
+      } catch (movErr) {
+        console.error('Error al crear movimiento bancario del adelanto:', movErr);
+      }
+
+      return { ...cabecera, total: totalProceso };
+    });
+
+    res.status(201).json({
+      ok: true,
+      id_pago: proceso.id_pago,
+      periodo: proceso.periodo,
+      total: Number(proceso.total),
+      estado: proceso.estado,
+      tipo_pago: 'ADELANTO'
+    });
+  } catch (error) {
+    console.error('Error al crear adelanto:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
 // GET /api/salarios/procesos/:id  — detalle de un proceso con recibo por funcionario
 export const getProcesoById = async (req, res) => {
   const { id } = req.params;

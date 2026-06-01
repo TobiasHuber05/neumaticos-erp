@@ -182,6 +182,17 @@ export const useModuloPersonal = () => {
     }
   }, [cargarDatos]);
 
+  const pagarAdelanto = useCallback(async (payload) => {
+    try {
+      const res = await axios.post(`${API}/salarios/adelantos`, payload);
+      await cargarDatos();
+      return res.data;
+    } catch (err) {
+      console.error('Error al pagar adelanto:', err);
+      throw err;
+    }
+  }, [cargarDatos]);
+
   const cerrarProcesoPago = useCallback(async (procesoId, id_cuenta) => {
     try {
       // 1. Cerrar el proceso en la BD (enviando la cuenta bancaria)
@@ -294,6 +305,7 @@ export const useModuloPersonal = () => {
       getConceptosFuncionario,
       agregarConceptoFuncionario,
       eliminarConceptoFuncionario,
+      pagarAdelanto,
     },
   };
 };

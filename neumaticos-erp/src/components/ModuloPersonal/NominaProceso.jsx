@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { PlayCircle, CheckCircle2, FileText, DollarSign, Calendar, Calculator, AlertCircle, X } from 'lucide-react';
+import { PlayCircle, CheckCircle2, FileText, DollarSign, Calendar, Calculator, AlertCircle, X, Plus } from 'lucide-react';
 import { formatGua } from '../../utils/personalLogic';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { puedeEditar } from '../../utils/permisos';
+import PagoPorConcepto from './PagoPorConcepto';
 
 // ── Modal de Recibo ──────────────────────────────────────────────
 const ModalRecibo = ({ liq, proceso, onClose }) => {
@@ -189,6 +190,7 @@ const ModalRecibo = ({ liq, proceso, onClose }) => {
 const NominaProceso = ({ personal, cuentas = [] }) => {
   const { procesosPago, actions, config } = personal;
   const [showConfirm, setShowConfirm]   = useState(false);
+  const [showPagoPorConcepto, setShowPagoPorConcepto] = useState(false);
   const [reciboLiq,   setReciboLiq]     = useState(null);
   const [cuentaId,    setCuentaId]      = useState('');
   const [saldoError,  setSaldoError]    = useState('');
@@ -196,15 +198,6 @@ const NominaProceso = ({ personal, cuentas = [] }) => {
   const mesActual        = new Date().toISOString().slice(0, 7);
   const procesoMesActual = procesosPago.find(p => p.periodo === mesActual);
   const currentProceso   = procesoMesActual || procesosPago[procesosPago.length - 1];
-
-  const handleIniciar = async () => {
-    try {
-      const fecha = new Date().toISOString().split('T')[0];
-      await actions.iniciarProcesoPago(mesActual, fecha);
-    } catch (err) {
-      alert(err?.response?.data?.error || 'Error al iniciar proceso');
-    }
-  };
 
   return (
     <div className="space-y-6">
@@ -252,15 +245,21 @@ const NominaProceso = ({ personal, cuentas = [] }) => {
             </p>
           </div>
           <div className="flex gap-3">
-            {!procesoMesActual && puedeEditar('personal') && (
-              <button onClick={handleIniciar}
-                className="bg-erp-orange text-white px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-orange-600 transition-all shadow-lg shadow-orange-200">
-                Iniciar Nómina Mes
+            {puedeEditar('personal') && (
+              <button onClick={() => setShowPagoPorConcepto(true)}
+                className="bg-purple-600 text-white px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-purple-700 transition-all shadow-lg shadow-purple-200 flex items-center gap-2">
+                <Plus size={16} />
+                Pago por Concepto
               </button>
             )}
-            {procesoMesActual?.estado === 'Abierto' && puedeEditar('personal') && (
+            {puedeEditar('personal') && (
               <button onClick={() => setShowConfirm(true)}
-                className="bg-green-600 text-white px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-green-700 transition-all shadow-lg shadow-green-200 flex items-center gap-2">
+                disabled={procesoMesActual?.estado !== 'Abierto'}
+                className={`px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all flex items-center gap-2 ${
+                  procesoMesActual?.estado === 'Abierto'
+                    ? 'bg-green-600 text-white hover:bg-green-700 shadow-lg shadow-green-200'
+                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                }`}>
                 <CheckCircle2 size={16} />
                 Cerrar y Contabilizar
               </button>
@@ -396,6 +395,15 @@ const NominaProceso = ({ personal, cuentas = [] }) => {
           liq={reciboLiq}
           proceso={currentProceso}
           onClose={() => setReciboLiq(null)}
+        />
+      )}
+
+      {/* Modal Pago por Concepto */}
+      {showPagoPorConcepto && (
+        <PagoPorConcepto
+          personal={personal}
+          cuentas={cuentas}
+          onClose={() => setShowPagoPorConcepto(false)}
         />
       )}
     </div>
