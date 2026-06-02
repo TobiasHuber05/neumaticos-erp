@@ -53,17 +53,58 @@ const GestionTimbrados = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError(null);
+    setSuccess(null);
     
     // Validaciones
-    if (!formData.numeroTimbrado || !formData.fechaVencimiento || !formData.rangoDesde || !formData.rangoHasta) {
-      setError('Todos los campos son requeridos');
+    const camposFaltantes = [];
+    if (!formData.numeroTimbrado) camposFaltantes.push('Número Timbrado');
+    if (!formData.fechaInicio) camposFaltantes.push('Fecha Inicio');
+    if (!formData.fechaVencimiento) camposFaltantes.push('Fecha Vencimiento');
+    if (!formData.rangoDesde) camposFaltantes.push('Rango Desde');
+    if (!formData.rangoHasta) camposFaltantes.push('Rango Hasta');
+    if (!formData.establecimiento) camposFaltantes.push('Establecimiento');
+    if (!formData.puntoExpedicion) camposFaltantes.push('Punto de Expedición');
+
+    if (camposFaltantes.length > 0) {
+      setError(`Los siguientes campos son requeridos: ${camposFaltantes.join(', ')}`);
       return;
     }
 
-    if (parseInt(formData.rangoDesde) >= parseInt(formData.rangoHasta)) {
+    if (!/^\d{8}$/.test(formData.numeroTimbrado)) {
+      setError('El número de timbrado debe tener exactamente 8 dígitos numéricos');
+      return;
+    }
+
+    if (!/^\d{1,3}$/.test(formData.establecimiento) || !/^\d{1,3}$/.test(formData.puntoExpedicion)) {
+      setError('El establecimiento y el punto de expedición deben contener solo números (hasta 3 dígitos)');
+      return;
+    }
+
+    const desde = parseInt(formData.rangoDesde);
+    const hasta = parseInt(formData.rangoHasta);
+    if (isNaN(desde) || isNaN(hasta) || desde <= 0 || hasta <= 0) {
+      setError('Los rangos de facturación deben ser números enteros positivos mayores a cero');
+      return;
+    }
+
+    if (desde >= hasta) {
       setError('El rango inicial debe ser menor que el rango final');
       return;
     }
+
+    const inicio = new Date(formData.fechaInicio);
+    const vencimiento = new Date(formData.fechaVencimiento);
+    if (inicio >= vencimiento) {
+      setError('La fecha de inicio debe ser anterior a la fecha de vencimiento');
+      return;
+    }
+
+    const payload = {
+      ...formData,
+      establecimiento: formData.establecimiento.padStart(3, '0'),
+      puntoExpedicion: formData.puntoExpedicion.padStart(3, '0')
+    };
 
     try {
       const response = await fetch('/api/timbrados', {
@@ -72,7 +113,7 @@ const GestionTimbrados = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(payload)
       });
 
       if (!response.ok) {
@@ -81,6 +122,7 @@ const GestionTimbrados = () => {
       }
 
       setSuccess('Timbrado creado exitosamente');
+      setError(null);
       setFormData({
         numeroTimbrado: '',
         fechaInicio: new Date().toISOString().split('T')[0],
@@ -136,7 +178,11 @@ const GestionTimbrados = () => {
 
         {puedeEditar('ventas') && (
           <button
-            onClick={() => setMostrarFormulario(true)}
+            onClick={() => {
+              setError(null);
+              setSuccess(null);
+              setMostrarFormulario(true);
+            }}
             className="flex items-center gap-2 bg-erp-orange text-white px-5 py-2.5 rounded-xl font-bold hover:bg-orange-600 transition-all shadow-md shrink-0"
           >
             <Plus size={18} />
@@ -282,7 +328,10 @@ const GestionTimbrados = () => {
                 Nuevo Timbrado
               </h3>
               <button
-                onClick={() => setMostrarFormulario(false)}
+                onClick={() => {
+                  setError(null);
+                  setMostrarFormulario(false);
+                }}
                 className="text-white hover:bg-white/20 p-2 rounded-lg transition-colors"
               >
                 ✕
@@ -290,6 +339,14 @@ const GestionTimbrados = () => {
             </div>
 
             <form onSubmit={handleSubmit} className="p-8 space-y-6">
+              {error && (
+                <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3 animate-in fade-in duration-300">
+                  <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-bold text-red-900 text-sm">{error}</p>
+                  </div>
+                </div>
+              )}
               {/* Número Timbrado */}
               <div>
                 <label className="block text-sm font-bold text-gray-700 uppercase tracking-wider mb-2">
@@ -301,6 +358,7 @@ const GestionTimbrados = () => {
                   value={formData.numeroTimbrado}
                   onChange={handleInputChange}
                   placeholder="Ej: 12345678"
+                  maxLength="8"
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-erp-orange focus:border-transparent font-mono"
                 />
               </div>
@@ -397,7 +455,10 @@ const GestionTimbrados = () => {
               <div className="flex gap-4 pt-6">
                 <button
                   type="button"
-                  onClick={() => setMostrarFormulario(false)}
+                  onClick={() => {
+                    setError(null);
+                    setMostrarFormulario(false);
+                  }}
                   className="flex-1 px-6 py-3 border border-gray-300 rounded-xl font-bold text-gray-700 hover:bg-gray-50 transition-colors"
                 >
                   Cancelar

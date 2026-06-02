@@ -61,6 +61,7 @@ export const getTimbradoById = async (req, res) => {
 };
 
 export const crearTimbrado = async (req, res) => {
+  console.log('--- crearTimbrado body received ---:', req.body);
   const {
     numeroTimbrado,
     fechaInicio,

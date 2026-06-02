@@ -269,8 +269,7 @@ export const useModuloVentas = (enabled = true) => {
       headers: getHeaders(),
       body: JSON.stringify({
         id_presupuesto: presupuestoId,
-        nro_factura: datosFactura.nro_factura,
-        timbrado: datosFactura.timbrado,
+        idPuntoExpedicion: datosFactura.idPuntoExpedicion,
         contado_credito: datosFactura.contado_credito,
       }),
     });
