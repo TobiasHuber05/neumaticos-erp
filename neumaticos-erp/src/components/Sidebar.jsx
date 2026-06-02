@@ -70,12 +70,12 @@ const Sidebar = ({ setModulo, moduloActual }) => {
   ];
 
   const moduloVentasItems = [
-    { id: 'facturas de venta', icon: <ClipboardList size={18} />, label: 'Facturas de Venta' },
     { id: 'presupuesto', icon: <CoinsIcon size={18} />, label: 'Presupuestos' },
-    { id: 'clientes_ventas', icon: <Users size={18} />, label: 'Clientes' },
+    { id: 'facturas de venta', icon: <ClipboardList size={18} />, label: 'Facturas de Venta' },
     { id: 'notas credito', icon: <ClipboardList size={18} />, label: 'Notas de crédito' },
+    { id: 'clientes_ventas', icon: <Users size={18} />, label: 'Clientes' },
     { id: 'asiento ventas', icon: <Banknote size={18} />, label: 'Asientos ventas' },
-    { id: 'timbrados', icon: <BarChart2 size={18} />, label: 'Gestión de Timbrados' },
+    { id: 'timbrados', icon: <BarChart2 size={18} />, label: 'Timbrados' },
   ];
 
   const moduloPersonalItems = [
@@ -135,7 +135,7 @@ const Sidebar = ({ setModulo, moduloActual }) => {
             >
               <span className="inline-flex items-center gap-3">
                 <ShoppingCart size={20} />
-                Modulo Compras
+                Compras
               </span>
               {comprasAbierto ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
             </button>
@@ -171,7 +171,7 @@ const Sidebar = ({ setModulo, moduloActual }) => {
             >
               <span className="inline-flex items-center gap-3">
                 <Tag size={20} />
-                Ventas y Facturas
+                Ventas
               </span>
               {ventasAbierto ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
             </button>
@@ -207,7 +207,7 @@ const Sidebar = ({ setModulo, moduloActual }) => {
             >
               <span className="inline-flex items-center gap-3">
                 <Banknote size={20} />
-                Modulo Tesorería
+                Tesorería
               </span>
               {tesoreriaAbierto ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
             </button>
@@ -333,7 +333,7 @@ const Sidebar = ({ setModulo, moduloActual }) => {
                   : 'text-orange-900 hover:bg-orange-200'}`}
             >
               <Package size={20} />
-              <span>Stock / Existencias</span>
+              <span>Stock/Existencias</span>
             </button>
           )}
 
