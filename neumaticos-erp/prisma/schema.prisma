@@ -371,7 +371,8 @@ model factura_venta {
   id_modelo_asiento     Int?
   fecha_emision         DateTime?               @db.Date
   fecha_vencimiento     DateTime?               @db.Date
-  timbrado              String?                 @db.VarChar(30)
+  idPuntoExpedicion     Int?
+  punto_expedicion      PuntoExpedicion?        @relation(fields: [idPuntoExpedicion], references: [id])
   nro_factura           String?                 @db.VarChar(30)
   contado_credito       String?                 @db.VarChar(20)
   total                 Decimal?                @db.Decimal(10, 2)
@@ -795,6 +796,34 @@ model detalle_orden_pago_facturas {
   monto_pagado_factura   Decimal?                @db.Decimal(18, 2)
   factura_compra         factura_compra?         @relation(fields: [id_factura_compra], references: [id_factura_compra], onDelete: NoAction, onUpdate: NoAction, map: "fk_detop_factura")
   orden_pago_proveedores orden_pago_proveedores? @relation(fields: [id_orden_pago], references: [id_orden_pago], onDelete: NoAction, onUpdate: NoAction, map: "fk_detop_orden")
+}
+
+model Timbrado {
+  id                Int               @id @default(autoincrement())
+  nro_timbrado      String            @db.VarChar(8)
+  fecha_inicio      DateTime          @db.Date
+  fecha_fin         DateTime          @db.Date
+  rango_desde       Int
+  rango_hasta       Int
+  tipo_documento    String            @default("FACTURA") @db.VarChar(30)
+  estado            Boolean           @default(true)
+  puntos_expedicion PuntoExpedicion[]
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+}
+
+model PuntoExpedicion {
+  id                   Int             @id @default(autoincrement())
+  idTimbrado           Int
+  timbrado             Timbrado        @relation(fields: [idTimbrado], references: [id], onDelete: Cascade)
+  cod_establecimiento  String          @default("001") @db.VarChar(3)
+  cod_punto_expedicion String          @default("001") @db.VarChar(3)
+  ultimo_secuencial    Int
+  direccion            String?         @db.VarChar(255)
+  activo               Boolean         @default(true)
+  factura_venta        factura_venta[]
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
 }
 
 model transferencias_emitidas {

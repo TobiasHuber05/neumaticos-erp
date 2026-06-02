@@ -2,11 +2,47 @@ import { prisma } from '../../lib/prisma.js';
 import { registrarMovimientoStock } from '../../utils/inventario.utils.js';
 
 export const generarFactura = async (req, res) => {
-  const { id_presupuesto, nro_factura, timbrado, contado_credito } = req.body;
+  const { id_presupuesto, contado_credito, idPuntoExpedicion } = req.body;
 
   try {
     const resultado = await prisma.$transaction(async (tx) => {
-      // 1. Obtener presupuesto y validar vigencia de 10 días 
+      // 1. Validar y obtener el punto de expedición activo y su timbrado
+      const puntoExpedicionData = await tx.PuntoExpedicion.findUnique({
+        where: { id: idPuntoExpedicion },
+        include: { timbrado: true }
+      });
+
+      if (!puntoExpedicionData) {
+        throw new Error("Punto de expedición no encontrado");
+      }
+
+      if (!puntoExpedicionData.activo) {
+        throw new Error("El punto de expedición está inactivo");
+      }
+
+      const timbradoData = puntoExpedicionData.timbrado;
+
+      if (!timbradoData) {
+        throw new Error("Timbrado no asociado al punto de expedición");
+      }
+
+      if (!timbradoData.estado) {
+        throw new Error("El timbrado asociado ha vencido o está inactivo");
+      }
+
+      const ahora = new Date();
+      if (ahora < new Date(timbradoData.fecha_inicio) || ahora > new Date(timbradoData.fecha_fin)) {
+        throw new Error("El timbrado asociado no está vigente para la fecha actual");
+      }
+
+      // 2. Calcular y validar el siguiente número correlativo
+      const siguienteNumero = puntoExpedicionData.ultimo_secuencial + 1;
+
+      if (siguienteNumero > timbradoData.rango_hasta) {
+        throw new Error(`El punto de expedición ha alcanzado el límite máximo del timbrado (${timbradoData.rango_hasta})`);
+      }
+
+      // 3. Obtener presupuesto y validar vigencia de 10 días 
       const presupuesto = await tx.presupuesto.findUnique({
         where: { id_presupuesto },
         include: {
@@ -40,14 +76,20 @@ export const generarFactura = async (req, res) => {
         }
       }
 
-      // 2. Registrar la factura 
+      // 4. Generar número de factura automáticamente
+      const prefijoEst = puntoExpedicionData.cod_establecimiento.padStart(3, '0');
+      const prefijoExp = puntoExpedicionData.cod_punto_expedicion.padStart(3, '0');
+      const nroSecuencial = String(siguienteNumero).padStart(7, '0');
+      const nro_factura = `${prefijoEst}-${prefijoExp}-${nroSecuencial}`;
+
+      // 5. Registrar la factura 
       const factura = await tx.factura_venta.create({
         data: {
           id_presupuesto,
           id_cliente: presupuesto.id_cliente,
           fecha_emision: new Date(),
-          timbrado,
           nro_factura,
+          idPuntoExpedicion,
           contado_credito,
           total: presupuesto.total,
           detalle_factura_venta: {
@@ -63,7 +105,7 @@ export const generarFactura = async (req, res) => {
         include: { detalle_factura_venta: true }
       });
 
-      // 3. Descontar del stock correspondiente y registrar movimiento
+      // 6. Descontar del stock correspondiente y registrar movimiento
       for (const item of factura.detalle_factura_venta) {
         const prodServ = await tx.producto_servicio.findUnique({
           where: { id_producto_servicio: item.id_producto_servicio }
@@ -99,6 +141,12 @@ export const generarFactura = async (req, res) => {
           }
         }
       }
+
+      // 7. Actualizar el secuencial en el punto de expedición
+      await tx.PuntoExpedicion.update({
+        where: { id: idPuntoExpedicion },
+        data: { ultimo_secuencial: siguienteNumero }
+      });
 
       // Marcar el presupuesto como Convertido para que no se pueda volver a facturar
       await tx.presupuesto.update({

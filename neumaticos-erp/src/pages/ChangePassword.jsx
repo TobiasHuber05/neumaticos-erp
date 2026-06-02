@@ -101,7 +101,7 @@ const ChangePassword = () => {
           className="flex items-center gap-2 text-erp-orange hover:text-orange-600 mb-6 transition-colors"
         >
           <ArrowLeft size={18} />
-          <span className="text-sm font-semibold">Volver al Dashboard</span>
+          <span className="text-sm font-semibold">Volver atras</span>
         </button>
 
         {/* Card */}

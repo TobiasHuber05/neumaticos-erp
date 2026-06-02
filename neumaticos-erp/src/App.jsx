@@ -7,6 +7,7 @@ import ChangePassword from './pages/ChangePassword';
 const limpiarSesion = () => {
   localStorage.removeItem('token');
   localStorage.removeItem('user');
+  sessionStorage.removeItem('moduloActual');
 };
 
 const tokenVencido = (token) => {

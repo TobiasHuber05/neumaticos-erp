@@ -1,7 +1,48 @@
 import { useEffect, useMemo, useState } from 'react';
 import Sidebar from '../components/Sidebar';
 import backgroundImage from '../assets/taller_pro.png';
-import { puedeVer } from '../utils/permisos';
+import { puedeVer, puedeAdministrarUsuarios } from '../utils/permisos';
+
+const tieneAccesoAlModulo = (modulo) => {
+  if (!modulo || modulo === 'inicio') return true;
+
+  const moduloCompras = ['compras', 'proveedores', 'cotizaciones', 'ordenes_compra', 'pagos_proveedores', 'asientos_compras', 'reportes_compras'];
+  if (moduloCompras.includes(modulo)) {
+    return puedeVer('compras');
+  }
+
+  const moduloStock = ['stock', 'servicios', 'reportes_stock'];
+  if (moduloStock.includes(modulo)) {
+    return puedeVer('stock') || puedeVer('compras') || puedeVer('ventas');
+  }
+
+  const moduloVentas = ['ventas', 'timbrados', 'facturas de venta', 'presupuesto', 'notas credito', 'asiento ventas', 'clientes_ventas', 'reportes_ventas'];
+  if (moduloVentas.includes(modulo)) {
+    return puedeVer('ventas');
+  }
+
+  const moduloTesoreria = ['tesoreria', 'gestion_cuentas', 'movimientos bancarios', 'conciliacion bancaria'];
+  if (moduloTesoreria.includes(modulo)) {
+    return puedeVer('tesoreria');
+  }
+
+  const moduloPersonal = ['personal', 'personal_nomina', 'personal_asientos'];
+  if (moduloPersonal.includes(modulo)) {
+    return puedeVer('personal');
+  }
+
+  const moduloContabilidad = ['contabilidad_periodos', 'contabilidad_plan', 'contabilidad_asientos', 'contabilidad_reportes'];
+  if (moduloContabilidad.includes(modulo)) {
+    return puedeVer('contabilidad');
+  }
+
+  if (modulo === 'usuarios') {
+    return puedeAdministrarUsuarios();
+  }
+
+  return true;
+};
+
 
 // Imports compras
 import PedidosCompra from '../components/ModuloCompras/PedidosCompra';
@@ -28,6 +69,7 @@ import FacturasVentas from '../components/ModuloVentas/FacturasVentas';
 import NotasCreditoVentas from '../components/ModuloVentas/NotasCreditoVentas';
 import AsientosVentas from '../components/ModuloVentas/AsientosVentas';
 import ClientesVentas from '../components/ModuloVentas/ClientesVentas';
+import GestionTimbrados from '../components/ModuloVentas/GestionTimbrados';
 
 import Personal from '../components/Personal';
 
@@ -131,7 +173,18 @@ function Dashboard() {
   // ── Estado local de pedidos (con API) ────────────────────
   const [pedidos, setPedidos] = useState([]);
   const [errorPedido, setErrorPedido] = useState(null);
-  const [moduloActual, setModuloActual] = useState('inicio');
+  const [moduloActual, setModuloActualState] = useState(() => {
+    const saved = sessionStorage.getItem('moduloActual');
+    if (saved && tieneAccesoAlModulo(saved)) {
+      return saved;
+    }
+    return 'inicio';
+  });
+
+  const setModuloActual = (modulo) => {
+    sessionStorage.setItem('moduloActual', modulo);
+    setModuloActualState(modulo);
+  };
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [mostrarFormCuenta, setMostrarFormCuenta] = useState(false);
 
@@ -266,6 +319,7 @@ function Dashboard() {
       servicios: 'Servicios',
       ventas: 'Ventas & Facturación',
       'facturas de venta': 'Facturas de Venta',
+      timbrados: 'Gestión de Timbrados',
       presupuesto: 'Presupuestos',
       clientes_ventas: 'Clientes',
       'notas credito': 'Notas de Crédito',
@@ -412,6 +466,9 @@ function Dashboard() {
 
       case 'ventas':
         return <Ventas ventas={moduloVentas} inventario={inventario} setInventario={() => { }} servicios={servicios} />;
+
+      case 'timbrados':
+        return <GestionTimbrados />;
 
       case 'facturas de venta':
         return (

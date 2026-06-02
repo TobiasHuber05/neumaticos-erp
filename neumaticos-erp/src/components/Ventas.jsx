@@ -10,7 +10,7 @@ import AsientosVentas from './ModuloVentas/AsientosVentas';
 /**
  * Dashboard Ventas & Facturación.
  * Props: ventas (hook), inventario, setInventario
- * Tabs: Presupuestos | Facturas | Clientes | NC | Asientos
+ * Tabs: Presupuestos | Facturas | Clientes | NC | Asientos || Timbrados
  */
 const Ventas = ({ ventas, inventario, setInventario, servicios = [], defaultTab }) => {
   const [tab, setTab] = useState(defaultTab || 'presupuestos');
@@ -141,6 +141,8 @@ const Ventas = ({ ventas, inventario, setInventario, servicios = [], defaultTab 
             </div>
           </div>
 
+
+
           {/* Search */}
           <div className="relative max-w-2xl">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -155,13 +157,13 @@ const Ventas = ({ ventas, inventario, setInventario, servicios = [], defaultTab 
 
         {/* Tabs */}
         <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-          <div className="border-b bg-gradient-to-r from-orange-50 to-yellow-50 px-6 py-4">
-            <div className="flex -space-x-px">
+          <div className="border-b bg-gradient-to-r from-orange-50 to-yellow-50 px-6 py-4 overflow-x-auto">
+            <div className="flex -space-x-px min-w-max">
               {tabs.map((t) => (
                 <button
                   key={t.id}
                   onClick={() => setTab(t.id)}
-                  className={`flex items-center gap-2 px-6 py-3 font-bold text-sm uppercase transition-all border-t border-r border-b rounded-t-lg group ${tab === t.id
+                  className={`flex items-center gap-2 px-6 py-3 font-bold text-sm uppercase transition-all border-t border-r border-b rounded-t-lg group whitespace-nowrap ${tab === t.id
                       ? 'bg-white text-erp-orange border-erp-orange shadow-sm -mb-px z-10'
                       : 'bg-transparent text-gray-500 hover:text-gray-700 hover:bg-white border-gray-200'
                     }`}

@@ -34,6 +34,7 @@ import clienteRoutes from './routes/cliente.routes.js';
 import presupuestoRoutes from './routes/presupuesto.routes.js';
 import facturaRoutes from './routes/facturaventa.routes.js';
 import devolucionRoutes from './routes/devolucion.routes.js';
+import timbradoRoutes from './routes/timbrado.routes.js';
 
 dotenv.config();
 
@@ -73,6 +74,7 @@ app.use('/api/clientes', clienteRoutes);
 app.use('/api/presupuestos', presupuestoRoutes);
 app.use('/api/facturas', facturaRoutes);
 app.use('/api/devoluciones', devolucionRoutes);
+app.use('/api/timbrados', timbradoRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Servidor funcionando' });

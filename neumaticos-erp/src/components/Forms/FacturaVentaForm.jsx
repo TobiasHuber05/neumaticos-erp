@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { FileText, X, PackageCheck, AlertCircle, CheckCircle, User } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { FileText, X, PackageCheck, AlertCircle, CheckCircle, User, Loader } from 'lucide-react';
 import * as ventasLogic from '../../utils/ventasLogic.js';
 
 /**
@@ -10,24 +10,94 @@ import * as ventasLogic from '../../utils/ventasLogic.js';
 const FacturaVentaForm = ({ presupuesto, clientes, inventario, servicios = [], setInventario, ventas, onCancelar }) => {
   const [procesando, setProcesando] = useState(false);
   const [error, setError] = useState('');
-  const [nroFactura, setNroFactura] = useState('');
-  const [timbrado, setTimbrado] = useState(''); // Default or empty
+  const [cargandoTimbrados, setCargandoTimbrados] = useState(true);
+  const [timbrados, setTimbrados] = useState([]);
+  const [idPuntoExpedicion, setIdPuntoExpedicion] = useState(''); // ID del punto de expedición seleccionado
   const [tipoPago, setTipoPago] = useState('Contado');
 
   const cliente = clientes.find(c => c.id === presupuesto.clientId);
   const vigente = ventas ? ventas.presupuestos?.some(p => p.id === presupuesto.id && ventasLogic.isBudgetVigente(p)) : true;
+
+  // Cargar timbrados y puntos de expedición activos
+  useEffect(() => {
+    const cargarTimbrados = async () => {
+      try {
+        const response = await fetch('/api/timbrados', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+        if (!response.ok) throw new Error('Error al cargar timbrados');
+        const data = await response.json();
+        setTimbrados(data);
+        
+        // Extraer todos los puntos de expedición válidos
+        const puntosValidos = [];
+        data.forEach(t => {
+          const vencido = new Date() > new Date(t.fecha_fin);
+          if (t.estado && !vencido && t.puntos_expedicion) {
+            t.puntos_expedicion.forEach(p => {
+              if (p.activo) {
+                puntosValidos.push({ ...p, timbrado: t });
+              }
+            });
+          }
+        });
+
+        // Seleccionar automáticamente el primero disponible
+        if (puntosValidos.length > 0) {
+          setIdPuntoExpedicion(puntosValidos[0].id);
+        } else {
+          setError('No hay puntos de expedición activos con timbrados vigentes. Cree uno primero.');
+        }
+      } catch (err) {
+        setError(`Error al cargar timbrados: ${err.message}`);
+      } finally {
+        setCargandoTimbrados(false);
+      }
+    };
+    
+    cargarTimbrados();
+  }, []);
+
+  const obtenerPuntosValidos = () => {
+    const list = [];
+    timbrados.forEach(t => {
+      const vencido = new Date() > new Date(t.fecha_fin);
+      if (t.estado && !vencido && t.puntos_expedicion) {
+        t.puntos_expedicion.forEach(p => {
+          if (p.activo) {
+            list.push({ ...p, timbrado: t });
+          }
+        });
+      }
+    });
+    return list;
+  };
+
+  const puntosExpedicionValidos = obtenerPuntosValidos();
+  const puntoSeleccionado = puntosExpedicionValidos.find(p => p.id == idPuntoExpedicion);
+
+  const nroFacturaAutomatico = puntoSeleccionado 
+    ? `${puntoSeleccionado.cod_establecimiento.padStart(3, '0')}-${puntoSeleccionado.cod_punto_expedicion.padStart(3, '0')}-${String(puntoSeleccionado.ultimo_secuencial + 1).padStart(7, '0')}`
+    : '';
 
   const handleConfirmar = async () => {
     if (!vigente) {
       setError('Presupuesto expirado');
       return;
     }
+
+    if (!idPuntoExpedicion) {
+      setError('Debe seleccionar un punto de expedición válido');
+      return;
+    }
+
     setProcesando(true);
     setError('');
     try {
       const datosFactura = {
-        nro_factura: nroFactura,
-        timbrado: timbrado,
+        idPuntoExpedicion: parseInt(idPuntoExpedicion),
         contado_credito: tipoPago
       };
       await ventas.actions.generarFactura(presupuesto.id, datosFactura, inventario, setInventario);
@@ -95,37 +165,52 @@ const FacturaVentaForm = ({ presupuesto, clientes, inventario, servicios = [], s
 
           {/* Columna Datos Factura */}
           <div className="md:col-span-8 p-3 border border-orange-100 rounded-xl bg-orange-50/10">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div>
-                <label className="text-[9px] font-black uppercase text-gray-500 block mb-0.5">Nro. Factura</label>
-                <input
-                  value={nroFactura}
-                  onChange={(e) => setNroFactura(e.target.value)}
-                  placeholder="001-001..."
-                  className="w-full px-2 py-1.5 border rounded-lg text-xs focus:ring-2 focus:ring-erp-orange"
-                />
+            {cargandoTimbrados ? (
+              <div className="flex items-center justify-center gap-2 h-12">
+                <Loader className="w-4 h-4 text-erp-orange animate-spin" />
+                <span className="text-xs text-gray-600 font-medium">Cargando timbrados...</span>
               </div>
-              <div>
-                <label className="text-[9px] font-black uppercase text-gray-500 block mb-0.5">Timbrado</label>
-                <input
-                  value={timbrado}
-                  onChange={(e) => setTimbrado(e.target.value)}
-                  placeholder="12345678"
-                  className="w-full px-2 py-1.5 border rounded-lg text-xs focus:ring-2 focus:ring-erp-orange"
-                />
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="text-[9px] font-black uppercase text-gray-500 block mb-0.5">Nro. Factura (Automático)</label>
+                  <div className="w-full px-2 py-1.5 border rounded-lg text-xs bg-gray-50 font-mono font-bold text-erp-orange border-gray-300">
+                    {nroFacturaAutomatico || 'N/A'}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[9px] font-black uppercase text-gray-500 block mb-0.5">Punto Expedición / Timbrado *</label>
+                  <select
+                    value={idPuntoExpedicion}
+                    onChange={(e) => setIdPuntoExpedicion(e.target.value)}
+                    className="w-full px-2 py-1.5 border rounded-lg text-xs focus:ring-2 focus:ring-erp-orange bg-white font-bold"
+                  >
+                    <option value="">Seleccionar punto...</option>
+                    {puntosExpedicionValidos.map(p => (
+                      <option key={p.id} value={p.id}>
+                        {p.cod_establecimiento}-{p.cod_punto_expedicion} (Timbrado: {p.timbrado.nro_timbrado})
+                      </option>
+                    ))}
+                  </select>
+                  {puntoSeleccionado && (
+                    <p className="text-[8px] text-gray-600 mt-0.5">
+                      Rango: {puntoSeleccionado.timbrado.rango_desde}-{puntoSeleccionado.timbrado.rango_hasta} | Siguiente: {puntoSeleccionado.ultimo_secuencial + 1}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label className="text-[9px] font-black uppercase text-gray-500 block mb-0.5">Tipo de Pago</label>
+                  <select
+                    value={tipoPago}
+                    onChange={(e) => setTipoPago(e.target.value)}
+                    className="w-full px-2 py-1.5 border rounded-lg text-xs focus:ring-2 focus:ring-erp-orange bg-white font-bold"
+                  >
+                    <option value="Contado">Contado</option>
+                    <option value="Crédito">Crédito</option>
+                  </select>
+                </div>
               </div>
-              <div>
-                <label className="text-[9px] font-black uppercase text-gray-500 block mb-0.5">Tipo de Pago</label>
-                <select
-                  value={tipoPago}
-                  onChange={(e) => setTipoPago(e.target.value)}
-                  className="w-full px-2 py-1.5 border rounded-lg text-xs focus:ring-2 focus:ring-erp-orange bg-white font-bold"
-                >
-                  <option value="Contado">Contado</option>
-                  <option value="Crédito">Crédito</option>
-                </select>
-              </div>
-            </div>
+            )}
           </div>
         </div>
 
@@ -191,7 +276,7 @@ const FacturaVentaForm = ({ presupuesto, clientes, inventario, servicios = [], s
           <button
             type="button"
             onClick={handleConfirmar}
-            disabled={!vigente || procesando || !nroFactura}
+            disabled={!vigente || procesando || !idPuntoExpedicion || cargandoTimbrados}
             className="flex-1 bg-green-500 hover:bg-orange-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-black py-3 rounded-xl shadow-lg hover:shadow-xl transition-all uppercase text-xs tracking-wide flex items-center justify-center gap-2"
           >
             {procesando ? (

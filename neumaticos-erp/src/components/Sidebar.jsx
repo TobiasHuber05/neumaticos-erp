@@ -27,11 +27,21 @@ import { Link } from 'react-router-dom';
 import { puedeVer, puedeAdministrarUsuarios } from '../utils/permisos';
 
 const Sidebar = ({ setModulo, moduloActual }) => {
-  const [reportesAbierto, setReportesAbierto] = useState(false);
-  const [comprasAbierto, setComprasAbierto] = useState(false);
-  const [tesoreriaAbierto, setTesoreriaAbierto] = useState(false);
-  const [ventasAbierto, setVentasAbierto] = useState(false);
-  const [contabilidadAbierto, setContabilidadAbierto] = useState(false);
+  const [reportesAbierto, setReportesAbierto] = useState(() => {
+    return ['reportes_compras', 'reportes_stock', 'reportes_ventas'].includes(moduloActual);
+  });
+  const [comprasAbierto, setComprasAbierto] = useState(() => {
+    return ['proveedores', 'compras', 'cotizaciones', 'ordenes_compra', 'pagos_proveedores', 'asientos_compras'].includes(moduloActual);
+  });
+  const [tesoreriaAbierto, setTesoreriaAbierto] = useState(() => {
+    return ['gestion_cuentas', 'movimientos bancarios', 'conciliacion bancaria'].includes(moduloActual);
+  });
+  const [ventasAbierto, setVentasAbierto] = useState(() => {
+    return ['facturas de venta', 'presupuesto', 'clientes_ventas', 'notas credito', 'asiento ventas', 'timbrados'].includes(moduloActual);
+  });
+  const [contabilidadAbierto, setContabilidadAbierto] = useState(() => {
+    return ['contabilidad_plan', 'contabilidad_asientos', 'contabilidad_periodos', 'contabilidad_reportes'].includes(moduloActual);
+  });
 
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   const rol = (user.rol || '').toUpperCase();
@@ -40,6 +50,7 @@ const Sidebar = ({ setModulo, moduloActual }) => {
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    sessionStorage.removeItem('moduloActual');
     window.location.href = '/login';
   };
 
@@ -64,6 +75,7 @@ const Sidebar = ({ setModulo, moduloActual }) => {
     { id: 'clientes_ventas', icon: <Users size={18} />, label: 'Clientes' },
     { id: 'notas credito', icon: <ClipboardList size={18} />, label: 'Notas de crédito' },
     { id: 'asiento ventas', icon: <Banknote size={18} />, label: 'Asientos ventas' },
+    { id: 'timbrados', icon: <BarChart2 size={18} />, label: 'Gestión de Timbrados' },
   ];
 
   const moduloPersonalItems = [
