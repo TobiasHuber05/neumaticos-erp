@@ -495,7 +495,7 @@ const ModalEditarFuncionario = ({ funcionario, cargos, onClose, actions }) => {
 //  COMPONENTE PRINCIPAL
 // ══════════════════════════════════════════════════════════════
 const Funcionarios = ({ personal }) => {
-  const { funcionarios, actions } = personal;
+  const { funcionarios, procesosPago, actions } = personal;
   const [filtro, setFiltro] = useState('');
   const [pagina, setPagina] = useState(1);
   const POR_PAGINA = 10;
@@ -599,6 +599,8 @@ const Funcionarios = ({ personal }) => {
     setForm(prev => ({ ...prev, id_cargo: String(nuevoCargo.id_cargo) }));
   };
 
+  const procesoAbierto = procesosPago.some(p => p.estado === 'Abierto');
+
   const funcionariosFiltrados = funcionarios.filter(f =>
     f.nombre.toLowerCase().includes(filtro.toLowerCase()) || f.documento.includes(filtro)
   );
@@ -620,7 +622,12 @@ const Funcionarios = ({ personal }) => {
         {puedeEditar('personal') && (
           <div className="flex gap-2">
             <button onClick={() => setShowIniciarNomina(true)}
-              className="bg-green-600 text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-green-700 transition-colors shadow-lg shadow-green-200">
+              disabled={procesoAbierto}
+              className={`px-4 py-2 rounded-xl font-bold flex items-center gap-2 transition-all shadow-lg ${
+                procesoAbierto
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-none'
+                  : 'bg-green-600 text-white hover:bg-green-700 shadow-green-200'
+              }`}>
               <PlayCircle size={20} /> Iniciar Nómina Mes
             </button>
             <button onClick={() => setShowModalCargo(true)}

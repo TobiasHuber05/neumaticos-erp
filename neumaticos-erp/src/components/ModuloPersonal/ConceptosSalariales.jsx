@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Settings, Plus, CheckCircle2, XCircle, Info, X } from 'lucide-react';
+import { Settings, Plus, CheckCircle2, XCircle, Info, X, Trash2 } from 'lucide-react';
 import axios from 'axios';
 import { puedeEditar } from '../../utils/permisos';
 
@@ -21,6 +21,7 @@ const ConceptosSalariales = ({ personal }) => {
     nombre: '', descripcion: '', tipo: 'Ingreso',
     monto: '', afecta_ips: false,
   });
+  const [eliminando, setEliminando] = useState(null);
 
   const handleChange = (e) => {
     const val = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
@@ -32,11 +33,12 @@ const ConceptosSalariales = ({ personal }) => {
     setErrorForm('');
     setGuardando(true);
     try {
+      const montoNum = form.monto ? Number(form.monto) : 0;
       await axios.post(`${API}/salarios/conceptos`, {
         nombre:      form.nombre,
         descripcion: form.descripcion,
-        credito:     form.tipo === 'Ingreso' && form.monto ? Number(form.monto) : null,
-        debito:      form.tipo === 'Egreso'  && form.monto ? Number(form.monto) : null,
+        credito:     form.tipo === 'Ingreso' ? montoNum : null,
+        debito:      form.tipo === 'Egreso'  ? montoNum : null,
         afecta_ips:  form.afecta_ips,
       });
       await actions.recargar();
@@ -46,6 +48,19 @@ const ConceptosSalariales = ({ personal }) => {
       setErrorForm('Error al guardar el concepto.');
     } finally {
       setGuardando(false);
+    }
+  };
+
+  const handleEliminar = async (id) => {
+    if (!confirm('¿Eliminar este concepto?')) return;
+    setEliminando(id);
+    try {
+      await axios.delete(`${API}/salarios/conceptos/${id}`);
+      await actions.recargar();
+    } catch {
+      alert('Error al eliminar el concepto.');
+    } finally {
+      setEliminando(null);
     }
   };
 
@@ -86,18 +101,19 @@ const ConceptosSalariales = ({ personal }) => {
                 <th className="px-8 py-4">Concepto Salarial</th>
                 <th className="px-8 py-4">Tipo</th>
                 <th className="px-8 py-4 text-center">Filtro IPS</th>
+                <th className="px-8 py-4 text-center">Acción</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-orange-50">
               {conceptosMapeados.length === 0 && (
                 <tr>
-                  <td colSpan={3} className="px-8 py-10 text-center text-gray-400 text-sm">
+                  <td colSpan={4} className="px-8 py-10 text-center text-gray-400 text-sm">
                     No hay conceptos registrados. Creá uno con el botón de arriba.
                   </td>
                 </tr>
               )}
               {conceptosMapeados.map((c) => (
-                <tr key={c.id_concepto} className="hover:bg-orange-50/20 transition-colors">
+                <tr key={c.id_concepto} className="hover:bg-orange-50/20 transition-colors group">
                   <td className="px-8 py-5">
                     <div className="font-bold text-gray-800">{c.nombre}</div>
                     {c.descripcion && (
@@ -123,6 +139,15 @@ const ConceptosSalariales = ({ personal }) => {
                         </div>
                       )}
                     </div>
+                  </td>
+                  <td className="px-8 py-5 text-center">
+                    {puedeEditar('personal') && (
+                      <button onClick={() => handleEliminar(c.id_concepto)} disabled={eliminando === c.id_concepto}
+                        className="p-1.5 text-red-400 hover:bg-red-50 rounded-xl transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-40"
+                        title="Eliminar concepto">
+                        <Trash2 size={14} />
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}

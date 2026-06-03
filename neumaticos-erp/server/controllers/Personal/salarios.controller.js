@@ -37,8 +37,8 @@ export const createConcepto = async (req, res) => {
       data: {
         nombre,
         descripcion,
-        credito: credito ? Number(credito) : null,
-        debito: debito ? Number(debito) : null,
+        credito: credito != null ? Number(credito) : null,
+        debito: debito != null ? Number(debito) : null,
         afecta_ips: Boolean(afecta_ips),
         formula
       }
@@ -46,6 +46,17 @@ export const createConcepto = async (req, res) => {
     res.status(201).json(concepto);
   } catch (error) {
     res.status(500).json({ error: 'Error al crear concepto' });
+  }
+};
+
+// DELETE /api/salarios/conceptos/:id
+export const deleteConcepto = async (req, res) => {
+  const { id } = req.params;
+  try {
+    await prisma.conceptos.delete({ where: { id_concepto: Number(id) } });
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Error al eliminar concepto' });
   }
 };
 
