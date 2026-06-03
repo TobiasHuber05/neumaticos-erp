@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
   UserPlus, Search, Briefcase, Trash2, Edit2, Users2,
-  Plus, X, Settings2, CreditCard, History
+  Plus, X, Settings2, CreditCard, History, PlayCircle
 } from 'lucide-react';
 import { formatGua } from '../../utils/personalLogic';
 import axios from 'axios';
@@ -504,6 +504,13 @@ const Funcionarios = ({ personal }) => {
   const [errorForm, setErrorForm] = useState('');
   const [cargos, setCargos] = useState([]);
   const [showModalCargo, setShowModalCargo] = useState(false);
+  const [showIniciarNomina, setShowIniciarNomina] = useState(false);
+  const [iniciandoNomina, setIniciandoNomina] = useState(false);
+  const [formNomina, setFormNomina] = useState({
+    periodo: new Date().toISOString().slice(0, 7),
+    fecha_pago: '',
+  });
+  const [errorNomina, setErrorNomina] = useState('');
 
   // Modales
   const [modalConceptos, setModalConceptos] = useState(null); // funcionario
@@ -612,6 +619,10 @@ const Funcionarios = ({ personal }) => {
         </div>
         {puedeEditar('personal') && (
           <div className="flex gap-2">
+            <button onClick={() => setShowIniciarNomina(true)}
+              className="bg-green-600 text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-green-700 transition-colors shadow-lg shadow-green-200">
+              <PlayCircle size={20} /> Iniciar Nómina Mes
+            </button>
             <button onClick={() => setShowModalCargo(true)}
               className="border border-orange-200 text-erp-orange px-4 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-orange-50 transition-colors">
               <Settings2 size={18} /> Nuevo Cargo
@@ -928,6 +939,69 @@ const Funcionarios = ({ personal }) => {
                   ))}
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Iniciar Nómina */}
+      {showIniciarNomina && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden border border-green-100">
+            <div className="p-6 border-b border-green-50 bg-gradient-to-r from-green-50 to-white flex justify-between items-start">
+              <div>
+                <div className="flex items-center gap-2">
+                  <PlayCircle size={20} className="text-green-600" />
+                  <h2 className="text-xl font-black text-green-700 uppercase tracking-tighter">Iniciar Nómina del Mes</h2>
+                </div>
+                <p className="text-xs text-gray-500 font-medium mt-1">Calculá los salarios del período</p>
+              </div>
+              <button onClick={() => { setShowIniciarNomina(false); setErrorNomina(''); }}
+                className="p-2 hover:bg-green-100 rounded-xl transition-colors">
+                <X size={18} className="text-gray-400" />
+              </button>
+            </div>
+            <div className="p-6 space-y-5">
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Período (año-mes) <span className="text-red-400">*</span></label>
+                <input type="month" value={formNomina.periodo}
+                  onChange={e => setFormNomina(p => ({ ...p, periodo: e.target.value }))}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-100 focus:ring-2 focus:ring-green-500 outline-none bg-gray-50/50 text-sm font-bold" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Fecha de Pago <span className="text-red-400">*</span></label>
+                <input type="date" value={formNomina.fecha_pago}
+                  onChange={e => setFormNomina(p => ({ ...p, fecha_pago: e.target.value }))}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-100 focus:ring-2 focus:ring-green-500 outline-none bg-gray-50/50 text-sm" />
+              </div>
+              {errorNomina && (
+                <div className="bg-red-50 border border-red-100 text-red-600 text-sm font-medium px-4 py-3 rounded-xl">{errorNomina}</div>
+              )}
+            </div>
+            <div className="p-6 bg-gray-50 border-t border-green-50 flex justify-end gap-3">
+              <button onClick={() => { setShowIniciarNomina(false); setErrorNomina(''); }}
+                disabled={iniciandoNomina}
+                className="px-6 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-100 transition-colors">
+                Cancelar
+              </button>
+              <button onClick={async () => {
+                if (!formNomina.periodo) { setErrorNomina('El período es obligatorio.'); return; }
+                if (!formNomina.fecha_pago) { setErrorNomina('La fecha de pago es obligatoria.'); return; }
+                setErrorNomina('');
+                setIniciandoNomina(true);
+                try {
+                  await actions.iniciarProcesoPago(formNomina.periodo, formNomina.fecha_pago);
+                  setShowIniciarNomina(false);
+                  setFormNomina({ periodo: new Date().toISOString().slice(0, 7), fecha_pago: '' });
+                } catch (err) {
+                  setErrorNomina(err?.response?.data?.error || 'Error al iniciar el proceso.');
+                } finally {
+                  setIniciandoNomina(false);
+                }
+              }} disabled={iniciandoNomina}
+                className="px-8 py-3 bg-green-600 text-white rounded-xl font-black uppercase tracking-widest text-xs hover:bg-green-700 transition-colors shadow-lg shadow-green-200 disabled:opacity-60">
+                {iniciandoNomina ? 'Iniciando...' : 'Iniciar Nómina'}
+              </button>
             </div>
           </div>
         </div>

@@ -1,6 +1,5 @@
 import { prisma } from '../../lib/prisma.js';
-import { registrarAsientoAutomatico } from '../../utils/asientoAutomatico.utils.js';
-import { generarAsientoMovimientoManual } from '../../utils/tesoreria-contabilidad.helper.js';
+import { generarAsientoPorModelo } from '../../utils/generarAsientoPorModelo.utils.js';
 
 // Auxiliar para lógica de saldos
 export const calcularSaldos = (movs, saldoInicial = 0, saldoDisponibleInicial = 0) => {
@@ -115,13 +114,24 @@ export const registrarMovimiento = async (req, res) => {
 
             let asiento = null;
             if (tipo_contable) {
-                const paramsAsiento = generarAsientoMovimientoManual({
-                    ...movimiento,
-                    tipo_contable,
-                    fecha_movimiento: movimiento.fecha_movimiento,
-                });
-                if (paramsAsiento) {
-                    asiento = await registrarAsientoAutomatico(paramsAsiento, tx, { strict: false });
+                const MAPA_OPERACION = {
+                    deposito: 'TESORERIA_DEPOSITO',
+                    intereses: 'TESORERIA_INTERESES',
+                    gasto_bancario: 'TESORERIA_GASTO',
+                    cheque_rechazado: 'TESORERIA_CHEQUE_RECHAZADO',
+                };
+                const op = MAPA_OPERACION[tipo_contable];
+                if (op) {
+                    const monto = Number(movimiento.monto_ingreso ?? movimiento.monto_egreso ?? 0);
+                    asiento = await generarAsientoPorModelo({
+                        operacion_asiento: op,
+                        fecha: movimiento.fecha_movimiento || new Date(),
+                        descripcion: `${movimiento.concepto || 'Movimiento'} — ${movimiento.tipo_movimiento || ''}`.trim(),
+                        tabla_origen: 'movimiento_bancario',
+                        id_registro_origen: movimiento.id_movimiento,
+                        montos: [monto, monto],
+                        cuentaBancariaId: Number(id_cuenta),
+                    }, tx, { strict: false });
                 }
             }
 

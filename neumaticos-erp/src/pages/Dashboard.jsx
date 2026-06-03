@@ -31,7 +31,7 @@ const tieneAccesoAlModulo = (modulo) => {
     return puedeVer('personal');
   }
 
-  const moduloContabilidad = ['contabilidad_periodos', 'contabilidad_plan', 'contabilidad_asientos', 'contabilidad_reportes'];
+  const moduloContabilidad = ['contabilidad_periodos', 'contabilidad_plan', 'contabilidad_asientos', 'contabilidad_reportes', 'contabilidad_modelos'];
   if (moduloContabilidad.includes(modulo)) {
     return puedeVer('contabilidad');
   }
@@ -78,6 +78,8 @@ import PeriodosContables from '../components/ModuloContabilidad/PeriodosContable
 import PlanCuentas from '../components/ModuloContabilidad/PlanCuentas';
 import AsientosManuales from '../components/ModuloContabilidad/AsientosManuales';
 import ReportesContables from '../components/ModuloContabilidad/ReportesContables';
+import ModelosAsientos from '../components/ModuloContabilidad/ModelosAsientos';
+import { usePlanCuentas } from '../hooks/usePlanCuentas';
 
 // Imports Reportes
 import ReportesCompras from '../components/ModuloReportes/ReportesCompras';
@@ -86,6 +88,8 @@ import ReportesVentas from '../components/ModuloReportes/ReportesVentas';
 
 // Imports Seguridad
 import UsuariosModulo from '../components/Usuarios/UsuariosModulo';
+
+import ErrorBoundary from '../components/ErrorBoundary';
 
 // ── Hooks de API ──────────────────────────────────────
 import { useProveedores } from '../hooks/useProveedores';
@@ -216,6 +220,7 @@ function Dashboard() {
 
   const moduloVentas = useModuloVentas(puedeVer('ventas'));
   const { servicios, actions: actionsServicios } = useServicios(puedeVer('stock') || puedeVer('ventas'));
+  const { cuentas: planCuentas } = usePlanCuentas();
 
   const proveedoresMaestro = useMemo(
     () => proveedores.map((p) => ({ id: p.id, nombre: p.nombre })),
@@ -342,6 +347,7 @@ function Dashboard() {
       contabilidad_asientos: 'Contabilidad — Asientos',
       contabilidad_periodos: 'Contabilidad — Periodos',
       contabilidad_reportes: 'Contabilidad — Informes',
+      contabilidad_modelos: 'Contabilidad — Modelos de Asientos',
       usuarios: 'Gestión de Usuarios',
     };
     return map[moduloActual] ?? moduloActual;
@@ -537,6 +543,7 @@ function Dashboard() {
                 <CuentaBancariaForm
                   bancos={bancos}
                   monedas={monedas}
+                  planCuentas={planCuentas}
                   onCancelar={() => setMostrarFormCuenta(false)}
                   onGuardar={async (nueva) => {
                     await registrarCuenta(nueva);
@@ -601,6 +608,8 @@ function Dashboard() {
 
       case 'contabilidad_reportes':
         return <ReportesContables />;
+      case 'contabilidad_modelos':
+        return <ModelosAsientos />;
 
       case 'compras':
         if (mostrarFormulario) {
@@ -692,7 +701,9 @@ function Dashboard() {
               </div>
             </header>
           )}
-          {renderContenido()}
+          <ErrorBoundary key={moduloActual}>
+            {renderContenido()}
+          </ErrorBoundary>
         </main>
       </div>
     </div>

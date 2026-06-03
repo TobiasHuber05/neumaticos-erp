@@ -91,37 +91,19 @@ export const procesarDevolucion = async (req, res) => {
       }
 
       // 5. GENERAR ASIENTO CONTABLE AUTOMÁTICO
-      const { registrarAsientoAutomatico } = await import('../../utils/asientoAutomatico.utils.js');
+      const { generarAsientoPorModelo } = await import('../../utils/generarAsientoPorModelo.utils.js');
       const totalDevolucion = items_a_devolver.reduce((sum, i) => sum + (i.precio_unitario * i.cantidad), 0);
       const montoIva = Math.round(totalDevolucion / 11);
       const montoSinIva = totalDevolucion - montoIva;
 
-      await registrarAsientoAutomatico({
+      await generarAsientoPorModelo({
+        operacion_asiento: 'VENTA_NOTA_CREDITO',
         fecha: new Date(),
         descripcion: `Nota de Crédito Venta Nro: ${notaCredito.nro_nota}`,
         tabla_origen: 'nota_credito_venta',
         id_registro_origen: notaCredito.id_nota_credito_venta,
-        detalles: [
-          {
-            cuenta_codigo: '4.1.01', // Devolución sobre Ventas (reversa la venta) - Usamos la misma cuenta de ventas al DEBE para restar
-            monto: montoSinIva,
-            debe_haber: true, // DEBE
-            glosa: 'Devolución de Ventas'
-          },
-          {
-            cuenta_codigo: '2.1.05', // IVA Débito Fiscal (reversa al DEBE)
-            monto: montoIva,
-            debe_haber: true, // DEBE
-            glosa: 'Reversión IVA Débito Fiscal 10%'
-          },
-          {
-            cuenta_codigo: '1.1.02', // Cuentas a Cobrar / Clientes (reduce la deuda del cliente al HABER)
-            monto: totalDevolucion,
-            debe_haber: false, // HABER
-            glosa: 'Aplicación Nota de Crédito a Cliente'
-          }
-        ]
-      });
+        montos: [montoSinIva, montoIva, totalDevolucion],
+      }, tx, { strict: true });
 
       return {
         ...devolucion,

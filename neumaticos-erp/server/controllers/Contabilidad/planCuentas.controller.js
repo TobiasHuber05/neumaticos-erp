@@ -79,7 +79,24 @@ export const createCuenta = async (req, res) => {
             }
         });
 
-        return res.status(201).json({ id: nueva.id_cuenta, ...nueva });
+        return res.status(201).json({
+            id: nueva.id_cuenta,
+            id_cuenta: nueva.id_cuenta,
+            codigo: nueva.cuenta_contable ?? '',
+            cuenta_contable: nueva.cuenta_contable ?? '',
+            nombre: nueva.nombre ?? '',
+            tipo: nueva.asentable ? 'Asentable' : 'Totalizadora',
+            asentable: nueva.asentable ?? false,
+            nivel: nueva.nivel ?? 1,
+            padreId: nueva.cuenta_padre ?? null,
+            cuenta_padre: nueva.cuenta_padre ?? null,
+            tipoCuenta: nueva.tipo_cuenta ?? '',
+            tipo_cuenta: nueva.tipo_cuenta ?? '',
+            idProcContable: nueva.id_proc_contable ?? null,
+            id_proc_contable: nueva.id_proc_contable ?? null,
+            debe: Number(nueva.debe ?? 0),
+            haber: Number(nueva.haber ?? 0),
+        });
     } catch (error) {
         console.error('ERROR:', error);
         return res.status(500).json({ error: error.message });
@@ -117,14 +134,21 @@ export const updateCuenta = async (req, res) => {
 
         return res.json({
             id: actualizada.id_cuenta,
-            codigo: actualizada.cuenta_contable,
-            nombre: actualizada.nombre,
+            id_cuenta: actualizada.id_cuenta,
+            codigo: actualizada.cuenta_contable ?? '',
+            cuenta_contable: actualizada.cuenta_contable ?? '',
+            nombre: actualizada.nombre ?? '',
             tipo: actualizada.asentable ? 'Asentable' : 'Totalizadora',
-            asentable: actualizada.asentable,
-            nivel: actualizada.nivel,
-            padreId: actualizada.cuenta_padre,
-            tipoCuenta: actualizada.tipo_cuenta,
-            idProcContable: actualizada.id_proc_contable,
+            asentable: actualizada.asentable ?? false,
+            nivel: actualizada.nivel ?? 1,
+            padreId: actualizada.cuenta_padre ?? null,
+            cuenta_padre: actualizada.cuenta_padre ?? null,
+            tipoCuenta: actualizada.tipo_cuenta ?? '',
+            tipo_cuenta: actualizada.tipo_cuenta ?? '',
+            idProcContable: actualizada.id_proc_contable ?? null,
+            id_proc_contable: actualizada.id_proc_contable ?? null,
+            debe: Number(actualizada.debe ?? 0),
+            haber: Number(actualizada.haber ?? 0),
         });
     } catch (error) {
         console.error('Error al actualizar cuenta:', error);

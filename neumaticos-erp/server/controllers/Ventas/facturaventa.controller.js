@@ -154,39 +154,20 @@ export const generarFactura = async (req, res) => {
         data: { estado: 'Convertido' }
       });
       // 4. GENERAR ASIENTO CONTABLE AUTOMÁTICO
-      // Importamos dinámicamente para evitar problemas de dependencias circulares si los hubiera
-      const { registrarAsientoAutomatico } = await import('../../utils/asientoAutomatico.utils.js');
+      const { generarAsientoPorModelo } = await import('../../utils/generarAsientoPorModelo.utils.js');
 
       const totalFactura = Number(factura.total);
-      const montoIva = Math.round(totalFactura / 11); // IVA 10% incluido
+      const montoIva = Math.round(totalFactura / 11);
       const montoSinIva = totalFactura - montoIva;
 
-      await registrarAsientoAutomatico({
+      await generarAsientoPorModelo({
+        operacion_asiento: 'VENTA_FACTURA',
         fecha: new Date(),
         descripcion: `Venta Factura Nro: ${nro_factura}`,
         tabla_origen: 'factura_venta',
         id_registro_origen: factura.id_factura_venta,
-        detalles: [
-          {
-            cuenta_codigo: '1.1.02', // Cuentas a Cobrar / Clientes
-            monto: totalFactura,
-            debe_haber: true, // DEBE
-            glosa: 'Clientes por Ventas'
-          },
-          {
-            cuenta_codigo: '4.1.01', // Ventas de Mercaderías
-            monto: montoSinIva,
-            debe_haber: false, // HABER
-            glosa: 'Ventas gravadas al 10%'
-          },
-          {
-            cuenta_codigo: '2.1.05', // IVA Débito Fiscal
-            monto: montoIva,
-            debe_haber: false, // HABER
-            glosa: 'IVA Débito Fiscal 10%'
-          }
-        ]
-      });
+        montos: [totalFactura, montoSinIva, montoIva],
+      }, tx, { strict: true });
 
       return factura;
     });
@@ -201,7 +182,13 @@ export const getFactura = async (req, res) => {
   try {
     const facturas = await prisma.factura_venta.findMany({
       include: {
-        detalle_factura_venta: true,
+        detalle_factura_venta: {
+          include: {
+            producto_servicio: {
+              include: { producto: true },
+            },
+          },
+        },
         devolucion_cliente: {
           include: {
             detalle_devolucion: true,

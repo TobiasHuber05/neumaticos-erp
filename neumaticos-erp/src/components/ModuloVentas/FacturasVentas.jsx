@@ -25,10 +25,21 @@ const FacturasVentas = ({
   const [cobrandoFactura, setCobrandoFactura] = useState(null);
   const [msg, setMsg] = useState(null);
 
-  const facturasPendientes = ventas.facturasVentas?.filter(
+  if (ventas.loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-erp-orange border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-500 font-bold">Cargando facturas...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const facturasPendientes = (ventas.facturasVentas || []).filter(
     (f) => f.estado !== 'Cobrado' && Number(f.saldoPendiente ?? f.total) > 0,
-  ) || [];
-  const facturasCobradas = ventas.facturasVentas?.filter(f => f.estado === 'Cobrado') || [];
+  );
+  const facturasCobradas = (ventas.facturasVentas || []).filter(f => f.estado === 'Cobrado');
 
   const handleDevolver = (factura) => {
     if (ventasLogic.validarDevolucion(factura)) {
@@ -122,8 +133,8 @@ const FacturasVentas = ({
               <div className="flex items-center gap-3">
                 <FileText className="text-erp-orange w-6 h-6" />
                 <div>
-                  <h3 className="text-xl font-black text-gray-800">Factura Nro. {facturaDetalle.numero}</h3>
-                  <p className="text-sm text-gray-500">Emitida el {facturaDetalle.fechaFactura}</p>
+                  <h3 className="text-xl font-black text-gray-800">Factura Nro. {facturaDetalle.numero ?? '---'}</h3>
+                  <p className="text-sm text-gray-500">Emitida el {facturaDetalle.fechaFactura ?? '---'}</p>
                 </div>
               </div>
               <button
@@ -157,17 +168,16 @@ const FacturasVentas = ({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {facturaDetalle.lineas.map((linea, idx) => {
-                      const nombreProducto = (inventario.find(p => p.id_producto_servicio === linea.productoId) ||
-                        servicios.find(s => s.id_producto_servicio === linea.productoId) ||
-                        inventario.find(p => p.id === linea.productoId))?.nombre || 'Producto Desconocido';
+                    {(facturaDetalle.lineas || []).map((linea, idx) => {
+                      const precioUnit = Number(linea.precioUnitario ?? 0);
+                      const totalLinea = Number(linea.totalLinea ?? 0);
 
                       return (
                         <tr key={idx} className="hover:bg-gray-50">
-                          <td className="px-4 py-3 font-medium text-gray-800">{nombreProducto}</td>
-                          <td className="px-4 py-3 text-center font-mono">{linea.cantidad}</td>
-                          <td className="px-4 py-3 text-right font-mono text-gray-600">Gs. {linea.precioUnitario.toLocaleString()}</td>
-                          <td className="px-4 py-3 text-right font-mono font-bold text-gray-900">Gs. {linea.totalLinea.toLocaleString()}</td>
+                          <td className="px-4 py-3 font-medium text-gray-800">{linea.nombreProducto || 'Producto Desconocido'}</td>
+                          <td className="px-4 py-3 text-center font-mono">{linea.cantidad ?? 0}</td>
+                          <td className="px-4 py-3 text-right font-mono text-gray-600">Gs. {precioUnit.toLocaleString()}</td>
+                          <td className="px-4 py-3 text-right font-mono font-bold text-gray-900">Gs. {totalLinea.toLocaleString()}</td>
                         </tr>
                       );
                     })}
@@ -175,7 +185,7 @@ const FacturasVentas = ({
                   <tfoot className="bg-orange-50 border-t">
                     <tr>
                       <td colSpan="3" className="px-4 py-3 text-right font-bold text-erp-orange uppercase text-xs">Total Factura:</td>
-                      <td className="px-4 py-3 text-right font-black text-lg text-gray-900">Gs. {facturaDetalle.total.toLocaleString()}</td>
+                      <td className="px-4 py-3 text-right font-black text-lg text-gray-900">Gs. {Number(facturaDetalle.total ?? 0).toLocaleString()}</td>
                     </tr>
                   </tfoot>
                 </table>

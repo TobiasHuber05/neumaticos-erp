@@ -188,10 +188,12 @@ export const registrarCobro = async (req, res) => {
 
       try {
         const { ejecutarAsientoCobroCliente } = await import('./asientos.controller.js');
+        const primerIdCuenta = mediosValidos.find(m => m.id_cuenta)?.id_cuenta || null;
         await ejecutarAsientoCobroCliente(
           tx,
           { ...cobranza, total: totalMedios, fecha_cobro: fechaCobro },
           factura,
+          primerIdCuenta,
         );
       } catch (errorAsiento) {
         console.error('⚠️ El asiento de cobro falló, pero se guarda el cobro:', errorAsiento);

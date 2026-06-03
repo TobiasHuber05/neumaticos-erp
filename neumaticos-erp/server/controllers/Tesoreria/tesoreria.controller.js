@@ -44,7 +44,8 @@ export const getCuentas = async (req, res) => {
             include: {
                 banco: true,
                 monedas: true,
-                movimiento_bancario: true
+                movimiento_bancario: true,
+                plan_cuentas: true,
             },
             orderBy: { id_cuenta: 'asc' }
         });
@@ -69,6 +70,8 @@ export const getCuentas = async (req, res) => {
                 banco: c.banco?.nombre ?? '—',
                 moneda: c.monedas?.nombre ?? '—',
                 activa: c.activa,
+                id_cuenta_contable: c.id_cuenta_contable,
+                cuenta_contable_nombre: c.plan_cuentas ? `${c.plan_cuentas.cuenta_contable} - ${c.plan_cuentas.nombre}` : null,
             };
         });
 
@@ -81,7 +84,7 @@ export const getCuentas = async (req, res) => {
 
 // POST /api/tesoreria/cuentas
 export const crearCuenta = async (req, res) => {
-    const { id_banco, id_moneda, numero_cuenta, tipo_cuenta, saldo, saldo_disponible } = req.body;
+    const { id_banco, id_moneda, numero_cuenta, tipo_cuenta, saldo, saldo_disponible, id_cuenta_contable } = req.body;
 
     if (!id_banco || !id_moneda || !numero_cuenta) {
         return res.status(400).json({ error: 'Banco, moneda y número de cuenta son requeridos' });
@@ -96,8 +99,9 @@ export const crearCuenta = async (req, res) => {
                 tipo_cuenta: tipo_cuenta ?? 'Cuenta Corriente',
                 saldo: Number(saldo ?? 0),
                 saldo_disponible: Number(saldo_disponible ?? 0),
+                id_cuenta_contable: id_cuenta_contable ? Number(id_cuenta_contable) : null,
             },
-            include: { banco: true, monedas: true }
+            include: { banco: true, monedas: true, plan_cuentas: true }
         });
 
         const saldoInicial = Number(cuenta.saldo ?? 0);
@@ -115,6 +119,8 @@ export const crearCuenta = async (req, res) => {
             saldo_disponible: saldoDispInicial,
             banco: cuenta.banco?.nombre ?? '—',
             moneda: cuenta.monedas?.nombre ?? '—',
+            id_cuenta_contable: cuenta.id_cuenta_contable,
+            cuenta_contable_nombre: cuenta.plan_cuentas?.nombre ?? null,
         });
     } catch (error) {
         console.error('Error al crear cuenta:', error);
@@ -125,7 +131,7 @@ export const crearCuenta = async (req, res) => {
 // PUT /api/tesoreria/cuentas/:id
 export const actualizarCuenta = async (req, res) => {
     const { id } = req.params;
-    const { id_banco, id_moneda, numero_cuenta, tipo_cuenta, saldo, saldo_disponible } = req.body;
+    const { id_banco, id_moneda, numero_cuenta, tipo_cuenta, saldo, saldo_disponible, id_cuenta_contable } = req.body;
 
     try {
         const cuenta = await prisma.cuenta_bancaria.update({
@@ -137,8 +143,9 @@ export const actualizarCuenta = async (req, res) => {
                 tipo_cuenta: tipo_cuenta,
                 saldo: Number(saldo ?? 0),
                 saldo_disponible: Number(saldo_disponible ?? 0),
+                id_cuenta_contable: id_cuenta_contable ? Number(id_cuenta_contable) : null,
             },
-            include: { banco: true, monedas: true }
+            include: { banco: true, monedas: true, plan_cuentas: true }
         });
 
         return res.json({
@@ -151,6 +158,8 @@ export const actualizarCuenta = async (req, res) => {
             saldo_disponible: Number(cuenta.saldo_disponible ?? 0),
             banco: cuenta.banco?.nombre ?? '—',
             moneda: cuenta.monedas?.nombre ?? '—',
+            id_cuenta_contable: cuenta.id_cuenta_contable,
+            cuenta_contable_nombre: cuenta.plan_cuentas ? `${cuenta.plan_cuentas.cuenta_contable} - ${cuenta.plan_cuentas.nombre}` : null,
         });
     } catch (error) {
         console.error('Error al actualizar cuenta:', error);

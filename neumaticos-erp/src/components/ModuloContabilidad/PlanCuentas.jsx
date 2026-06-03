@@ -10,13 +10,15 @@ const PlanCuentas = () => {
     setPeriodoActivo,
     loading,
     crearCuenta,
+    actualizarCuenta,
     eliminarCuenta,
   } = usePlanCuentas();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [showForm, setShowForm] = useState(false);
+  const [editandoId, setEditandoId] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
-  const [nuevaCuenta, setNuevaCuenta] = useState({
+  const [formData, setFormData] = useState({
     cuenta_contable: '',
     nombre: '',
     asentable: true,
@@ -27,40 +29,82 @@ const PlanCuentas = () => {
 
   const filteredCuentas = cuentas.filter((c) =>
     c.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (c.codigo ?? '').includes(searchTerm)
+    (c.codigo ?? '').includes(searchTerm) ||
+    (c.cuenta_contable ?? '').includes(searchTerm)
   );
 
-  const handleAddCuenta = async () => {
-    if (!nuevaCuenta.cuenta_contable || !nuevaCuenta.nombre) {
+  /* Orden jerárquico: padres primero, hijos inmediatamente debajo */
+  const cuentasEnArbol = () => {
+    const mapa = new Map(filteredCuentas.map((c) => [c.id, { ...c, hijos: [] }]));
+    const raices = [];
+    for (const c of mapa.values()) {
+      if (c.padreId && mapa.has(c.padreId)) {
+        mapa.get(c.padreId).hijos.push(c);
+      } else {
+        raices.push(c);
+      }
+    }
+    const ordenar = (arr) => arr.sort((a, b) => (a.codigo || a.cuenta_contable || '').localeCompare(b.codigo || b.cuenta_contable || ''));
+    ordenar(raices);
+    for (const c of mapa.values()) ordenar(c.hijos);
+    const resultado = [];
+    const dfs = (nodo) => {
+      resultado.push(nodo);
+      for (const h of nodo.hijos) dfs(h);
+    };
+    for (const r of raices) dfs(r);
+    return resultado;
+  };
+
+  const handleAbrirNuevo = () => {
+    setEditandoId(null);
+    setFormData({ cuenta_contable: '', nombre: '', asentable: true, cuenta_padre: '', tipo_cuenta: '', nivel: 1 });
+    setShowForm(true);
+  };
+
+  const handleAbrirEditar = (cuenta) => {
+    setEditandoId(cuenta.id);
+    setFormData({
+      cuenta_contable: cuenta.cuenta_contable || cuenta.codigo || '',
+      nombre: cuenta.nombre || '',
+      asentable: cuenta.asentable ?? true,
+      cuenta_padre: cuenta.padreId ? String(cuenta.padreId) : '',
+      tipo_cuenta: cuenta.tipo_cuenta || '',
+      nivel: cuenta.nivel || 1,
+    });
+    setShowForm(true);
+  };
+
+  const handleGuardar = async () => {
+    if (!formData.cuenta_contable || !formData.nombre) {
       setErrorMsg('Código y nombre son requeridos');
       return;
     }
 
-    // Buscamos cualquier ID disponible si el activo falla (usamos String para evitar NaN)
-    let idParaGuardar = periodoActivo ? String(periodoActivo) : null;
-    
-    if ((!idParaGuardar || idParaGuardar === 'NaN') && periodos.length > 0) {
-      idParaGuardar = String(periodos[0].id);
-    }
+    const padre = cuentas.find((c) => c.id === Number(formData.cuenta_padre));
+    const nivel = padre ? (padre.nivel || 1) + 1 : 1;
 
-    if (!idParaGuardar || idParaGuardar === 'NaN') {
-      setErrorMsg(`Error Crítico: ID no válido (${idParaGuardar}). Por favor recarga.`);
-      return;
-    }
-
-    // Calcular nivel según cuenta padre
-    const padre = cuentas.find((c) => c.id === Number(nuevaCuenta.cuenta_padre));
-    const nivel = padre ? padre.nivel + 1 : 1;
-
-    const res = await crearCuenta({
-      cuenta_contable: nuevaCuenta.cuenta_contable,
-      nombre: nuevaCuenta.nombre,
-      asentable: nuevaCuenta.asentable,
-      cuenta_padre: nuevaCuenta.cuenta_padre ? Number(nuevaCuenta.cuenta_padre) : null,
-      tipo_cuenta: nuevaCuenta.tipo_cuenta || null,
+    const payload = {
+      cuenta_contable: formData.cuenta_contable,
+      nombre: formData.nombre,
+      asentable: formData.asentable,
+      cuenta_padre: formData.cuenta_padre ? Number(formData.cuenta_padre) : null,
+      tipo_cuenta: formData.tipo_cuenta || null,
       nivel,
-      id_proc_contable: idParaGuardar,
-    });
+    };
+
+    /* Si no hay periodo activo, tomar el primero disponible */
+    let idPeriodo = periodoActivo;
+    if (!idPeriodo && periodos.length > 0) {
+      idPeriodo = periodos[0].id;
+    }
+
+    let res;
+    if (editandoId) {
+      res = await actualizarCuenta(editandoId, payload);
+    } else {
+      res = await crearCuenta({ ...payload, id_proc_contable: idPeriodo });
+    }
 
     if (!res.ok) {
       setErrorMsg(res.error);
@@ -68,8 +112,8 @@ const PlanCuentas = () => {
     }
 
     setShowForm(false);
+    setEditandoId(null);
     setErrorMsg(null);
-    setNuevaCuenta({ cuenta_contable: '', nombre: '', asentable: true, cuenta_padre: '', tipo_cuenta: '', nivel: 1 });
   };
 
   const handleEliminar = async (id) => {
@@ -123,7 +167,7 @@ const PlanCuentas = () => {
 
         {puedeEditar('contabilidad') && (
           <button
-            onClick={() => setShowForm(true)}
+            onClick={handleAbrirNuevo}
             className="bg-erp-orange hover:bg-orange-600 text-white font-black py-3 px-8 rounded-2xl shadow-lg transition-all transform hover:scale-105 flex items-center gap-2"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -150,14 +194,14 @@ const PlanCuentas = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {filteredCuentas.map((cuenta) => (
+              {cuentasEnArbol().map((cuenta) => (
                 <tr
                   key={cuenta.id || cuenta.id_cuenta || cuenta.codigo}
                   className={`hover:bg-orange-50/30 transition-colors ${!cuenta.asentable ? 'bg-gray-50/30 font-bold' : ''}`}
                 >
-                  <td className="p-4 text-sm font-mono text-gray-500">{cuenta.codigo}</td>
+                  <td className="p-4 text-sm font-mono text-gray-500">{cuenta.codigo || cuenta.cuenta_contable || '—'}</td>
                   <td className="p-4">
-                    <div className="flex items-center gap-3" style={{ paddingLeft: `${(cuenta.nivel - 1) * 24}px` }}>
+                    <div className="flex items-center gap-3" style={{ paddingLeft: `${((cuenta.nivel || 1) - 1) * 24}px` }}>
                       {!cuenta.asentable ? (
                         <svg className="w-5 h-5 text-erp-yellow" fill="currentColor" viewBox="0 0 20 20">
                           <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
@@ -180,18 +224,29 @@ const PlanCuentas = () => {
                       {cuenta.asentable ? 'Asentable' : 'Totalizadora'}
                     </span>
                   </td>
-                  <td className="p-4 text-center font-bold text-gray-400 text-xs">{cuenta.nivel}</td>
+                  <td className="p-4 text-center font-bold text-gray-400 text-xs">{cuenta.nivel || 1}</td>
                   <td className="p-4 text-right">
                     {puedeEditar('contabilidad') && (
-                      <button
-                        onClick={() => handleEliminar(cuenta.id)}
-                        className="text-gray-300 hover:text-red-500 transition-colors ml-2"
-                        title="Eliminar cuenta"
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
+                      <>
+                        <button
+                          onClick={() => handleAbrirEditar(cuenta)}
+                          className="text-gray-300 hover:text-blue-500 transition-colors mr-2"
+                          title="Editar cuenta"
+                        >
+                          <svg className="w-5 h-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => handleEliminar(cuenta.id)}
+                          className="text-gray-300 hover:text-red-500 transition-colors"
+                          title="Eliminar cuenta"
+                        >
+                          <svg className="w-5 h-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </>
                     )}
                   </td>
                 </tr>
@@ -213,7 +268,9 @@ const PlanCuentas = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden">
             <div className="bg-erp-orange p-6 flex justify-between items-center text-white">
-              <h2 className="text-xl font-black uppercase tracking-tighter">Nueva Cuenta Contable</h2>
+              <h2 className="text-xl font-black uppercase tracking-tighter">
+                {editandoId ? 'Editar Cuenta Contable' : 'Nueva Cuenta Contable'}
+              </h2>
               <button onClick={() => { setShowForm(false); setErrorMsg(null); }} className="hover:bg-white/20 p-2 rounded-full transition-colors">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12" />
@@ -229,13 +286,13 @@ const PlanCuentas = () => {
               <div>
                 <label className="block text-[10px] font-black text-erp-orange uppercase mb-1">Cuenta Padre</label>
                 <select
-                  value={nuevaCuenta.cuenta_padre}
-                  onChange={(e) => setNuevaCuenta({ ...nuevaCuenta, cuenta_padre: e.target.value })}
+                  value={formData.cuenta_padre}
+                  onChange={(e) => setFormData({ ...formData, cuenta_padre: e.target.value })}
                   className="w-full bg-orange-50 border-2 border-orange-100 rounded-xl p-3 font-bold text-gray-700 focus:border-erp-orange focus:outline-none"
                 >
                   <option value="">Ninguna (Nivel Raíz)</option>
                   {cuentas.filter((c) => !c.asentable).map((c) => (
-                    <option key={c.id} value={c.id}>{c.codigo} - {c.nombre}</option>
+                    <option key={c.id} value={c.id}>{c.codigo || c.cuenta_contable || '—'} - {c.nombre}</option>
                   ))}
                 </select>
               </div>
@@ -246,16 +303,16 @@ const PlanCuentas = () => {
                   <input
                     type="text"
                     placeholder="Ej: 1.1.01.05"
-                    value={nuevaCuenta.cuenta_contable}
-                    onChange={(e) => setNuevaCuenta({ ...nuevaCuenta, cuenta_contable: e.target.value })}
+                    value={formData.cuenta_contable}
+                    onChange={(e) => setFormData({ ...formData, cuenta_contable: e.target.value })}
                     className="w-full bg-orange-50 border-2 border-orange-100 rounded-xl p-3 font-bold text-gray-700 focus:border-erp-orange focus:outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black text-erp-orange uppercase mb-1">Tipo de Cuenta</label>
+                  <label className="block text-[10px] font-black text-erp-orange uppercase mb-1">Tipo</label>
                   <select
-                    value={nuevaCuenta.asentable ? 'asentable' : 'totalizadora'}
-                    onChange={(e) => setNuevaCuenta({ ...nuevaCuenta, asentable: e.target.value === 'asentable' })}
+                    value={formData.asentable ? 'asentable' : 'totalizadora'}
+                    onChange={(e) => setFormData({ ...formData, asentable: e.target.value === 'asentable' })}
                     className="w-full bg-orange-50 border-2 border-orange-100 rounded-xl p-3 font-bold text-gray-700 focus:border-erp-orange focus:outline-none"
                   >
                     <option value="asentable">Asentable</option>
@@ -269,18 +326,18 @@ const PlanCuentas = () => {
                 <input
                   type="text"
                   placeholder="Ej: Banco Nacional Cuenta Corriente"
-                  value={nuevaCuenta.nombre}
-                  onChange={(e) => setNuevaCuenta({ ...nuevaCuenta, nombre: e.target.value })}
+                  value={formData.nombre}
+                  onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
                   className="w-full bg-orange-50 border-2 border-orange-100 rounded-xl p-3 font-bold text-gray-700 focus:border-erp-orange focus:outline-none"
                 />
               </div>
 
               <div className="pt-4">
                 <button
-                  onClick={handleAddCuenta}
+                  onClick={handleGuardar}
                   className="w-full bg-erp-orange hover:bg-orange-600 text-white font-black py-4 rounded-2xl shadow-xl transition-all"
                 >
-                  GUARDAR CUENTA
+                  {editandoId ? 'ACTUALIZAR CUENTA' : 'GUARDAR CUENTA'}
                 </button>
               </div>
             </div>

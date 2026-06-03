@@ -40,7 +40,7 @@ const Sidebar = ({ setModulo, moduloActual }) => {
     return ['facturas de venta', 'presupuesto', 'clientes_ventas', 'notas credito', 'asiento ventas', 'timbrados'].includes(moduloActual);
   });
   const [contabilidadAbierto, setContabilidadAbierto] = useState(() => {
-    return ['contabilidad_plan', 'contabilidad_asientos', 'contabilidad_periodos', 'contabilidad_reportes'].includes(moduloActual);
+    return ['contabilidad_plan', 'contabilidad_asientos', 'contabilidad_periodos', 'contabilidad_reportes', 'contabilidad_modelos'].includes(moduloActual);
   });
 
   const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -89,6 +89,7 @@ const Sidebar = ({ setModulo, moduloActual }) => {
     { id: 'contabilidad_asientos', icon: <BookMarked size={18} />, label: 'Asientos Contables' },
     { id: 'contabilidad_periodos', icon: <Calendar size={18} />, label: 'Periodos Contables' },
     { id: 'contabilidad_reportes', icon: <PieChart size={18} />, label: 'Informes y Balances' },
+    { id: 'contabilidad_modelos', icon: <FileText size={18} />, label: 'Modelos de Asientos' },
   ];
 
   return (

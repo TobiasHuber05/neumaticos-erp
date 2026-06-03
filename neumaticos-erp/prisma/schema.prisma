@@ -178,12 +178,14 @@ model cuenta_bancaria {
   saldo_disponible        Decimal?                  @db.Decimal(10, 2)
   id_moneda               Int?
   activa                  Boolean                   @default(true)
+  id_cuenta_contable      Int?
   cheques_emitidos        cheques_emitidos[]
   conciliacion_bancaria   conciliacion_bancaria[]
   banco                   banco?                    @relation(fields: [id_banco], references: [id_banco], onDelete: NoAction, onUpdate: NoAction, map: "fk_cuenta_banco")
   monedas                 monedas?                  @relation(fields: [id_moneda], references: [id_moneda], onDelete: NoAction, onUpdate: NoAction, map: "fk_cuenta_moneda")
   movimiento_bancario     movimiento_bancario[]
   transferencias_emitidas transferencias_emitidas[]
+  plan_cuentas            plan_cuentas?             @relation(fields: [id_cuenta_contable], references: [id_cuenta], onDelete: NoAction, onUpdate: NoAction, map: "fk_cuenta_bancaria_plan_cuentas")
 }
 
 model detalle_asistencia {
@@ -258,16 +260,17 @@ model detalle_factura_venta {
 }
 
 model detalle_modelo_asiento {
-  id_detalle_mod    Int             @id @default(autoincrement())
-  id_modelo_asiento Int?
-  item              Int?
-  descripcion_final String?         @db.VarChar(250)
-  id_cuenta         Int?
-  debe_haber        Boolean?
-  iva               Decimal?        @db.Decimal(10, 2)
-  monto             Decimal?        @db.Decimal(10, 2)
-  plan_cuentas      plan_cuentas?   @relation(fields: [id_cuenta], references: [id_cuenta], onDelete: NoAction, onUpdate: NoAction, map: "fk_detallemodeloasiento_cuenta")
-  modelo_asiento    modelo_asiento? @relation(fields: [id_modelo_asiento], references: [id_modelo_asiento], onDelete: NoAction, onUpdate: NoAction, map: "fk_detallemodeloasiento_modeloasiento")
+  id_detalle_mod      Int             @id @default(autoincrement())
+  id_modelo_asiento   Int?
+  item                Int?
+  descripcion_final   String?         @db.VarChar(250)
+  id_cuenta           Int?
+  debe_haber          Boolean?
+  iva                 Boolean?        @default(false)
+  monto               Decimal?        @db.Decimal(10, 2)
+  es_cuenta_bancaria  Boolean?        @default(false)
+  plan_cuentas        plan_cuentas?   @relation(fields: [id_cuenta], references: [id_cuenta], onDelete: NoAction, onUpdate: NoAction, map: "fk_detallemodeloasiento_cuenta")
+  modelo_asiento      modelo_asiento? @relation(fields: [id_modelo_asiento], references: [id_modelo_asiento], onDelete: NoAction, onUpdate: NoAction, map: "fk_detallemodeloasiento_modeloasiento")
 }
 
 model detalle_nota_credito {
@@ -625,6 +628,7 @@ model plan_cuentas {
   asiento_detalle        asiento_detalle[]
   detalle_modelo_asiento detalle_modelo_asiento[]
   proceso_contable       proceso_contable?        @relation(fields: [id_proc_contable], references: [id_proc_contable], onDelete: NoAction, onUpdate: NoAction, map: "fk_plancuentas_proc_contable")
+  cuenta_bancaria        cuenta_bancaria[]
 }
 
 model presupuesto {

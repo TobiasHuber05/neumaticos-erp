@@ -88,10 +88,15 @@ export const useModuloVentas = (enabled = true) => {
         const lineasMap = (f.detalle_factura_venta ?? []).map(d => {
           const qty = Number(d.cantidad ?? 0);
           const devuelto = devueltosPorProd[d.id_producto_servicio] || 0;
+          const ps = d.producto_servicio;
+          const prod = ps?.producto;
+          const nombreProducto = prod?.descripcion || ps?.nombre || `Producto #${d.id_producto_servicio}`;
           return {
             productoId: d.id_producto_servicio,
+            nombreProducto,
+            esServicio: !prod && !!ps,
             cantidad: qty,
-            cantidadDevuelta: devuelto, // Nuevo campo para trackear límite
+            cantidadDevuelta: devuelto,
             precioUnitario: Number(d.precio_unitario ?? 0),
             totalLinea: Number(d.subtotal ?? 0),
           };
@@ -122,7 +127,7 @@ export const useModuloVentas = (enabled = true) => {
           presupuestoId: f.id_presupuesto,
           clientId: f.id_cliente,
           fechaFactura: f.fecha_emision?.split('T')[0],
-          total: f.total,
+          total: Number(f.total ?? 0),
           saldoPendiente,
           totalCobrado,
           estado: estadoFinal,
@@ -286,7 +291,7 @@ export const useModuloVentas = (enabled = true) => {
       presupuestoId: data.id_presupuesto,
       clientId: data.id_cliente,
       fechaFactura: data.fecha_emision?.split('T')[0],
-      total: data.total,
+      total: Number(data.total ?? 0),
       saldoPendiente: Number(data.total ?? 0),
       totalCobrado: 0,
       estado: 'Emitida',
@@ -296,8 +301,8 @@ export const useModuloVentas = (enabled = true) => {
       lineas: (data.detalle_factura_venta ?? []).map(d => ({
         productoId: d.id_producto_servicio,
         cantidad: d.cantidad,
-        precio_unitario: d.precio_unitario,
-        totalLinea: d.subtotal,
+        precioUnitario: Number(d.precio_unitario ?? 0),
+        totalLinea: Number(d.subtotal ?? 0),
       })),
     };
 

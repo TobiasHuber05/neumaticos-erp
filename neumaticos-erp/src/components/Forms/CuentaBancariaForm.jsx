@@ -8,9 +8,10 @@ const emptyCuenta = {
   tipo_cuenta: 'Cuenta Corriente',
   saldo: '',
   saldo_disponible: '',
+  id_cuenta_contable: '',
 };
 
-const CuentaBancariaForm = ({ bancos = [], monedas = [], initial = null, onCancelar, onGuardar }) => {
+const CuentaBancariaForm = ({ bancos = [], monedas = [], planCuentas = [], initial = null, onCancelar, onGuardar }) => {
   const [form, setForm] = useState(emptyCuenta);
 
   useEffect(() => {
@@ -22,6 +23,7 @@ const CuentaBancariaForm = ({ bancos = [], monedas = [], initial = null, onCance
         tipo_cuenta: initial.tipo_cuenta ?? 'Cuenta Corriente',
         saldo: initial.saldo != null ? String(initial.saldo) : '',
         saldo_disponible: initial.saldo_disponible != null ? String(initial.saldo_disponible) : '',
+        id_cuenta_contable: initial.id_cuenta_contable ? String(initial.id_cuenta_contable) : '',
       });
     } else {
       setForm(emptyCuenta);
@@ -39,6 +41,7 @@ const CuentaBancariaForm = ({ bancos = [], monedas = [], initial = null, onCance
       tipo_cuenta: form.tipo_cuenta,
       saldo: Number(form.saldo) || 0,
       saldo_disponible: Number(form.saldo_disponible) || 0,
+      id_cuenta_contable: form.id_cuenta_contable ? Number(form.id_cuenta_contable) : null,
     });
   };
 
@@ -139,6 +142,25 @@ const CuentaBancariaForm = ({ bancos = [], monedas = [], initial = null, onCance
               className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-erp-orange outline-none"
             />
           </div>
+        </div>
+
+        <div className="border-t pt-4">
+          <label className="block text-sm font-semibold text-gray-700 mb-1">Cuenta Contable Vinculada</label>
+          <p className="text-xs text-gray-400 mb-2">
+            Opcional: vinculá esta cuenta bancaria a una cuenta del plan de cuentas para los asientos contables
+          </p>
+          <select
+            value={form.id_cuenta_contable}
+            onChange={(e) => setForm((prev) => ({ ...prev, id_cuenta_contable: e.target.value }))}
+            className="w-full p-3 border rounded-lg bg-white focus:ring-2 focus:ring-erp-orange outline-none"
+          >
+            <option value="">Sin vinculación contable</option>
+            {planCuentas.map((c) => (
+              <option key={c.id_cuenta} value={c.id_cuenta}>
+                {c.cuenta_contable} - {c.nombre}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="flex justify-end gap-3 pt-2">

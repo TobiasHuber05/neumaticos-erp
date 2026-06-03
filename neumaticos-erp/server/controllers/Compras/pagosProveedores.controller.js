@@ -286,7 +286,8 @@ export const registrarPago = async (req, res) => {
 
       const esParcial = montosPorFactura.some((f) => f.monto < f.saldoOriginal);
       const { ejecutarAsientoPagoProveedor } = await import('../Contabilidad/asientos.controller.js');
-      await ejecutarAsientoPagoProveedor(tx, { ...ordenPago, total: totalMedios }, esParcial);
+      const primerIdCuenta = mediosValidos.find(m => m.id_cuenta)?.id_cuenta || null;
+      await ejecutarAsientoPagoProveedor(tx, { ...ordenPago, total: totalMedios }, esParcial, primerIdCuenta);
 
       return { ordenPago, montosPorFactura, totalMedios };
     });
