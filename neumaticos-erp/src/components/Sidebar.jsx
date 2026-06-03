@@ -333,7 +333,7 @@ const Sidebar = ({ setModulo, moduloActual }) => {
                   : 'text-orange-900 hover:bg-orange-200'}`}
             >
               <Package size={20} />
-              <span>Stock/Existencias</span>
+              <span>Stock</span>
             </button>
           )}
 

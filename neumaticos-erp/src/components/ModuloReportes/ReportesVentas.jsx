@@ -97,23 +97,6 @@ const ReportesVentas = () => {
         doc.save(`reporte-ventas-${new Date().toISOString().split('T')[0]}.pdf`);
     };
 
-    // ── CSV ──────────────────────────────────────────────────────────────────────
-    const exportarCSV = () => {
-        const headers = ['N° Factura', 'Fecha', 'Cliente', 'Tipo', 'Items', 'Total', 'Cobrado', 'Saldo', 'Estado'];
-        const rows = facturas.map((f) => [
-            f.numero, formatFecha(f.fecha), f.cliente, f.contadoCredito,
-            f.cantidadItems, f.total, f.totalCobrado, f.saldoPendiente, f.estadoCobro,
-        ]);
-        const csv = [headers, ...rows].map((r) => r.join(';')).join('\n');
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `reporte-ventas-${new Date().toISOString().split('T')[0]}.csv`;
-        a.click();
-        URL.revokeObjectURL(url);
-    };
-
     return (
         <div className="p-6 space-y-6">
 
@@ -129,24 +112,17 @@ const ReportesVentas = () => {
                     >
                         <Download size={16} /> PDF
                     </button>
-                    <button
-                        onClick={exportarCSV}
-                        className="flex items-center gap-2 bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 px-4 py-2 rounded-xl text-sm font-bold transition-colors"
-                    >
-                        <Download size={16} /> CSV
-                    </button>
                 </div>
             </div>
 
             {/* KPIs */}
-            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
                 {[
                     { label: 'Total Facturado', value: `Gs. ${fmt(kpis.totalFacturado)}`, icon: DollarSign, color: 'text-blue-600', bg: 'bg-blue-50' },
                     { label: 'Total Cobrado', value: `Gs. ${fmt(kpis.totalCobrado)}`, icon: CheckCircle, color: 'text-green-600', bg: 'bg-green-50' },
                     { label: 'Saldo Pendiente', value: `Gs. ${fmt(kpis.saldoPendiente)}`, icon: FileText, color: 'text-red-600', bg: 'bg-red-50' },
                     { label: 'Facturas', value: kpis.cantidadFacturas, icon: BarChart3, color: 'text-purple-600', bg: 'bg-purple-50' },
                     { label: 'Ítems Vendidos', value: fmt(kpis.cantidadItems), icon: Package, color: 'text-orange-600', bg: 'bg-orange-50' },
-                    { label: 'Promedio/Factura', value: `Gs. ${fmt(kpis.promedioPorFactura)}`, icon: DollarSign, color: 'text-teal-600', bg: 'bg-teal-50' },
                 ].map(({ label, value, icon: Icon, color, bg }) => (
                     <div key={label} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-col gap-2">
                         <div className={`w-9 h-9 ${bg} rounded-xl flex items-center justify-center`}>
