@@ -234,3 +234,96 @@ export const obtenerEstadoTimbrado = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+export const agregarPuntoExpedicion = async (req, res) => {
+  const { id } = req.params;
+  const { cod_establecimiento, cod_punto_expedicion, direccion } = req.body;
+
+  try {
+    if (!cod_establecimiento || !cod_punto_expedicion) {
+      return res.status(400).json({
+        error: 'Establecimiento y punto de expedición son requeridos'
+      });
+    }
+
+    if (!/^\d{1,3}$/.test(cod_establecimiento) || !/^\d{1,3}$/.test(cod_punto_expedicion)) {
+      return res.status(400).json({
+        error: 'El establecimiento y punto de expedición deben contener solo números (hasta 3 dígitos)'
+      });
+    }
+
+    const timbradoId = parseInt(id);
+    const timbrado = await prisma.Timbrado.findUnique({
+      where: { id: timbradoId }
+    });
+
+    if (!timbrado) {
+      return res.status(404).json({ error: 'Timbrado no encontrado' });
+    }
+
+    const prefijoEst = cod_establecimiento.padStart(3, '0');
+    const prefijoExp = cod_punto_expedicion.padStart(3, '0');
+
+    // Verificar si ya existe ese punto de expedición para este timbrado
+    const puntoExistente = await prisma.PuntoExpedicion.findFirst({
+      where: {
+        idTimbrado: timbradoId,
+        cod_establecimiento: prefijoEst,
+        cod_punto_expedicion: prefijoExp
+      }
+    });
+
+    if (puntoExistente) {
+      return res.status(400).json({
+        error: `El punto de expedición ${prefijoEst}-${prefijoExp} ya existe en este timbrado`
+      });
+    }
+
+    const nuevoPunto = await prisma.PuntoExpedicion.create({
+      data: {
+        idTimbrado: timbradoId,
+        cod_establecimiento: prefijoEst,
+        cod_punto_expedicion: prefijoExp,
+        ultimo_secuencial: timbrado.rango_desde - 1,
+        direccion: direccion || null,
+        activo: true
+      }
+    });
+
+    res.status(201).json({
+      message: 'Punto de expedición agregado exitosamente',
+      punto: nuevoPunto
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const togglePuntoExpedicion = async (req, res) => {
+  const { id, puntoId } = req.params;
+
+  try {
+    const punto = await prisma.PuntoExpedicion.findUnique({
+      where: { id: parseInt(puntoId) }
+    });
+
+    if (!punto || punto.idTimbrado !== parseInt(id)) {
+      return res.status(404).json({ error: 'Punto de expedición no encontrado' });
+    }
+
+    const puntoActualizado = await prisma.PuntoExpedicion.update({
+      where: { id: punto.id },
+      data: {
+        activo: !punto.activo
+      }
+    });
+
+    res.json({
+      message: `Punto de expedición ${puntoActualizado.activo ? 'activado' : 'desactivado'} exitosamente`,
+      punto: puntoActualizado
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+

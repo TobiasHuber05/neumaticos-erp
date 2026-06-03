@@ -1,5 +1,13 @@
 import { Router } from 'express';
-import { getTimbrados, getTimbradoById, crearTimbrado, actualizarTimbrado, obtenerEstadoTimbrado } from '../controllers/Ventas/timbrado.controller.js';
+import { 
+  getTimbrados, 
+  getTimbradoById, 
+  crearTimbrado, 
+  actualizarTimbrado, 
+  obtenerEstadoTimbrado,
+  agregarPuntoExpedicion,
+  togglePuntoExpedicion
+} from '../controllers/Ventas/timbrado.controller.js';
 
 const router = Router();
 
@@ -18,4 +26,11 @@ router.post('/', crearTimbrado);
 // Actualizar timbrado (estado, fecha vencimiento)
 router.put('/:id', actualizarTimbrado);
 
+// Agregar punto de expedición a un timbrado
+router.post('/:id/puntos', agregarPuntoExpedicion);
+
+// Activar/desactivar un punto de expedición
+router.put('/:id/puntos/:puntoId/toggle', togglePuntoExpedicion);
+
 export default router;
+

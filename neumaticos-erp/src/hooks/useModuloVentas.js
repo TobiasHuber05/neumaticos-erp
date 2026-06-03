@@ -137,6 +137,7 @@ export const useModuloVentas = (enabled = true) => {
         facturaId: n.devolucion_cliente?.id_factura,
         fecha: n.fecha_emision?.split('T')[0],
         numero: n.nro_nota,
+        timbrado: n.timbrado,
         motivo: n.devolucion_cliente?.motivo_devolucion,
         total: n.detalle_nota_credito?.reduce(
           (sum, d) => sum + Number(d.monto ?? 0), 0
@@ -352,6 +353,7 @@ export const useModuloVentas = (enabled = true) => {
       facturaId,
       fecha: new Date().toISOString().split('T')[0],
       numero: data.notaCredito?.nro_nota || 'Pendiente',
+      timbrado: data.notaCredito?.timbrado || null,
       motivo,
       lineasDevueltas,
       lineas: lineasDevueltas.map(l => {

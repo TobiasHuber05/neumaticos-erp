@@ -6,7 +6,21 @@ export const procesarDevolucion = async (req, res) => {
   try {
     const resultado = await prisma.$transaction(async (tx) => {
       // 1. Validar que la venta no supere las 48 horas 
-      const factura = await tx.factura_venta.findUnique({ where: { id_factura_venta } });
+      const factura = await tx.factura_venta.findUnique({ 
+        where: { id_factura_venta },
+        include: {
+          punto_expedicion: {
+            include: {
+              timbrado: true
+            }
+          }
+        }
+      });
+
+      if (!factura) {
+        throw new Error("Factura de venta no encontrada");
+      }
+
       const fechaVenta = new Date(factura.fecha_emision);
       const limite48h = new Date(fechaVenta.getTime() + (48 * 60 * 60 * 1000));
 
@@ -35,12 +49,14 @@ export const procesarDevolucion = async (req, res) => {
       });
       const siguienteNumero = ultimaNota ? parseInt(ultimaNota.nro_nota.replace('NC-', '')) + 1 : 1;
       const nroNotaFormateado = `NC-${String(siguienteNumero).padStart(4, '0')}`;
+      const timbradoNro = factura.punto_expedicion?.timbrado?.nro_timbrado || null;
 
       const notaCredito = await tx.nota_credito_venta.create({
         data: {
           id_devolucion: devolucion.id_devolucion,
           fecha_emision: new Date(),
           nro_nota: nroNotaFormateado,
+          timbrado: timbradoNro,
           detalle_nota_credito: {
             create: items_a_devolver.map(i => ({
               id_producto_servicio: i.id_producto_servicio,

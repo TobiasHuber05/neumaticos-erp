@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react';
-import { BarChart3, Plus, AlertTriangle, CheckCircle, AlertCircle, Calendar, Loader } from 'lucide-react';
+import { useState, useEffect, Fragment } from 'react';
+import { BarChart3, Plus, AlertTriangle, CheckCircle, AlertCircle, Calendar, Loader, ChevronDown, ChevronUp, Building } from 'lucide-react';
 import { puedeEditar } from '../../utils/permisos';
+
+
 
 const GestionTimbrados = () => {
   const [timbrados, setTimbrados] = useState([]);
@@ -13,9 +15,15 @@ const GestionTimbrados = () => {
     fechaInicio: new Date().toISOString().split('T')[0],
     fechaVencimiento: '',
     rangoDesde: '',
-    rangoHasta: '',
-    establecimiento: '001',
-    puntoExpedicion: '001'
+    rangoHasta: ''
+  });
+
+  const [filasExpandidas, setFilasExpandidas] = useState({});
+  const [mostrarFormPuntoId, setMostrarFormPuntoId] = useState(null);
+  const [puntoFormData, setPuntoFormData] = useState({
+    cod_establecimiento: '001',
+    cod_punto_expedicion: '',
+    direccion: ''
   });
 
 // carga de timbrados
@@ -23,6 +31,7 @@ const GestionTimbrados = () => {
     console.log(' GestionTimbrados montado, llamando API...');
     cargarTimbrados();
   }, []);
+
 
   const cargarTimbrados = async () => {
     try {
@@ -63,8 +72,6 @@ const GestionTimbrados = () => {
     if (!formData.fechaVencimiento) camposFaltantes.push('Fecha Vencimiento');
     if (!formData.rangoDesde) camposFaltantes.push('Rango Desde');
     if (!formData.rangoHasta) camposFaltantes.push('Rango Hasta');
-    if (!formData.establecimiento) camposFaltantes.push('Establecimiento');
-    if (!formData.puntoExpedicion) camposFaltantes.push('Punto de Expedición');
 
     if (camposFaltantes.length > 0) {
       setError(`Los siguientes campos son requeridos: ${camposFaltantes.join(', ')}`);
@@ -73,11 +80,6 @@ const GestionTimbrados = () => {
 
     if (!/^\d{8}$/.test(formData.numeroTimbrado)) {
       setError('El número de timbrado debe tener exactamente 8 dígitos numéricos');
-      return;
-    }
-
-    if (!/^\d{1,3}$/.test(formData.establecimiento) || !/^\d{1,3}$/.test(formData.puntoExpedicion)) {
-      setError('El establecimiento y el punto de expedición deben contener solo números (hasta 3 dígitos)');
       return;
     }
 
@@ -101,9 +103,7 @@ const GestionTimbrados = () => {
     }
 
     const payload = {
-      ...formData,
-      establecimiento: formData.establecimiento.padStart(3, '0'),
-      puntoExpedicion: formData.puntoExpedicion.padStart(3, '0')
+      ...formData
     };
 
     try {
@@ -128,9 +128,7 @@ const GestionTimbrados = () => {
         fechaInicio: new Date().toISOString().split('T')[0],
         fechaVencimiento: '',
         rangoDesde: '',
-        rangoHasta: '',
-        establecimiento: '001',
-        puntoExpedicion: '001'
+        rangoHasta: ''
       });
       setMostrarFormulario(false);
       cargarTimbrados();
@@ -152,15 +150,128 @@ const GestionTimbrados = () => {
   };
 
   const calcularEstadisticas = (timbrado) => {
-    const primerPunto = timbrado.puntos_expedicion?.[0] || { ultimo_secuencial: timbrado.rango_desde - 1 };
-    const siguienteNumero = primerPunto.ultimo_secuencial + 1;
-    const emitidas = siguienteNumero - timbrado.rango_desde;
-    const disponibles = timbrado.rango_hasta - siguienteNumero + 1;
-    const total = timbrado.rango_hasta - timbrado.rango_desde + 1;
-    const porcentaje = total > 0 ? Math.round((emitidas / total) * 100) : 0;
+    const puntos = timbrado.puntos_expedicion || [];
+    const totalRango = timbrado.rango_hasta - timbrado.rango_desde + 1;
     
-    return { emitidas, disponibles, total, porcentaje, siguienteNumero, primerPunto };
+    if (puntos.length <= 1) {
+      const primerPunto = puntos[0] || { ultimo_secuencial: timbrado.rango_desde - 1, cod_establecimiento: '001', cod_punto_expedicion: '001' };
+      const siguienteNumero = primerPunto.ultimo_secuencial + 1;
+      const emitidas = siguienteNumero - timbrado.rango_desde;
+      const disponibles = timbrado.rango_hasta - siguienteNumero + 1;
+      const porcentaje = totalRango > 0 ? Math.round((emitidas / totalRango) * 100) : 0;
+      return { 
+        esMultiple: false, 
+        emitidas, 
+        disponibles, 
+        total: totalRango, 
+        porcentaje, 
+        siguienteNumero, 
+        puntosCount: puntos.length,
+        primerPunto
+      };
+    } else {
+      let totalEmitidas = 0;
+      puntos.forEach(p => {
+        const emitidasPunto = (p.ultimo_secuencial + 1) - timbrado.rango_desde;
+        totalEmitidas += Math.max(0, emitidasPunto);
+      });
+      const totalAutorizado = totalRango * puntos.length;
+      const porcentaje = totalAutorizado > 0 ? Math.round((totalEmitidas / totalAutorizado) * 100) : 0;
+      return {
+        esMultiple: true,
+        emitidas: totalEmitidas,
+        disponibles: '—',
+        total: totalAutorizado,
+        porcentaje,
+        siguienteNumero: 'Varios',
+        puntosCount: puntos.length,
+        primerPunto: puntos[0] || { cod_establecimiento: '001', cod_punto_expedicion: '001' }
+      };
+    }
   };
+
+  const toggleFila = (id) => {
+    setFilasExpandidas(prev => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
+  };
+
+  const handleAgregarPunto = async (e, timbradoId) => {
+    e.preventDefault();
+    setError(null);
+    setSuccess(null);
+
+    const { cod_establecimiento, cod_punto_expedicion, direccion } = puntoFormData;
+    if (!cod_establecimiento || !cod_punto_expedicion) {
+      setError('El establecimiento y el punto de expedición son requeridos');
+      return;
+    }
+
+    if (!/^\d{1,3}$/.test(cod_establecimiento) || !/^\d{1,3}$/.test(cod_punto_expedicion)) {
+      setError('El establecimiento y el punto de expedición deben contener solo números (hasta 3 dígitos)');
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/timbrados/${timbradoId}/puntos`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          cod_establecimiento,
+          cod_punto_expedicion,
+          direccion
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al agregar punto de expedición');
+      }
+
+      setSuccess('Punto de expedición agregado exitosamente');
+      setMostrarFormPuntoId(null);
+      setPuntoFormData({
+        cod_establecimiento: '001',
+        cod_punto_expedicion: '',
+        direccion: ''
+      });
+      cargarTimbrados();
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleTogglePunto = async (timbradoId, puntoId) => {
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const response = await fetch(`/api/timbrados/${timbradoId}/puntos/${puntoId}/toggle`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al cambiar estado del punto de expedición');
+      }
+
+      const data = await response.json();
+      setSuccess(data.message);
+      cargarTimbrados();
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
 
   return (
     <div className="space-y-6">
@@ -225,7 +336,9 @@ const GestionTimbrados = () => {
             <table className="w-full">
               <thead className="bg-gray-50/50">
                 <tr>
+                  <th className="w-12 px-4 py-4 text-center"></th>
                   <th className="px-6 py-4 text-left font-bold text-gray-700 uppercase text-xs tracking-wider">Número Timbrado</th>
+                  <th className="px-6 py-4 text-left font-bold text-gray-700 uppercase text-xs tracking-wider">Puntos de Expedición</th>
                   <th className="px-6 py-4 text-left font-bold text-gray-700 uppercase text-xs tracking-wider">Rango</th>
                   <th className="px-6 py-4 text-center font-bold text-gray-700 uppercase text-xs tracking-wider">Siguiente #</th>
                   <th className="px-6 py-4 text-center font-bold text-gray-700 uppercase text-xs tracking-wider">Emitidas</th>
@@ -238,78 +351,292 @@ const GestionTimbrados = () => {
               <tbody className="divide-y divide-gray-100">
                 {timbrados.map((timbrado) => {
                   const { diasRestantes, vencido, porAlVencer } = calcularEstado(timbrado);
-                  const { emitidas, disponibles, total, porcentaje, siguienteNumero, primerPunto } = calcularEstadisticas(timbrado);
+                  const { esMultiple, emitidas, disponibles, total, porcentaje, siguienteNumero, primerPunto } = calcularEstadisticas(timbrado);
+                  const estaExpandido = !!filasExpandidas[timbrado.id];
                   
                   return (
-                    <tr 
-                      key={timbrado.id} 
-                      className={`transition-colors ${vencido ? 'bg-red-50 hover:bg-red-100' : porAlVencer ? 'bg-yellow-50 hover:bg-yellow-100' : 'hover:bg-orange-50/30'}`}
-                    >
-                      <td className="px-6 py-4">
-                        <div className="font-bold text-gray-900">{timbrado.nro_timbrado}</div>
-                        <div className="text-xs text-gray-500 mt-1">
-                          Est: {primerPunto.cod_establecimiento} | Pto: {primerPunto.cod_punto_expedicion}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="font-mono text-sm bg-gray-50 px-2 py-1 rounded w-fit">
-                          {timbrado.rango_desde.toString().padStart(7, '0')} - {timbrado.rango_hasta.toString().padStart(7, '0')}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <div className="font-bold text-erp-orange">
-                          {siguienteNumero.toString().padStart(7, '0')}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <span className="inline-block bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-bold">
-                          {emitidas}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <span className={`inline-block px-3 py-1 rounded-full text-sm font-bold ${disponibles <= 100 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>
-                          {disponibles}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <div className="flex items-center justify-center gap-2">
-                          <div className="w-24 bg-gray-200 rounded-full h-2">
-                            <div 
-                              className={`h-2 rounded-full transition-all ${porcentaje < 50 ? 'bg-green-500' : porcentaje < 80 ? 'bg-yellow-500' : 'bg-red-500'}`}
-                              style={{ width: `${porcentaje}%` }}
-                            ></div>
+                    <Fragment key={timbrado.id}>
+                      <tr 
+                        className={`transition-colors border-b border-gray-100 ${estaExpandido ? 'bg-orange-50/10' : vencido ? 'bg-red-50 hover:bg-red-100' : porAlVencer ? 'bg-yellow-50 hover:bg-yellow-100' : 'hover:bg-orange-50/30'}`}
+                      >
+                        <td className="px-4 py-4 text-center">
+                          <button 
+                            onClick={() => toggleFila(timbrado.id)}
+                            className="p-1.5 hover:bg-gray-200/60 rounded-lg transition-colors text-gray-500 hover:text-erp-orange"
+                            title={estaExpandido ? "Colapsar puntos de expedición" : "Expandir puntos de expedición"}
+                          >
+                            {estaExpandido ? <ChevronUp size={16} className="font-bold" /> : <ChevronDown size={16} />}
+                          </button>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="font-bold text-gray-900">{timbrado.nro_timbrado}</div>
+                          <div className="text-[10px] text-gray-400 font-bold uppercase mt-0.5">{timbrado.tipo_documento}</div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex flex-wrap gap-1 max-w-xs">
+                            {(timbrado.puntos_expedicion || []).map(p => (
+                              <span 
+                                key={p.id} 
+                                className={`inline-block font-mono font-bold text-[10px] px-2 py-0.5 rounded border ${
+                                  p.activo 
+                                    ? 'bg-orange-50 text-erp-orange border-orange-200' 
+                                    : 'bg-gray-100 text-gray-400 border-gray-200 line-through'
+                                }`}
+                                title={p.direccion || ''}
+                              >
+                                {p.cod_establecimiento}-{p.cod_punto_expedicion}
+                              </span>
+                            ))}
+                            {(!timbrado.puntos_expedicion || timbrado.puntos_expedicion.length === 0) && (
+                              <span className="text-xs text-gray-400 italic">Sin puntos</span>
+                            )}
                           </div>
-                          <span className="text-sm font-bold text-gray-700 w-8">{porcentaje}%</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-600">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="w-4 h-4 text-gray-400" />
-                          {new Date(timbrado.fecha_fin).toLocaleDateString('es-PY')}
-                        </div>
-                        <div className="text-xs text-gray-500 mt-1">
-                          {vencido ? 'VENCIDO' : `${Math.abs(diasRestantes)} días`}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        {vencido ? (
-                          <div className="inline-flex items-center gap-2 bg-red-100 text-red-800 px-3 py-1 rounded-full font-bold text-xs">
-                            <AlertTriangle size={14} />
-                            VENCIDO
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="font-mono text-sm bg-gray-50 px-2 py-1 rounded w-fit">
+                            {timbrado.rango_desde.toString().padStart(7, '0')} - {timbrado.rango_hasta.toString().padStart(7, '0')}
                           </div>
-                        ) : porAlVencer ? (
-                          <div className="inline-flex items-center gap-2 bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full font-bold text-xs">
-                            <AlertCircle size={14} />
-                            POR VENCER
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <div className="font-bold text-erp-orange">
+                            {typeof siguienteNumero === 'number' ? siguienteNumero.toString().padStart(7, '0') : siguienteNumero}
                           </div>
-                        ) : (
-                          <div className="inline-flex items-center gap-2 bg-green-100 text-green-800 px-3 py-1 rounded-full font-bold text-xs">
-                            <CheckCircle size={14} />
-                            ACTIVO
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <span className="inline-block bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-bold">
+                            {emitidas}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <span className={`inline-block px-3 py-1 rounded-full text-sm font-bold ${typeof disponibles === 'number' && disponibles <= 100 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>
+                            {disponibles}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <div className="flex items-center justify-center gap-2">
+                            <div className="w-24 bg-gray-200 rounded-full h-2">
+                              <div 
+                                className={`h-2 rounded-full transition-all ${porcentaje < 50 ? 'bg-green-500' : porcentaje < 80 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                                style={{ width: `${porcentaje}%` }}
+                              ></div>
+                            </div>
+                            <span className="text-sm font-bold text-gray-700 w-8">{porcentaje}%</span>
                           </div>
-                        )}
-                      </td>
-                    </tr>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-600">
+                          <div className="flex items-center gap-2">
+                            <Calendar className="w-4 h-4 text-gray-400" />
+                            {new Date(timbrado.fecha_fin).toLocaleDateString('es-PY')}
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            {vencido ? 'VENCIDO' : `${Math.abs(diasRestantes)} días`}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          {vencido ? (
+                            <div className="inline-flex items-center gap-2 bg-red-100 text-red-800 px-3 py-1 rounded-full font-bold text-xs">
+                              <AlertTriangle size={14} />
+                              VENCIDO
+                            </div>
+                          ) : porAlVencer ? (
+                            <div className="inline-flex items-center gap-2 bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full font-bold text-xs">
+                              <AlertCircle size={14} />
+                              POR VENCER
+                            </div>
+                          ) : (
+                            <div className="inline-flex items-center gap-2 bg-green-100 text-green-800 px-3 py-1 rounded-full font-bold text-xs">
+                              <CheckCircle size={14} />
+                              ACTIVO
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+
+                      {/* Fila Expandida de Puntos de Expedición */}
+                      {estaExpandido && (
+                        <tr className="bg-gray-50/50">
+                          <td colSpan="10" className="px-6 py-4 border-t border-b border-gray-100">
+                            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 space-y-4">
+                              {/* Cabecera del Panel */}
+                              <div className="flex justify-between items-center border-b pb-3">
+                                <h4 className="font-extrabold text-sm text-gray-800 flex items-center gap-2">
+                                  <Building className="w-4 h-4 text-erp-orange" />
+                                  Puntos de Expedición Autorizados ({timbrado.puntos_expedicion?.length || 0})
+                                </h4>
+                                {puedeEditar('ventas') && (
+                                  <button
+                                    onClick={() => {
+                                      if (mostrarFormPuntoId === timbrado.id) {
+                                        setMostrarFormPuntoId(null);
+                                      } else {
+                                        setMostrarFormPuntoId(timbrado.id);
+                                        setPuntoFormData({
+                                          cod_establecimiento: '001',
+                                          cod_punto_expedicion: '',
+                                          direccion: ''
+                                        });
+                                      }
+                                    }}
+                                    className="flex items-center gap-1 text-xs bg-erp-orange/10 hover:bg-erp-orange/20 text-erp-orange font-bold px-3 py-1.5 rounded-lg transition-all"
+                                  >
+                                    <Plus size={14} />
+                                    Agregar Punto
+                                  </button>
+                                )}
+                              </div>
+
+                              {/* Formulario Agregar Punto */}
+                              {mostrarFormPuntoId === timbrado.id && (
+                                <form 
+                                  onSubmit={(e) => handleAgregarPunto(e, timbrado.id)} 
+                                  className="bg-orange-50/30 border border-orange-100 rounded-xl p-4 space-y-4 animate-in fade-in duration-200"
+                                >
+                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div>
+                                      <label className="block text-[10px] font-black uppercase text-gray-500 mb-1">Establecimiento *</label>
+                                      <input
+                                        type="text"
+                                        placeholder="Ej: 001"
+                                        maxLength="3"
+                                        value={puntoFormData.cod_establecimiento}
+                                        onChange={(e) => setPuntoFormData(prev => ({ ...prev, cod_establecimiento: e.target.value }))}
+                                        className="w-full px-3 py-2 border rounded-lg text-xs font-mono focus:ring-2 focus:ring-erp-orange focus:border-transparent bg-white"
+                                        required
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="block text-[10px] font-black uppercase text-gray-500 mb-1">Punto Expedición *</label>
+                                      <input
+                                        type="text"
+                                        placeholder="Ej: 002"
+                                        maxLength="3"
+                                        value={puntoFormData.cod_punto_expedicion}
+                                        onChange={(e) => setPuntoFormData(prev => ({ ...prev, cod_punto_expedicion: e.target.value }))}
+                                        className="w-full px-3 py-2 border rounded-lg text-xs font-mono focus:ring-2 focus:ring-erp-orange focus:border-transparent bg-white"
+                                        required
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="block text-[10px] font-black uppercase text-gray-500 mb-1">Dirección / Sucursal</label>
+                                      <input
+                                        type="text"
+                                        placeholder="Ej: Sucursal San Lorenzo"
+                                        value={puntoFormData.direccion}
+                                        onChange={(e) => setPuntoFormData(prev => ({ ...prev, direccion: e.target.value }))}
+                                        className="w-full px-3 py-2 border rounded-lg text-xs focus:ring-2 focus:ring-erp-orange focus:border-transparent bg-white"
+                                      />
+                                    </div>
+                                  </div>
+                                  <div className="flex justify-end gap-2 text-xs">
+                                    <button
+                                      type="button"
+                                      onClick={() => setMostrarFormPuntoId(null)}
+                                      className="px-3 py-1.5 border rounded-lg hover:bg-gray-100 transition-colors font-bold text-gray-600 bg-white"
+                                    >
+                                      Cancelar
+                                    </button>
+                                    <button
+                                      type="submit"
+                                      className="px-3 py-1.5 bg-erp-orange hover:bg-orange-600 text-white rounded-lg transition-colors font-bold"
+                                    >
+                                      Guardar Punto
+                                    </button>
+                                  </div>
+                                </form>
+                              )}
+
+                              {/* Lista de Puntos */}
+                              <div className="overflow-x-auto border rounded-xl">
+                                <table className="w-full text-xs">
+                                  <thead className="bg-gray-50">
+                                    <tr>
+                                      <th className="px-4 py-2 text-left font-bold text-gray-600">Punto</th>
+                                      <th className="px-4 py-2 text-left font-bold text-gray-600">Dirección</th>
+                                      <th className="px-4 py-2 text-center font-bold text-gray-600">Siguiente #</th>
+                                      <th className="px-4 py-2 text-center font-bold text-gray-600">Emitidas</th>
+                                      <th className="px-4 py-2 text-center font-bold text-gray-600">Disponibles</th>
+                                      <th className="px-4 py-2 text-center font-bold text-gray-600">Utilización</th>
+                                      <th className="px-4 py-2 text-center font-bold text-gray-600">Estado</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-gray-100 bg-white">
+                                    {(timbrado.puntos_expedicion || []).length === 0 ? (
+                                      <tr>
+                                        <td colSpan="7" className="px-4 py-8 text-center text-gray-400 italic">
+                                          No hay puntos de expedición configurados.
+                                        </td>
+                                      </tr>
+                                    ) : (
+                                      timbrado.puntos_expedicion.map(p => {
+                                        const sig = p.ultimo_secuencial + 1;
+                                        const emi = sig - timbrado.rango_desde;
+                                        const disp = timbrado.rango_hasta - sig + 1;
+                                        const totalP = timbrado.rango_hasta - timbrado.rango_desde + 1;
+                                        const porc = totalP > 0 ? Math.round((emi / totalP) * 100) : 0;
+                                        
+                                        return (
+                                          <tr key={p.id} className="hover:bg-gray-50/50">
+                                            <td className="px-4 py-3 font-bold font-mono text-gray-900">
+                                              {p.cod_establecimiento}-{p.cod_punto_expedicion}
+                                            </td>
+                                            <td className="px-4 py-3 text-gray-600">
+                                              {p.direccion || '—'}
+                                            </td>
+                                            <td className="px-4 py-3 text-center font-mono font-bold text-erp-orange">
+                                              {sig.toString().padStart(7, '0')}
+                                            </td>
+                                            <td className="px-4 py-3 text-center">
+                                              <span className="bg-blue-50 text-blue-700 px-2.5 py-0.5 rounded-full font-bold">{emi}</span>
+                                            </td>
+                                            <td className="px-4 py-3 text-center">
+                                              <span className={`px-2.5 py-0.5 rounded-full font-bold ${disp <= 100 ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>{disp}</span>
+                                            </td>
+                                            <td className="px-4 py-3 text-center">
+                                              <div className="flex items-center justify-center gap-2">
+                                                <div className="w-16 bg-gray-200 rounded-full h-1.5">
+                                                  <div 
+                                                    className={`h-1.5 rounded-full transition-all ${porc < 50 ? 'bg-green-500' : porc < 80 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                                                    style={{ width: `${porc}%` }}
+                                                  ></div>
+                                                </div>
+                                                <span className="font-bold text-[10px] text-gray-600">{porc}%</span>
+                                              </div>
+                                            </td>
+                                            <td className="px-4 py-3 text-center">
+                                              {puedeEditar('ventas') ? (
+                                                <button
+                                                  type="button"
+                                                  onClick={() => handleTogglePunto(timbrado.id, p.id)}
+                                                  className={`inline-flex items-center gap-1 px-3 py-1 rounded-full font-bold text-[10px] transition-all border ${
+                                                    p.activo 
+                                                      ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100' 
+                                                      : 'bg-gray-100 text-gray-500 border-gray-200 hover:bg-gray-200'
+                                                  }`}
+                                                >
+                                                  {p.activo ? 'Activo' : 'Inactivo'}
+                                                </button>
+                                              ) : (
+                                                <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full font-bold text-[10px] border ${
+                                                  p.activo 
+                                                    ? 'bg-green-50 text-green-700 border-green-200' 
+                                                    : 'bg-gray-100 text-gray-500 border-gray-200'
+                                                }`}>
+                                                  {p.activo ? 'Activo' : 'Inactivo'}
+                                                </span>
+                                              )}
+                                            </td>
+                                          </tr>
+                                        );
+                                      })
+                                    )}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
                   );
                 })}
               </tbody>
@@ -317,6 +644,7 @@ const GestionTimbrados = () => {
           </div>
         )}
       </div>
+
 
       {/* Modal Formulario */}
       {mostrarFormulario && (
@@ -421,35 +749,7 @@ const GestionTimbrados = () => {
                 </div>
               </div>
 
-              {/* Establecimiento y Punto Expedición */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 uppercase tracking-wider mb-2">
-                    Establecimiento
-                  </label>
-                  <input
-                    type="text"
-                    name="establecimiento"
-                    value={formData.establecimiento}
-                    onChange={handleInputChange}
-                    maxLength="3"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-erp-orange focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 uppercase tracking-wider mb-2">
-                    Punto Expedición
-                  </label>
-                  <input
-                    type="text"
-                    name="puntoExpedicion"
-                    value={formData.puntoExpedicion}
-                    onChange={handleInputChange}
-                    maxLength="3"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-erp-orange focus:border-transparent"
-                  />
-                </div>
-              </div>
+
 
               {/* Botones */}
               <div className="flex gap-4 pt-6">

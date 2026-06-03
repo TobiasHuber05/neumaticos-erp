@@ -60,7 +60,9 @@ const NotasCreditoVentas = ({ ventas, clientes, inventario = [], servicios = [] 
                     <h3 className="text-xl font-black text-gray-800">
                       Nota de Crédito {ncDetalle.numero}
                     </h3>
-                    <p className="text-sm text-gray-500">Emitida el {ncDetalle.fecha}</p>
+                    <p className="text-sm text-gray-500 font-medium">
+                      Emitida el {ncDetalle.fecha} {ncDetalle.timbrado && `| Timbrado: ${ncDetalle.timbrado}`}
+                    </p>
                   </div>
                 </div>
                 <button
@@ -215,7 +217,12 @@ const NotasCreditoVentas = ({ ventas, clientes, inventario = [], servicios = [] 
                 const cliente = clientes.find(c => c.id === factura?.clientId);
                 return (
                   <tr key={nc.id} className="hover:bg-red-50/40 transition-colors">
-                    <td className="px-6 py-4 font-mono font-bold text-red-600">{nc.numero}</td>
+                    <td className="px-6 py-4 font-mono font-bold text-red-600">
+                      <div>{nc.numero}</div>
+                      {nc.timbrado && (
+                        <div className="text-[10px] text-gray-400 font-bold uppercase mt-0.5">Timb: {nc.timbrado}</div>
+                      )}
+                    </td>
                     <td className="px-6 py-4 font-mono text-sm text-gray-600">{factura?.numero || '—'}</td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
