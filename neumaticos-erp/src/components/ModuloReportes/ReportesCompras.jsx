@@ -480,12 +480,8 @@ const ReportesCompras = () => {
           <h2 className="text-3xl font-black text-erp-orange tracking-tight uppercase italic">
             Reporte de Compras
           </h2>
-          <p className="text-gray-500 font-bold text-sm uppercase tracking-widest">
-            Análisis de Proveedores y Órdenes
-          </p>
         </div>
       </div>
-
       {renderFiltros()}
       {renderKpis()}
 

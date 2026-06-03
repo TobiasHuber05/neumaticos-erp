@@ -360,12 +360,9 @@ const ReportesStock = () => {
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex justify-between items-end">
         <div>
-          <h2 className="text-3xl font-black text-erp-orange tracking-tight uppercase italic">
+          <h2 className="text-3xl font-black text-orange-500 tracking-tight uppercase italic">
             Historial de Movimientos de Stock
           </h2>
-          <p className="text-gray-500 font-bold text-sm uppercase tracking-widest">
-            Track de Entradas y Salidas de Productos
-          </p>
         </div>
       </div>
 
