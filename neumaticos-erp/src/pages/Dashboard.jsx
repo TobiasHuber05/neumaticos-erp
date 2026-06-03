@@ -145,9 +145,13 @@ function Dashboard() {
 
   const {
     cuentas,
+    cuentasInactivas,
     bancos,
     monedas,
     registrarCuenta,
+    eliminarCuenta,
+    desactivarCuenta,
+    reactivarCuenta,
     refetchCuentas
   } = useTesoreria(puedeVer('tesoreria'));
 
@@ -517,12 +521,16 @@ function Dashboard() {
             <GestionCuentas
               bancos={bancos}
               cuentas={cuentas}
+              cuentasInactivas={cuentasInactivas}
               movimientos={movimientos}
               onNuevaCuenta={() => setMostrarFormCuenta(true)}
               onActualizar={async () => {
                 await refetchCuentas();
                 await refetchMovimientos();
               }}
+              onEliminarCuenta={eliminarCuenta}
+              onDesactivarCuenta={desactivarCuenta}
+              onReactivarCuenta={reactivarCuenta}
             />
             {mostrarFormCuenta && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">

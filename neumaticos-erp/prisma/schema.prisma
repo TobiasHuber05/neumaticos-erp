@@ -177,6 +177,7 @@ model cuenta_bancaria {
   saldo                   Decimal?                  @db.Decimal(10, 2)
   saldo_disponible        Decimal?                  @db.Decimal(10, 2)
   id_moneda               Int?
+  activa                  Boolean                   @default(true)
   cheques_emitidos        cheques_emitidos[]
   conciliacion_bancaria   conciliacion_bancaria[]
   banco                   banco?                    @relation(fields: [id_banco], references: [id_banco], onDelete: NoAction, onUpdate: NoAction, map: "fk_cuenta_banco")

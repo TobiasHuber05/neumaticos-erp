@@ -37,7 +37,10 @@ export const getMonedas = async (req, res) => {
 // GET /api/tesoreria/cuentas
 export const getCuentas = async (req, res) => {
     try {
+        const incluirInactivas = req.query.incluirInactivas === 'true';
+
         const cuentas = await prisma.cuenta_bancaria.findMany({
+            where: incluirInactivas ? {} : { activa: true },
             include: {
                 banco: true,
                 monedas: true,
@@ -65,6 +68,7 @@ export const getCuentas = async (req, res) => {
                 saldo_disponible: saldoDisponible,
                 banco: c.banco?.nombre ?? '—',
                 moneda: c.monedas?.nombre ?? '—',
+                activa: c.activa,
             };
         });
 
@@ -151,6 +155,80 @@ export const actualizarCuenta = async (req, res) => {
     } catch (error) {
         console.error('Error al actualizar cuenta:', error);
         return res.status(500).json({ error: 'Error al actualizar cuenta' });
+    }
+};
+
+// PUT /api/tesoreria/cuentas/:id/desactivar
+export const desactivarCuenta = async (req, res) => {
+    const { id } = req.params;
+    try {
+        const cuenta = await prisma.cuenta_bancaria.update({
+            where: { id_cuenta: Number(id) },
+            data: { activa: false },
+        });
+        return res.json({ ok: true, id_cuenta: cuenta.id_cuenta, activa: false });
+    } catch (error) {
+        console.error('Error al desactivar cuenta:', error);
+        return res.status(500).json({ error: 'Error al desactivar cuenta' });
+    }
+};
+
+// PUT /api/tesoreria/cuentas/:id/reactivar
+export const reactivarCuenta = async (req, res) => {
+    const { id } = req.params;
+    try {
+        const cuenta = await prisma.cuenta_bancaria.update({
+            where: { id_cuenta: Number(id) },
+            data: { activa: true },
+        });
+        return res.json({ ok: true, id_cuenta: cuenta.id_cuenta, activa: true });
+    } catch (error) {
+        console.error('Error al reactivar cuenta:', error);
+        return res.status(500).json({ error: 'Error al reactivar cuenta' });
+    }
+};
+
+// DELETE /api/tesoreria/cuentas/:id
+export const eliminarCuenta = async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const tieneMovimientos = await prisma.movimiento_bancario.findFirst({
+            where: { id_cuenta: Number(id) }
+        });
+        if (tieneMovimientos) {
+            return res.status(400).json({ error: 'No se puede eliminar una cuenta que tiene movimientos registrados' });
+        }
+
+        const tieneCheques = await prisma.cheques_emitidos.findFirst({
+            where: { id_cuenta: Number(id) }
+        });
+        if (tieneCheques) {
+            return res.status(400).json({ error: 'No se puede eliminar una cuenta que tiene cheques emitidos' });
+        }
+
+        const tieneTransferencias = await prisma.transferencias_emitidas.findFirst({
+            where: { id_cuenta: Number(id) }
+        });
+        if (tieneTransferencias) {
+            return res.status(400).json({ error: 'No se puede eliminar una cuenta que tiene transferencias emitidas' });
+        }
+
+        const tieneConciliaciones = await prisma.conciliacion_bancaria.findFirst({
+            where: { id_cuenta: Number(id) }
+        });
+        if (tieneConciliaciones) {
+            return res.status(400).json({ error: 'No se puede eliminar una cuenta que tiene conciliaciones registradas' });
+        }
+
+        await prisma.cuenta_bancaria.delete({
+            where: { id_cuenta: Number(id) }
+        });
+
+        return res.json({ ok: true, message: 'Cuenta eliminada correctamente' });
+    } catch (error) {
+        console.error('Error al eliminar cuenta:', error);
+        return res.status(500).json({ error: 'Error al eliminar cuenta' });
     }
 };
 

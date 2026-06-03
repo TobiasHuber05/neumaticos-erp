@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Banknote } from 'lucide-react';
 import OrdenPagoProveedoresForm from '../Forms/OrdenPagoProveedoresForm';
 import { puedeEditar } from '../../utils/permisos';
@@ -13,13 +13,28 @@ const PagosProveedores = ({
   registrarOrdenPago,
   onPagoRegistrado,
 }) => {
-  const [proveedorId, setProveedorId] = useState(proveedores[0]?.id ?? '');
+  const [proveedorId, setProveedorId] = useState('');
   const [modal, setModal] = useState(false);
 
   const { currentPage: curPagePagos, totalPages: totPagesPagos, currentItems: currentPagos, setCurrentPage: setCurPagePagos } = usePagination(ordenesPagoProveedores);
   const [msg, setMsg] = useState(null);
 
   const nombreProv = (id) => proveedores.find((p) => p.id === id)?.nombre ?? '';
+
+  const proveedoresConDeuda = useMemo(() => {
+    const pendientes = facturasProveedor.filter(
+      (f) => f.estado === 'Aceptada' && f.estadoPago !== 'Pagada' && Number(f.saldoPendiente ?? f.total) > 0,
+    );
+    const mapa = {};
+    for (const f of pendientes) {
+      if (!mapa[f.proveedorId]) {
+        mapa[f.proveedorId] = { proveedorId: f.proveedorId, totalDeuda: 0, cantidadFacturas: 0 };
+      }
+      mapa[f.proveedorId].totalDeuda += Number(f.saldoPendiente ?? f.total);
+      mapa[f.proveedorId].cantidadFacturas++;
+    }
+    return Object.values(mapa).sort((a, b) => b.totalDeuda - a.totalDeuda);
+  }, [facturasProveedor]);
 
   const facturasPendientes = facturasProveedor.filter(
     (f) =>
@@ -52,6 +67,40 @@ const PagosProveedores = ({
         </div>
       )}
 
+      {proveedoresConDeuda.length > 0 && (
+        <div className="bg-white rounded-xl shadow-md border border-orange-100 p-6">
+          <h3 className="text-sm font-bold text-gray-700 mb-3">Proveedores con deuda pendiente</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            {proveedoresConDeuda.map((s) => {
+              const selected = Number(proveedorId) === Number(s.proveedorId);
+              return (
+                <button
+                  key={s.proveedorId}
+                  type="button"
+                  onClick={() => setProveedorId(String(s.proveedorId))}
+                  className={`text-left p-3 rounded-lg border transition-colors ${
+                    selected
+                      ? 'border-orange-400 bg-orange-50 ring-2 ring-orange-200'
+                      : 'border-gray-200 bg-gray-50 hover:border-orange-300 hover:bg-orange-50'
+                  }`}
+                >
+                  <div className="font-semibold text-gray-800 text-sm truncate">
+                    {nombreProv(s.proveedorId)}
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    {s.cantidadFacturas} factura{s.cantidadFacturas !== 1 ? 's' : ''} pendiente
+                    {s.cantidadFacturas !== 1 ? 's' : ''}
+                  </div>
+                  <div className="font-bold text-erp-orange text-sm mt-1">
+                    Gs. {s.totalDeuda.toLocaleString('de-DE')}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       <div className="bg-white rounded-xl shadow-md border border-orange-100 p-6 flex flex-wrap gap-4 items-end">
         <div>
           <label className="block text-xs font-bold text-gray-600 mb-1">Proveedor</label>
@@ -60,6 +109,7 @@ const PagosProveedores = ({
             onChange={(e) => setProveedorId(e.target.value)}
             className="p-2 border rounded-lg min-w-[220px]"
           >
+            <option value="">Seleccionar proveedor...</option>
             {proveedores.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.nombre}
@@ -77,9 +127,12 @@ const PagosProveedores = ({
             <Banknote size={18} /> Nueva orden de pago
           </button>
         )}
-        <p className="text-sm text-gray-600">
-          Facturas pendientes de pago: <span className="font-black">{facturasPendientes.length}</span>
-        </p>
+        {proveedorId && (
+          <p className="text-sm text-gray-600">
+            Facturas pendientes de <span className="font-semibold">{nombreProv(proveedorId)}</span>:{' '}
+            <span className="font-black">{facturasPendientes.length}</span>
+          </p>
+        )}
       </div>
 
       <div className="bg-white rounded-xl shadow-md border border-orange-100 overflow-hidden">

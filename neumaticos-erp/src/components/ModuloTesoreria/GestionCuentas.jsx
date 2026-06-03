@@ -1,10 +1,24 @@
-import React, { useState, useEffect } from 'react';
-import { Landmark, Wallet, Plus } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Landmark, Wallet, Plus, Trash2, EyeOff, Eye, ChevronDown, ChevronUp } from 'lucide-react';
 import { calcularSaldosDeCuenta } from '../../utils/tesoreriasLogis';
 import { puedeEditar } from '../../utils/permisos';
 
-const GestionCuentas = ({ bancos, cuentas, movimientos, onNuevaCuenta, onActualizar }) => {
+const GestionCuentas = ({ bancos, cuentas, cuentasInactivas, movimientos, onNuevaCuenta, onActualizar, onEliminarCuenta, onDesactivarCuenta, onReactivarCuenta }) => {
   const [cuentaSeleccionada, setCuentaSeleccionada] = useState(null);
+  const [menuAbierto, setMenuAbierto] = useState(null);
+  const [confirmarEliminarId, setConfirmarEliminarId] = useState(null);
+  const [mostrarInactivas, setMostrarInactivas] = useState(false);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setMenuAbierto(null);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     onActualizar?.();
@@ -71,9 +85,45 @@ const GestionCuentas = ({ bancos, cuentas, movimientos, onNuevaCuenta, onActuali
                 <div className="p-2 bg-erp-yellow/20 rounded-lg text-erp-orange">
                   <Landmark size={24} />
                 </div>
-                <span className="text-[10px] font-black uppercase px-2 py-1 bg-gray-100 text-gray-600 rounded">
-                  {cta.tipo_cuenta}
-                </span>
+                <div className="flex items-center gap-1 relative">
+                  {puedeEditar('tesoreria') && (
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); setMenuAbierto(menuAbierto === cta.id_cuenta ? null : cta.id_cuenta); }}
+                      className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Opciones de cuenta"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  )}
+                  {menuAbierto === cta.id_cuenta && (
+                    <div ref={menuRef} className="absolute top-full right-0 mt-1 z-50 bg-white border border-gray-200 rounded-lg shadow-xl py-1 min-w-[200px]" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          setMenuAbierto(null);
+                          const res = await onDesactivarCuenta(cta.id_cuenta);
+                          if (!res?.ok) alert(res?.error ?? 'Error');
+                        }}
+                        className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 transition-colors"
+                      >
+                        <EyeOff size={15} className="text-gray-400" />
+                        Sacar de la lista
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setMenuAbierto(null); setConfirmarEliminarId(cta.id_cuenta); }}
+                        className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                      >
+                        <Trash2 size={15} />
+                        Eliminar permanentemente
+                      </button>
+                    </div>
+                  )}
+                  <span className="text-[10px] font-black uppercase px-2 py-1 bg-gray-100 text-gray-600 rounded">
+                    {cta.tipo_cuenta}
+                  </span>
+                </div>
               </div>
 
               <h3 className="font-bold text-gray-800">{nombreBanco(cta)}</h3>
@@ -150,6 +200,90 @@ const GestionCuentas = ({ bancos, cuentas, movimientos, onNuevaCuenta, onActuali
                   ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+      {cuentasInactivas?.length > 0 && (
+        <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6">
+          <button
+            type="button"
+            onClick={() => setMostrarInactivas(!mostrarInactivas)}
+            className="flex items-center gap-2 text-sm font-bold text-gray-500 hover:text-gray-700 transition-colors"
+          >
+            {mostrarInactivas ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+            Cuentas fuera de lista ({cuentasInactivas.length})
+          </button>
+          {mostrarInactivas && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+              {cuentasInactivas.map((cta) => {
+                const { saldoReal, saldoDisponible } = resolverSaldos(cta);
+                return (
+                  <div key={cta.id_cuenta} className="p-4 rounded-2xl border-2 border-gray-200 bg-gray-50 opacity-60">
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="p-2 bg-gray-200 rounded-lg text-gray-400">
+                        <Landmark size={20} />
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {puedeEditar('tesoreria') && (
+                          <button
+                            type="button"
+                            onClick={async (e) => { e.stopPropagation(); const res = await onReactivarCuenta(cta.id_cuenta); if (!res?.ok) alert(res?.error ?? 'Error'); }}
+                            className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                            title="Volver a la lista"
+                          >
+                            <Eye size={15} />
+                          </button>
+                        )}
+                        <span className="text-[10px] font-black uppercase px-2 py-1 bg-gray-200 text-gray-400 rounded">
+                          {cta.tipo_cuenta}
+                        </span>
+                      </div>
+                    </div>
+                    <h3 className="font-bold text-gray-500 line-through">{typeof cta.banco === 'string' ? cta.banco : bancos.find((b) => b.id_banco === cta.id_banco)?.nombre ?? 'Banco'}</h3>
+                    <p className="text-xs text-gray-400 font-mono mb-3">Nº {cta.numero_cuenta}</p>
+                    <div className="flex justify-between items-end">
+                      <span className="text-xs text-gray-400 uppercase font-bold">Saldo</span>
+                      <span className="text-base font-bold text-gray-400">
+                        Gs. {saldoReal.toLocaleString('de-DE')}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {confirmarEliminarId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm">
+            <h3 className="text-lg font-bold text-gray-800 mb-2">¿Eliminar permanentemente?</h3>
+            <p className="text-sm text-gray-500 mb-6">
+              Esta cuenta se eliminará de forma permanente. Solo se puede eliminar si no tiene movimientos asociados.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                type="button"
+                onClick={() => setConfirmarEliminarId(null)}
+                className="px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  const res = await onEliminarCuenta(confirmarEliminarId);
+                  setConfirmarEliminarId(null);
+                  if (!res?.ok) {
+                    alert(res?.error ?? 'Error al eliminar cuenta');
+                  }
+                }}
+                className="px-4 py-2 rounded-lg bg-red-500 text-white text-sm font-bold hover:bg-red-600 transition-colors"
+              >
+                Eliminar
+              </button>
+            </div>
           </div>
         </div>
       )}
