@@ -11,3 +11,12 @@
   }
   --animate-shake: shake 0.2s ease-in-out 0s 2;
 }
+
+/* Cursor de selección (mano) para botones y elementos interactivos */
+button,
+[role="button"],
+select,
+input[type="submit"],
+input[type="button"] {
+  cursor: pointer;
+}

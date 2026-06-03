@@ -3,6 +3,42 @@ import { useEffect, useState } from 'react';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import ChangePassword from './pages/ChangePassword';
+import axios from 'axios';
+
+// Interceptor global para fetch (manejo de expiración de sesión 401)
+const originalFetch = window.fetch;
+window.fetch = async (...args) => {
+  const response = await originalFetch(...args);
+  if (response.status === 401) {
+    const url = typeof args[0] === 'string' ? args[0] : args[0]?.url;
+    if (url && !url.includes('/api/auth/perfil') && !url.includes('/api/auth/login')) {
+      console.warn('Sesión expirada (401 - fetch). Redirigiendo a inicio de sesión...');
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      sessionStorage.removeItem('moduloActual');
+      window.location.href = '/login';
+    }
+  }
+  return response;
+};
+
+// Interceptor global para axios (manejo de expiración de sesión 401)
+axios.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      const url = error.config?.url;
+      if (url && !url.includes('/api/auth/perfil') && !url.includes('/api/auth/login')) {
+        console.warn('Sesión expirada (401 - axios). Redirigiendo a inicio de sesión...');
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        sessionStorage.removeItem('moduloActual');
+        window.location.href = '/login';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
 
 const limpiarSesion = () => {
   localStorage.removeItem('token');
