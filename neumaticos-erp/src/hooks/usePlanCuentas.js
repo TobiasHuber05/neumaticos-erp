@@ -13,6 +13,7 @@ function getHeaders() {
 
 export function usePlanCuentas() {
     const [cuentas, setCuentas] = useState([]);
+    const [todasLasCuentas, setTodasLasCuentas] = useState([]);
     const [periodos, setPeriodos] = useState([]);
     const [periodoActivo, setPeriodoActivo] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -53,6 +54,16 @@ export function usePlanCuentas() {
         }
     }, []);
 
+    const fetchTodasCuentas = useCallback(async () => {
+        try {
+            const res = await fetch(`${API}/plan-cuentas/todas`, { headers: getHeaders() });
+            const data = await res.json();
+            setTodasLasCuentas(data);
+        } catch (err) {
+            console.error('Error al cargar todas las cuentas');
+        }
+    }, []);
+
     useEffect(() => {
         fetchPeriodos();
     }, [fetchPeriodos]);
@@ -60,6 +71,10 @@ export function usePlanCuentas() {
     useEffect(() => {
         fetchCuentas(periodoActivo);
     }, [fetchCuentas, periodoActivo]);
+
+    useEffect(() => {
+        fetchTodasCuentas();
+    }, [fetchTodasCuentas]);
 
     // Crear cuenta
     const crearCuenta = useCallback(async (data) => {
@@ -134,6 +149,7 @@ export function usePlanCuentas() {
 
     return {
         cuentas,
+        todasLasCuentas,
         periodos,
         periodoActivo,
         setPeriodoActivo,
@@ -144,9 +160,11 @@ export function usePlanCuentas() {
         eliminarCuenta,
         fetchCuentas,
         fetchPeriodos,
+        fetchTodasCuentas,
         refresh: async () => {
             await fetchPeriodos();
             await fetchCuentas(periodoActivo);
+            await fetchTodasCuentas();
         },
     };
 }

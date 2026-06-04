@@ -2,13 +2,21 @@ import { prisma } from '../../lib/prisma.js';
 
 // GET /api/contabilidad/plan-cuentas
 // Opcionalmente filtrar por periodo: ?id_periodo=1
+// Incluye cuentas del periodo seleccionado + cuentas sin periodo (NULL)
 export const getPlanCuentas = async (req, res) => {
     const { id_periodo, periodo } = req.query;
     const filtroPeriodo = id_periodo || periodo;
 
     try {
         const cuentas = await prisma.plan_cuentas.findMany({
-            where: filtroPeriodo ? { id_proc_contable: Number(filtroPeriodo) } : {},
+            where: filtroPeriodo
+                ? {
+                    OR: [
+                        { id_proc_contable: Number(filtroPeriodo) },
+                        { id_proc_contable: null }
+                    ]
+                  }
+                : {},
             orderBy: { cuenta_contable: 'asc' }
         });
 
@@ -33,6 +41,31 @@ export const getPlanCuentas = async (req, res) => {
     } catch (error) {
         console.error('Error al obtener plan de cuentas:', error);
         return res.status(500).json({ error: 'Error al obtener plan de cuentas' });
+    }
+};
+
+// GET /api/contabilidad/plan-cuentas/todas
+// Retorna TODAS las cuentas contables sin filtro de periodo (para selects)
+export const getTodasCuentas = async (req, res) => {
+    try {
+        const cuentas = await prisma.plan_cuentas.findMany({
+            orderBy: { cuenta_contable: 'asc' }
+        });
+
+        return res.json(cuentas.map((c) => ({
+            id: c.id_cuenta,
+            id_cuenta: c.id_cuenta,
+            codigo: c.cuenta_contable ?? '',
+            cuenta_contable: c.cuenta_contable ?? '',
+            nombre: c.nombre ?? '',
+            tipo: c.asentable ? 'Asentable' : 'Totalizadora',
+            asentable: c.asentable ?? false,
+            nivel: c.nivel ?? 1,
+            tipo_cuenta: c.tipo_cuenta ?? '',
+        })));
+    } catch (error) {
+        console.error('Error al obtener todas las cuentas:', error);
+        return res.status(500).json({ error: 'Error al obtener cuentas' });
     }
 };
 

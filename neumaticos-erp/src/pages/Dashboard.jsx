@@ -220,7 +220,7 @@ function Dashboard() {
 
   const moduloVentas = useModuloVentas(puedeVer('ventas'));
   const { servicios, actions: actionsServicios } = useServicios(puedeVer('stock') || puedeVer('ventas'));
-  const { cuentas: planCuentas } = usePlanCuentas();
+  const { cuentas: planCuentas, todasLasCuentas } = usePlanCuentas();
 
   const proveedoresMaestro = useMemo(
     () => proveedores.map((p) => ({ id: p.id, nombre: p.nombre })),
@@ -543,7 +543,7 @@ function Dashboard() {
                 <CuentaBancariaForm
                   bancos={bancos}
                   monedas={monedas}
-                  planCuentas={planCuentas}
+                  planCuentas={todasLasCuentas}
                   onCancelar={() => setMostrarFormCuenta(false)}
                   onGuardar={async (nueva) => {
                     await registrarCuenta(nueva);

@@ -1,6 +1,7 @@
 import express from 'express';
 import {
     getPlanCuentas,
+    getTodasCuentas,
     createCuenta,
     updateCuenta,
     deleteCuenta,
@@ -11,6 +12,7 @@ const router = express.Router();
 
 router.use(verifyToken);
 
+router.get('/plan-cuentas/todas', getTodasCuentas);     // GET  /api/contabilidad/plan-cuentas/todas
 router.get('/plan-cuentas', getPlanCuentas);             // GET  /api/contabilidad/plan-cuentas
 router.post('/plan-cuentas', createCuenta);              // POST /api/contabilidad/plan-cuentas
 router.put('/plan-cuentas/:id', updateCuenta);           // PUT  /api/contabilidad/plan-cuentas/:id
