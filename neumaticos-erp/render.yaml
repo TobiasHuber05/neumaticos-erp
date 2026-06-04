@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: neumaticos-erp
+    env: node
+    buildCommand: npm install && npx prisma generate && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_EXPIRES_IN
+        value: 8h
+      - key: DEFAULT_ADMIN_PASSWORD
+        sync: false

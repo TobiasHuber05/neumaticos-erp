@@ -18,7 +18,7 @@ const Personal = ({ defaultTab }) => {
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-    fetch('http://localhost:3000/api/tesoreria/cuentas', {
+    fetch(`${import.meta.env.VITE_API_URL || ''}/api/tesoreria/cuentas`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(r => r.ok ? r.json() : [])

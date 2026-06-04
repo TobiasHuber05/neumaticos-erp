@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 
-const API = 'http://localhost:3000/api/asientos-contables';
+const API = `${import.meta.env.VITE_API_URL || ''}/api/asientos-contables`;
 
 export function useAsientosContables(idPeriodo) {
     const [asientos, setAsientos] = useState([]);

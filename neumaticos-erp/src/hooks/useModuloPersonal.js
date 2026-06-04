@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import * as personalLogic from '../utils/personalLogic.js';
 
-const API = 'http://localhost:3000/api';
+const API = `${import.meta.env.VITE_API_URL || ''}/api`;
 const api = axios.create({
   baseURL: API,
 });

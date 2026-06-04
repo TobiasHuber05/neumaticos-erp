@@ -402,6 +402,32 @@ export const createAdelanto = async (req, res) => {
       return { ...cabecera, total: totalProceso };
     });
 
+    // --- GENERAR ASIENTO CONTABLE ---
+    try {
+      const { registrarAsientoAutomatico } = await import('../../utils/asientoAutomatico.utils.js');
+      // Usar la cuenta contable vinculada al banco, o crear una automática BCTA_
+      let cuentaContableCodigo;
+      if (cuenta.id_cuenta_contable) {
+        const ctaPlan = await prisma.plan_cuentas.findUnique({ where: { id_cuenta: cuenta.id_cuenta_contable } });
+        cuentaContableCodigo = ctaPlan?.cuenta_contable;
+      }
+      if (!cuentaContableCodigo) {
+        cuentaContableCodigo = `BCTA_${cuenta.numero_cuenta?.replace(/\s+/g, '_') || cuenta.id_cuenta}`;
+      }
+      await registrarAsientoAutomatico({
+        fecha: fecha_pago ? new Date(fecha_pago) : new Date(),
+        descripcion: `Adelanto Nómina - Periodo ${periodo || new Date().toISOString().slice(0, 7)}`,
+        tabla_origen: 'cabecera_pago',
+        id_registro_origen: proceso.id_pago,
+        detalles: [
+          { cuenta_codigo: 'SYS-NOM-SUELDOS', monto: Number(proceso.total), debe_haber: true, glosa: 'Adelanto de Sueldo' },
+          { cuenta_codigo: cuentaContableCodigo, monto: Number(proceso.total), debe_haber: false, glosa: `Pago Adelanto - Cta. Nº ${cuenta.numero_cuenta || ''}` }
+        ]
+      });
+    } catch (err) {
+      console.error('Error al generar asiento contable del adelanto:', err);
+    }
+
     res.status(201).json({
       ok: true,
       id_pago: proceso.id_pago,

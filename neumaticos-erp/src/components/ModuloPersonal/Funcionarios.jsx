@@ -7,7 +7,7 @@ import { formatGua } from '../../utils/personalLogic';
 import axios from 'axios';
 import { puedeEditar } from '../../utils/permisos';
 
-const API = 'http://localhost:3000/api';
+const API = `${import.meta.env.VITE_API_URL || ''}/api`;
 
 const api = axios.create({
   baseURL: API,

@@ -27,10 +27,16 @@ const ModeloAsientoForm = ({ initial, planCuentas = [], onCancelar, onGuardar })
   const [operacion_asiento, setOperacion] = useState(initial?.operacion_asiento || '');
   const [descripcion, setDescripcion] = useState(initial?.descripcion || '');
   const [lineas, setLineas] = useState([]);
+  const [esPersonalizada, setEsPersonalizada] = useState(false);
+  const [operacionCustom, setOperacionCustom] = useState('');
 
   useEffect(() => {
     if (initial) {
-      setOperacion(initial.operacion_asiento || '');
+      const op = initial.operacion_asiento || '';
+      const existe = OPERACIONES.some((o) => o.id === op);
+      setOperacion(existe ? op : '');
+      setOperacionCustom(existe ? '' : op);
+      setEsPersonalizada(!existe && !!op);
       setDescripcion(initial.descripcion || '');
       setLineas(
         (initial.detalle_modelo_asiento || []).map((d) => ({
@@ -62,9 +68,10 @@ const ModeloAsientoForm = ({ initial, planCuentas = [], onCancelar, onGuardar })
   };
 
   const handleGuardar = () => {
-    if (!operacion_asiento || !descripcion) return;
+    const opFinal = esPersonalizada ? operacionCustom : operacion_asiento;
+    if (!opFinal || !descripcion) return;
     onGuardar({
-      operacion_asiento,
+      operacion_asiento: opFinal,
       descripcion,
       tipo_asiento: 'Automatico',
       lineas: lineas.map((l) => ({
@@ -101,20 +108,39 @@ const ModeloAsientoForm = ({ initial, planCuentas = [], onCancelar, onGuardar })
                 className="w-full p-3 border rounded-lg bg-gray-50 text-gray-500 outline-none"
               />
             ) : (
-              <select
-                value={operacion_asiento}
-                onChange={(e) => {
-                  const op = OPERACIONES.find((o) => o.id === e.target.value);
-                  setOperacion(e.target.value);
-                  if (op) setDescripcion(op.descripcion);
-                }}
-                className="w-full p-3 border rounded-lg bg-white focus:ring-2 focus:ring-erp-orange outline-none"
-              >
-                <option value="">Seleccionar operación</option>
-                {OPERACIONES.map((op) => (
-                  <option key={op.id} value={op.id}>{op.descripcion}</option>
-                ))}
-              </select>
+              <div className="space-y-2">
+                <select
+                  value={esPersonalizada ? 'custom' : operacion_asiento}
+                  onChange={(e) => {
+                    if (e.target.value === 'custom') {
+                      setEsPersonalizada(true);
+                      setOperacion('');
+                    } else {
+                      setEsPersonalizada(false);
+                      setOperacion(e.target.value);
+                      setOperacionCustom('');
+                      const op = OPERACIONES.find((o) => o.id === e.target.value);
+                      if (op) setDescripcion(op.descripcion);
+                    }
+                  }}
+                  className="w-full p-3 border rounded-lg bg-white focus:ring-2 focus:ring-erp-orange outline-none"
+                >
+                  <option value="">Seleccionar operación</option>
+                  {OPERACIONES.map((op) => (
+                    <option key={op.id} value={op.id}>{op.descripcion}</option>
+                  ))}
+                  <option value="custom">Otra (escribir)...</option>
+                </select>
+                {esPersonalizada && (
+                  <input
+                    type="text"
+                    value={operacionCustom}
+                    onChange={(e) => setOperacionCustom(e.target.value.toUpperCase().replace(/\s+/g, '_'))}
+                    placeholder="Ej: OTRO_TIPO_OPERACION"
+                    className="w-full p-3 border rounded-lg bg-white focus:ring-2 focus:ring-erp-orange outline-none"
+                  />
+                )}
+              </div>
             )}
           </div>
           <div>

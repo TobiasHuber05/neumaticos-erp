@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 
-const API = 'http://localhost:3000/api/reportes-contables';
+const API = `${import.meta.env.VITE_API_URL || ''}/api/reportes-contables`;
 
 export function useReportesContables() {
     const [loading, setLoading] = useState(false);

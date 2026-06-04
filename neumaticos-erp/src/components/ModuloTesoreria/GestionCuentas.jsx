@@ -128,6 +128,14 @@ const GestionCuentas = ({ bancos, cuentas, cuentasInactivas, movimientos, onNuev
 
               <h3 className="font-bold text-gray-800">{nombreBanco(cta)}</h3>
               <p className="text-xs text-gray-500 font-mono mb-4">Nº {cta.numero_cuenta}</p>
+              {cta.cuenta_contable_nombre && (
+                <div className="flex items-center gap-1.5 mb-3 px-2.5 py-1.5 bg-blue-50 border border-blue-100 rounded-lg">
+                  <Landmark size={12} className="text-blue-500 shrink-0" />
+                  <span className="text-[10px] font-bold text-blue-700 leading-tight">
+                    {cta.cuenta_contable_nombre}
+                  </span>
+                </div>
+              )}
 
               <div className="space-y-3">
                 <div className="flex justify-between items-end">

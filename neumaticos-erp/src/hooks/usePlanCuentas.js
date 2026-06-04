@@ -20,7 +20,7 @@ export function usePlanCuentas() {
 
     const fetchPeriodos = useCallback(async () => {
         try {
-            const res = await fetch('http://localhost:3000/api/periodos-contables', { headers: getHeaders() });
+            const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/periodos-contables`, { headers: getHeaders() });
             const data = await res.json();
             setPeriodos(data);
             

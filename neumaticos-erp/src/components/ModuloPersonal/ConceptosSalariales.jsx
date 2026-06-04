@@ -3,7 +3,7 @@ import { Settings, Plus, CheckCircle2, XCircle, Info, X, Trash2 } from 'lucide-r
 import axios from 'axios';
 import { puedeEditar } from '../../utils/permisos';
 
-const API = 'http://localhost:3000/api';
+const API = `${import.meta.env.VITE_API_URL || ''}/api`;
 
 // Configurar token de autorización para axios
 const token = localStorage.getItem('token');

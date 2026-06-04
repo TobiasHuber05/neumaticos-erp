@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 
-const API = 'http://localhost:3000/api/periodos-contables';
+const API = `${import.meta.env.VITE_API_URL || ''}/api/periodos-contables`;
 
 export function usePeriodosContables() {
     const [periodos, setPeriodos] = useState([]);
