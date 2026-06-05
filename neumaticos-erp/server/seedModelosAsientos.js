@@ -240,8 +240,42 @@ async function seed() {
     }
   }
 
+  const CATEGORIAS_VALIDAS = ['Neumáticos Auto', 'Neumáticos Camioneta', 'Lubricantes', 'Accesorios'];
+
+  console.log('\n🧹 Limpiando categorías antiguas...');
+  const catsInvalidas = await prisma.categoria.findMany({
+    where: { nombre: { notIn: CATEGORIAS_VALIDAS } },
+  });
+  for (const c of catsInvalidas) {
+    await prisma.producto.updateMany({ where: { id_categoria: c.id_categoria }, data: { id_categoria: null } });
+    await prisma.categoria.delete({ where: { id_categoria: c.id_categoria } });
+    console.log(`  🗑️ Categoría eliminada: ${c.nombre}`);
+  }
+
+  console.log('\n🧹 Limpiando categorías de proveedores antiguas...');
+  const catsProvInvalidas = await prisma.categorias_proveedores.findMany({
+    where: { tipo: { notIn: CATEGORIAS_VALIDAS } },
+  });
+  for (const cp of catsProvInvalidas) {
+    await prisma.proveedor_categorias.deleteMany({ where: { id_categoria: cp.id_categoria } });
+    await prisma.categorias_proveedores.delete({ where: { id_categoria: cp.id_categoria } });
+    console.log(`  🗑️ Categoría proveedor eliminada: ${cp.tipo}`);
+  }
+
+  const PROVEEDORES_VALIDOS = ['Neumáticos del Este', 'Importadora Global S.A.', 'Distribuidora Pirelli', 'Repuestos Centro S.A.'];
+
+  console.log('\n🧹 Limpiando proveedores antiguos...');
+  const provsInvalidos = await prisma.proveedores.findMany({
+    where: { nombre: { notIn: PROVEEDORES_VALIDOS } },
+  });
+  for (const p of provsInvalidos) {
+    await prisma.proveedor_categorias.deleteMany({ where: { id_proveedor: p.id_proveedor } });
+    await prisma.proveedores.delete({ where: { id_proveedor: p.id_proveedor } });
+    console.log(`  🗑️ Proveedor eliminado: ${p.nombre}`);
+  }
+
   console.log('\n🌱 Sembrando categorías...');
-  const CATEGORIAS = ['Neumáticos Auto', 'Neumáticos Camioneta', 'Lubricantes', 'Accesorios'];
+  const CATEGORIAS = CATEGORIAS_VALIDAS;
   for (const n of CATEGORIAS) {
     const existe = await prisma.categoria.findFirst({ where: { nombre: n } });
     if (!existe) {
@@ -266,10 +300,10 @@ async function seed() {
 
   console.log('\n🌱 Sembrando categorías de proveedores...');
   const CATS_PROVEEDORES = [
-    { tipo: 'Distribuidor', descripcion: 'Distribuye productos a_minoristas' },
-    { tipo: 'Mayorista', descripcion: 'Venta al por mayor' },
-    { tipo: 'Importador', descripcion: 'Importa productos del exterior' },
-    { tipo: 'Fabricante', descripcion: 'Fabrica los productos que vende' },
+    { tipo: 'Neumáticos Auto', descripcion: 'Proveedores de neumáticos para automóviles' },
+    { tipo: 'Neumáticos Camioneta', descripcion: 'Proveedores de neumáticos para camionetas' },
+    { tipo: 'Lubricantes', descripcion: 'Proveedores de lubricantes y aceites' },
+    { tipo: 'Accesorios', descripcion: 'Proveedores de accesorios automotrices' },
   ];
   for (const c of CATS_PROVEEDORES) {
     const existe = await prisma.categorias_proveedores.findFirst({ where: { tipo: c.tipo } });
@@ -337,9 +371,10 @@ async function seed() {
 
   console.log('\n🌱 Sembrando proveedores...');
   const PROVEEDORES = [
-    { nombre: 'Distribuidora ABC', ruc: '11111111-1', direccion: 'Asunción', telefono: '021111111' },
-    { nombre: 'Importadora XYZ', ruc: '22222222-2', direccion: 'Lambaré', telefono: '021222222' },
-    { nombre: 'Mayorista 123', ruc: '33333333-3', direccion: 'San Lorenzo', telefono: '021333333' },
+    { nombre: 'Neumáticos del Este', ruc: '80012345-0', direccion: 'Av. de los Próceres, 123', telefono: '0981-111222' },
+    { nombre: 'Importadora Global S.A.', ruc: '80098765-1', direccion: 'Calle de la Paz, 456', telefono: '0971-333444' },
+    { nombre: 'Distribuidora Pirelli', ruc: '80055443-2', direccion: 'Av. de la Libertad, 789', telefono: '0961-555666' },
+    { nombre: 'Repuestos Centro S.A.', ruc: '80011111-9', direccion: 'Ruta 2, km 10', telefono: '0991-777888' },
   ];
   for (const p of PROVEEDORES) {
     const existe = await prisma.proveedores.findFirst({ where: { ruc: p.ruc } });
@@ -348,6 +383,33 @@ async function seed() {
       console.log(`  ✅ Proveedor creado: ${p.nombre}`);
     } else {
       console.log(`  ↪️ Ya existe proveedor: ${p.nombre}`);
+    }
+  }
+
+  console.log('\n🌱 Asignando categorías a proveedores...');
+  const asignaciones = [
+    { prov: 'Neumáticos del Este', cats: ['Neumáticos Camioneta', 'Neumáticos Auto'] },
+    { prov: 'Importadora Global S.A.', cats: ['Lubricantes', 'Neumáticos Auto', 'Accesorios'] },
+    { prov: 'Distribuidora Pirelli', cats: ['Neumáticos Auto', 'Neumáticos Camioneta'] },
+    { prov: 'Repuestos Centro S.A.', cats: ['Accesorios', 'Lubricantes', 'Neumáticos Auto'] },
+  ];
+  for (const a of asignaciones) {
+    const proveedor = await prisma.proveedores.findFirst({ where: { nombre: a.prov } });
+    if (!proveedor) continue;
+    for (const catTipo of a.cats) {
+      const cat = await prisma.categorias_proveedores.findFirst({ where: { tipo: catTipo } });
+      if (!cat) continue;
+      const existe = await prisma.proveedor_categorias.findFirst({
+        where: { id_proveedor: proveedor.id_proveedor, id_categoria: cat.id_categoria },
+      });
+      if (!existe) {
+        await prisma.proveedor_categorias.create({
+          data: { id_proveedor: proveedor.id_proveedor, id_categoria: cat.id_categoria },
+        });
+        console.log(`  ✅ Asignado: ${a.prov} → ${catTipo}`);
+      } else {
+        console.log(`  ↪️ Ya asignado: ${a.prov} → ${catTipo}`);
+      }
     }
   }
 
