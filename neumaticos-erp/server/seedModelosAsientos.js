@@ -241,7 +241,7 @@ async function seed() {
   }
 
   console.log('\n🌱 Sembrando categorías...');
-  const CATEGORIAS = ['Neumáticos', 'Aceites', 'Accesorios', 'Servicios'];
+  const CATEGORIAS = ['Neumáticos Auto', 'Neumáticos Camioneta', 'Lubricantes', 'Accesorios'];
   for (const n of CATEGORIAS) {
     const existe = await prisma.categoria.findFirst({ where: { nombre: n } });
     if (!existe) {
@@ -253,7 +253,7 @@ async function seed() {
   }
 
   console.log('\n🌱 Sembrando marcas...');
-  const MARCAS = ['Pirelli', 'Bridgestone', 'Michelin', 'Goodyear', 'Firestone'];
+  const MARCAS = ['Michelin', 'Pirelli', 'Bridgestone', 'Continental', 'Goodyear'];
   for (const n of MARCAS) {
     const existe = await prisma.marcas.findFirst({ where: { nombre: n } });
     if (!existe) {
@@ -261,6 +261,23 @@ async function seed() {
       console.log(`  ✅ Marca creada: ${n}`);
     } else {
       console.log(`  ↪️ Ya existe marca: ${n}`);
+    }
+  }
+
+  console.log('\n🌱 Sembrando categorías de proveedores...');
+  const CATS_PROVEEDORES = [
+    { tipo: 'Distribuidor', descripcion: 'Distribuye productos a_minoristas' },
+    { tipo: 'Mayorista', descripcion: 'Venta al por mayor' },
+    { tipo: 'Importador', descripcion: 'Importa productos del exterior' },
+    { tipo: 'Fabricante', descripcion: 'Fabrica los productos que vende' },
+  ];
+  for (const c of CATS_PROVEEDORES) {
+    const existe = await prisma.categorias_proveedores.findFirst({ where: { tipo: c.tipo } });
+    if (!existe) {
+      await prisma.categorias_proveedores.create({ data: c });
+      console.log(`  ✅ Categoría proveedor creada: ${c.tipo}`);
+    } else {
+      console.log(`  ↪️ Ya existe categoría proveedor: ${c.tipo}`);
     }
   }
 
@@ -335,7 +352,7 @@ async function seed() {
   }
 
   console.log('\n🌱 Sembrando productos...');
-  const catNeumaticos = await prisma.categoria.findFirst({ where: { nombre: 'Neumáticos' } });
+  const catNeumaticos = await prisma.categoria.findFirst({ where: { nombre: 'Neumáticos Auto' } });
   const marcaPirelli = await prisma.marcas.findFirst({ where: { nombre: 'Pirelli' } });
 
   const PRODUCTOS = [
