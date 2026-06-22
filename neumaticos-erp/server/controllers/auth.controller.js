@@ -47,12 +47,22 @@ export const login = async (req, res) => {
       return res.status(401).json({ error: 'Credenciales incorrectas' });
     }
 
+    // Asegurar que el usuario tiene un rol válido
+    let rolUsuario = usuario.rol_empresa || usuario.rol || 'USER';
+    let permisosUsuario = usuario.permisos || {};
+
+    // Si no tiene permisos y tiene rol, calcular permisos por defecto
+    if (Object.keys(permisosUsuario).length === 0) {
+      const { getPermisosBaseCargo } = await import('../utils/permisosServidor.js');
+      permisosUsuario = getPermisosBaseCargo(rolUsuario);
+    }
+
     const token = jwt.sign(
       {
         id_usuario: usuario.id_usuario,
         email: usuario.email,
         username: usuario.username || '',
-        rol: usuario.rol_empresa || usuario.rol
+        rol: rolUsuario
       },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN || '8h' }
@@ -65,8 +75,8 @@ export const login = async (req, res) => {
         id_usuario: usuario.id_usuario,
         username: usuario.username || '',
         email: usuario.email,
-        rol: usuario.rol_empresa || usuario.rol,
-        permisos: usuario.permisos || {}
+        rol: rolUsuario,
+        permisos: permisosUsuario
       }
     });
   } catch (error) {
@@ -234,7 +244,8 @@ export const resetPasswordAdmin = async (req, res) => {
 
   try {
     const usuario = await prisma.usuarios.findUnique({
-      where: { id_usuario: Number(id_usuario) }
+      where: { id_usuario: Number(id_usuario) },
+      include: { cargos: true }
     });
 
     if (!usuario) {
@@ -244,12 +255,34 @@ export const resetPasswordAdmin = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const newPasswordHash = await bcrypt.hash(newPassword, salt);
 
-    await prisma.usuarios.update({
+    // Asegurar que el usuario tenga un cargo/rol. Si no tiene, usar el nombre del cargo
+    const rol_empresa = usuario.rol_empresa || usuario.cargos?.nombre_cargo || 'USER';
+    
+    // Si no tiene permisos y tiene un cargo, asignar permisos por defecto
+    let permisos = usuario.permisos;
+    if (!permisos || Object.keys(permisos).length === 0) {
+      // Importar la función para obtener permisos base
+      const { getPermisosBaseCargo } = await import('../utils/permisosServidor.js');
+      permisos = getPermisosBaseCargo(rol_empresa);
+    }
+
+    const usuarioActualizado = await prisma.usuarios.update({
       where: { id_usuario: Number(id_usuario) },
-      data: { passwordd: newPasswordHash }
+      data: { 
+        passwordd: newPasswordHash,
+        rol_empresa: rol_empresa,
+        permisos: permisos
+      }
     });
 
-    return res.json({ message: `Contraseña de ${usuario.username} reseteada exitosamente` });
+    console.log(`✓ Contraseña reseteada para usuario ${usuario.username} (ID: ${id_usuario}) con rol: ${rol_empresa}`);
+
+    return res.json({ 
+      message: `Contraseña de ${usuario.username} reseteada exitosamente`,
+      username: usuario.username,
+      id_usuario: usuario.id_usuario,
+      rol: rol_empresa
+    });
   } catch (error) {
     console.error('Error al resetear contraseña:', error);
     return res.status(500).json({ error: 'Error interno del servidor' });

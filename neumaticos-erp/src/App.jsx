@@ -22,7 +22,7 @@ window.fetch = async (...args) => {
   return response;
 };
 
-// Interceptor global para axios (manejo de expiración de sesión 401)
+
 axios.interceptors.response.use(
   (response) => response,
   (error) => {

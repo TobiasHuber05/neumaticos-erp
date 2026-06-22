@@ -30,6 +30,7 @@ export const requireModulo = (moduloId, accion = 'ver') => {
         where: { id_usuario: req.usuario.id_usuario },
         select: {
           id_usuario: true,
+          username: true,
           rol_empresa: true,
           permisos: true,
         },
@@ -39,7 +40,10 @@ export const requireModulo = (moduloId, accion = 'ver') => {
         return res.status(401).json({ error: 'Usuario no encontrado o inactivo' });
       }
 
-      if (!puedeAccederModulo(usuario, moduloId, accion)) {
+      const puedeAcceder = puedeAccederModulo(usuario, moduloId, accion);
+      
+      if (!puedeAcceder) {
+        console.warn(`⚠️ Acceso denegado: ${usuario.username} (ID: ${usuario.id_usuario}) - Módulo: ${moduloId} - Rol: ${usuario.rol_empresa}`);
         return res.status(403).json({ error: 'No tenés permisos para esta acción' });
       }
 
